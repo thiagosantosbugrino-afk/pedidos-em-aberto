@@ -57,6 +57,26 @@ if arquivo:
         if produto:
             df = df[df["Produto"].astype(str).isin(produto)]
 
+    # PREVISÃO (Coluna Previsão como intervalo de datas)
+    if "Previsão" in df.columns:
+        df["Previsão"] = pd.to_datetime(df["Previsão"], errors="coerce", dayfirst=True)
+        df = df.dropna(subset=["Previsão"])
+
+        if not df.empty:
+            min_date = df["Previsão"].min().date()
+            max_date = df["Previsão"].max().date()
+
+            date_range = st.sidebar.date_input(
+                "Intervalo de Previsão",
+                value=(min_date, max_date),
+                min_value=min_date,
+                max_value=max_date
+            )
+
+            if isinstance(date_range, tuple) and len(date_range) == 2:
+                start_date, end_date = date_range
+                df = df[(df["Previsão"].dt.date >= start_date) & (df["Previsão"].dt.date <= end_date)]
+
     # ===================================
     # INDICADORES
     # ===================================
