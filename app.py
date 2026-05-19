@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import locale
 
 # CONFIG
 st.set_page_config(
@@ -9,12 +8,6 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
-
-# Forçar calendário em português
-try:
-    locale.setlocale(locale.LC_TIME, "pt_BR.UTF-8")
-except:
-    st.warning("⚠️ Locale pt_BR não disponível no servidor, mas o formato DD/MM/YYYY será usado.")
 
 # TÍTULO
 st.title("📊 Pedidos Em Aberto - Controle de Produção")
