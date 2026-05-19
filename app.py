@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import locale
 
 # CONFIG
 st.set_page_config(
@@ -8,6 +9,12 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
+
+# Forçar calendário em português
+try:
+    locale.setlocale(locale.LC_TIME, "pt_BR.UTF-8")
+except:
+    st.warning("⚠️ Locale pt_BR não disponível no servidor, mas o formato DD/MM/YYYY será usado.")
 
 # TÍTULO
 st.title("📊 Pedidos Em Aberto - Controle de Produção")
@@ -83,8 +90,11 @@ if arquivo:
                 format="DD/MM/YYYY"
             )
 
-            # Filtrar pelo intervalo
-            df = df[(df["Previsão"].dt.date >= start_date) & (df["Previsão"].dt.date <= end_date)]
+            # Garantir que a data inicial não seja maior que a final
+            if start_date > end_date:
+                st.sidebar.error("⚠️ A data inicial não pode ser maior que a data final.")
+            else:
+                df = df[(df["Previsão"].dt.date >= start_date) & (df["Previsão"].dt.date <= end_date)]
 
     # ===================================
     # INDICADORES
@@ -99,3 +109,60 @@ if arquivo:
     if "M2 Vendido" in df.columns:
         total_m2 = pd.to_numeric(df["M2 Vendido"], errors="coerce").sum()
 
+    if "Peso" in df.columns:
+        total_peso = pd.to_numeric(df["Peso"], errors="coerce").sum()
+
+    total_rotas = 0
+    if "Rota" in df.columns:
+        total_rotas = df["Rota"].nunique()
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Pedidos", total_pedidos)
+    c2.metric("Total M²", round(total_m2, 2))
+    c3.metric("Peso Total", round(total_peso, 2))
+    c4.metric("Rotas", total_rotas)
+
+    # ===================================
+    # TABELA Pedidos Em Aberto
+    # ===================================
+
+    st.subheader("Pedidos Em Aberto")
+
+    if "Rota" in df.columns and "M2 Vendido" in df.columns:
+        tabela = pd.pivot_table(
+            df,
+            values="M2 Vendido",
+            index="Rota",
+            aggfunc="sum",
+            fill_value=0,
+            margins=True,
+            margins_name="TOTAL GERAL"
+        )
+        st.dataframe(tabela, use_container_width=True, height=500)
+
+    # ===================================
+    # GRÁFICO
+    # ===================================
+
+    st.subheader("Produção por Rota")
+
+    if "Rota" in df.columns and "M2 Vendido" in df.columns:
+        grafico = df.groupby("Rota")["M2 Vendido"].sum().reset_index()
+        fig = px.bar(
+            grafico,
+            x="M2 Vendido",
+            y="Rota",
+            orientation="h",
+            title="Produção por Rota"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    # ===================================
+    # BASE COMPLETA
+    # ===================================
+
+    st.subheader("Base Completa")
+    st.dataframe(df, use_container_width=True, height=400)
+
+else:
+    st.info("Importe sua planilha Excel.")
