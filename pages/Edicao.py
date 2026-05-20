@@ -8,25 +8,21 @@ st.title("🔑 Página de Edição")
 senha = st.text_input("Digite a senha para acessar:", type="password")
 
 if senha == "Thiago2026!":  # 🔹 aqui você define sua senha
-    if "planilha_carregada" not in st.session_state:
-        st.session_state["planilha_carregada"] = False
-
     arquivo = st.file_uploader("Importar planilha", type=["xlsx"])
 
-    if arquivo and not st.session_state["planilha_carregada"]:
+    if arquivo:
         try:
             df = pd.read_excel(arquivo, sheet_name=0)  # lê sempre a primeira aba
-            df.to_excel("dados.xlsx", index=False)     # salva para o Viewer
-            st.session_state["planilha_carregada"] = True
+            df.to_excel("dados.xlsx", index=False)     # 🔹 sempre sobrescreve
             st.success("✅ Planilha carregada e salva!")
         except Exception as e:
             st.error(f"Erro ao ler a planilha: {e}")
 
-    if st.session_state["planilha_carregada"]:
-        try:
-            df = pd.read_excel("dados.xlsx", sheet_name=0)
-            st.dataframe(df)
-        except Exception as e:
-            st.error(f"Erro ao abrir dados salvos: {e}")
+    # Mostra os dados já salvos
+    try:
+        df = pd.read_excel("dados.xlsx", sheet_name=0)
+        st.dataframe(df)
+    except Exception:
+        st.info("Nenhuma planilha carregada ainda.")
 else:
     st.warning("⚠️ Acesso restrito. Digite a senha correta.")
