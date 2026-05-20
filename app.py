@@ -7,7 +7,7 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 
 # Lê direto do arquivo salvo pela página de edição
 try:
-    df = pd.read_excel("dados.xlsx", sheet_name=0)  # lê sempre a primeira aba
+    df = pd.read_excel("dados.xlsx", sheet_name=0)
 except FileNotFoundError:
     st.error("⚠️ Nenhum arquivo foi carregado ainda na página de edição.")
     st.stop()
@@ -17,8 +17,16 @@ except Exception as e:
 
 df.columns = df.columns.astype(str)
 
+# 🔹 Aplica filtro de rotas prioritárias
+try:
+    rotas_prioritarias = pd.read_csv("rotas_prioritarias.csv")["0"].tolist()
+    if "Rota" in df.columns and rotas_prioritarias:
+        df = df[df["Rota"].astype(str).isin(rotas_prioritarias)]
+except FileNotFoundError:
+    pass  # se não tiver arquivo, mostra tudo
+
 # ===================================
-# FILTROS
+# FILTROS ADICIONAIS
 # ===================================
 
 if "Cliente" in df.columns:
@@ -26,12 +34,6 @@ if "Cliente" in df.columns:
     cliente = st.sidebar.multiselect("Cliente", clientes)
     if cliente:
         df = df[df["Cliente"].astype(str).isin(cliente)]
-
-if "Rota" in df.columns:
-    rotas = sorted(df["Rota"].dropna().astype(str).unique())
-    rota = st.sidebar.multiselect("Rota", rotas)
-    if rota:
-        df = df[df["Rota"].astype(str).isin(rota)]
 
 if "Produto" in df.columns:
     produtos = sorted(df["Produto"].dropna().astype(str).unique())
@@ -45,20 +47,8 @@ if "Previsão" in df.columns:
     if not df.empty:
         min_date = df["Previsão"].min().date()
         max_date = df["Previsão"].max().date()
-        start_date = st.sidebar.date_input(
-            "Data inicial",
-            value=min_date,
-            min_value=min_date,
-            max_value=max_date,
-            format="DD/MM/YYYY"
-        )
-        end_date = st.sidebar.date_input(
-            "Data final",
-            value=max_date,
-            min_value=min_date,
-            max_value=max_date,
-            format="DD/MM/YYYY"
-        )
+        start_date = st.sidebar.date_input("Data inicial", value=min_date, min_value=min_date, max_value=max_date, format="DD/MM/YYYY")
+        end_date = st.sidebar.date_input("Data final", value=max_date, min_value=min_date, max_value=max_date, format="DD/MM/YYYY")
         if start_date > end_date:
             st.sidebar.error("⚠️ A data inicial não pode ser maior que a data final.")
         else:
@@ -99,14 +89,7 @@ if "Rota" in df.columns and "M2 Vendido" in df.columns:
 st.subheader("Produção por Rota")
 if "Rota" in df.columns and "M2 Vendido" in df.columns:
     grafico_rota = df.groupby("Rota")["M2 Vendido"].sum().reset_index()
-    fig_rota = px.bar(
-        grafico_rota,
-        x="M2 Vendido",
-        y="Rota",
-        orientation="h",
-        title="Produção por Rota",
-        text="M2 Vendido"
-    )
+    fig_rota = px.bar(grafico_rota, x="M2 Vendido", y="Rota", orientation="h", title="Produção por Rota", text="M2 Vendido")
     fig_rota.update_traces(texttemplate='%{text:.2f}', textposition='outside')
     st.plotly_chart(fig_rota, use_container_width=True)
 
@@ -117,14 +100,7 @@ if "Rota" in df.columns and "M2 Vendido" in df.columns:
 st.subheader("Produção por Produto")
 if "Produto" in df.columns and "M2 Vendido" in df.columns:
     grafico_produto = df.groupby("Produto")["M2 Vendido"].sum().reset_index()
-    fig_produto = px.bar(
-        grafico_produto,
-        x="M2 Vendido",
-        y="Produto",
-        orientation="h",
-        title="Produção por Produto",
-        text="M2 Vendido"
-    )
+    fig_produto = px.bar(grafico_produto, x="M2 Vendido", y="Produto", orientation="h", title="Produção por Produto", text="M2 Vendido")
     fig_produto.update_traces(texttemplate='%{text:.2f}', textposition='outside')
     st.plotly_chart(fig_produto, use_container_width=True)
 
