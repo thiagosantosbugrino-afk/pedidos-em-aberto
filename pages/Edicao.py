@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from io import BytesIO
 
 st.set_page_config(page_title="Pedidos Em Aberto - Edição", page_icon="🔑", layout="wide")
 st.title("🔑 Página de Edição")
@@ -40,6 +41,26 @@ if senha == "Thiago2026!":  # 🔹 sua senha
             if filtros:
                 pd.DataFrame([filtros]).to_json("filtros.json", orient="records")
                 st.success("✅ Filtros salvos (rotas e datas)!")
+
+            # ===================================
+            # DOWNLOAD DA PLANILHA FILTRADA
+            # ===================================
+            st.subheader("📥 Exportar dados filtrados")
+
+            def to_excel(df):
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                    df.to_excel(writer, index=False, sheet_name="Base Filtrada")
+                return output.getvalue()
+
+            excel_file = to_excel(df)
+
+            st.download_button(
+                label="Baixar planilha filtrada (Excel)",
+                data=excel_file,
+                file_name="dados_filtrados.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
         except Exception as e:
             st.error(f"Erro ao ler a planilha: {e}")
