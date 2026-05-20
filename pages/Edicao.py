@@ -4,26 +4,43 @@ import pandas as pd
 st.set_page_config(page_title="Pedidos Em Aberto - Edição", page_icon="🔑", layout="wide")
 st.title("🔑 Página de Edição")
 
-# Campo de senha
 senha = st.text_input("Digite a senha para acessar:", type="password")
 
-if senha == "Thiago2026!":  # 🔹 aqui você define sua senha
+if senha == "Thiago2026!":  # sua senha
     arquivo = st.file_uploader("Importar planilha", type=["xlsx"])
 
     if arquivo:
         try:
-            df = pd.read_excel(arquivo, sheet_name=0)  # lê sempre a primeira aba
-            df.to_excel("dados.xlsx", index=False)     # sobrescreve sempre
+            df = pd.read_excel(arquivo, sheet_name=0)
+            df.to_excel("dados.xlsx", index=False)
             st.success("✅ Planilha carregada e salva!")
 
-            # 🔹 Selecionar rotas prioritárias
+            # Selecionar rotas prioritárias
             if "Rota" in df.columns:
                 rotas = sorted(df["Rota"].dropna().astype(str).unique())
                 rotas_selecionadas = st.multiselect("Selecione as rotas prioritárias:", rotas)
 
-                if rotas_selecionadas:
-                    pd.Series(rotas_selecionadas).to_csv("rotas_prioritarias.csv", index=False)
-                    st.success("✅ Rotas prioritárias salvas!")
+            # Selecionar período de datas
+            if "Previsão" in df.columns:
+                df["Previsão"] = pd.to_datetime(df["Previsão"], errors="coerce", dayfirst=True)
+                df = df.dropna(subset=["Previsão"])
+                if not df.empty:
+                    min_date = df["Previsão"].min().date()
+                    max_date = df["Previsão"].max().date()
+                    start_date = st.date_input("Data inicial", value=min_date, min_value=min_date, max_value=max_date, format="DD/MM/YYYY")
+                    end_date = st.date_input("Data final", value=max_date, min_value=min_date, max_value=max_date, format="DD/MM/YYYY")
+
+            # Salva filtros escolhidos
+            filtros = {}
+            if rotas_selecionadas:
+                filtros["rotas"] = rotas_selecionadas
+            if "start_date" in locals() and "end_date" in locals():
+                filtros["start_date"] = str(start_date)
+                filtros["end_date"] = str(end_date)
+
+            if filtros:
+                pd.DataFrame([filtros]).to_json("filtros.json", orient="records")
+                st.success("✅ Filtros salvos (rotas e datas)!")
         except Exception as e:
             st.error(f"Erro ao ler a planilha: {e}")
 
