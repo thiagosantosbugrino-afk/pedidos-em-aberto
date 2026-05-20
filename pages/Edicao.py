@@ -13,12 +13,21 @@ if senha == "Thiago2026!":  # 🔹 aqui você define sua senha
     if arquivo:
         try:
             df = pd.read_excel(arquivo, sheet_name=0)  # lê sempre a primeira aba
-            df.to_excel("dados.xlsx", index=False)     # 🔹 sempre sobrescreve
+            df.to_excel("dados.xlsx", index=False)     # sobrescreve sempre
             st.success("✅ Planilha carregada e salva!")
+
+            # 🔹 Selecionar rotas prioritárias
+            if "Rota" in df.columns:
+                rotas = sorted(df["Rota"].dropna().astype(str).unique())
+                rotas_selecionadas = st.multiselect("Selecione as rotas prioritárias:", rotas)
+
+                if rotas_selecionadas:
+                    pd.Series(rotas_selecionadas).to_csv("rotas_prioritarias.csv", index=False)
+                    st.success("✅ Rotas prioritárias salvas!")
         except Exception as e:
             st.error(f"Erro ao ler a planilha: {e}")
 
-    # Mostra os dados já salvos
+    # Mostra dados já salvos
     try:
         df = pd.read_excel("dados.xlsx", sheet_name=0)
         st.dataframe(df)
