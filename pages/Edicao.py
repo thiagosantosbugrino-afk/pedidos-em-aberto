@@ -7,7 +7,7 @@ st.title("🔑 Página de Edição")
 # Campo de senha
 senha = st.text_input("Digite a senha para acessar:", type="password")
 
-if senha == "minha_senha_secreta":  # troque pela sua senha
+if senha == "1911":  # troque pela sua senha
     arquivo = st.file_uploader("Importar planilha", type=["xlsx"])
     if arquivo:
         df = pd.read_excel(arquivo, sheet_name="Base")
