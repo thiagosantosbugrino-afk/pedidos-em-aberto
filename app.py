@@ -18,7 +18,9 @@ except Exception as e:
 
 df.columns = df.columns.astype(str)
 
-# Aplica filtros salvos
+# ===================================
+# APLICA FILTROS SALVOS
+# ===================================
 try:
     with open("filtros.json", "r") as f:
         filtros = json.load(f)[0]
@@ -37,4 +39,59 @@ try:
 except FileNotFoundError:
     pass
 
-# ... (resto do código igual: indicadores, tabela, gráficos por rota e produto, base completa)
+# Se após filtros não sobrou nada
+if df.empty:
+    st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados. Verifique as rotas e datas na página de edição.")
+    st.stop()
+
+# ===================================
+# INDICADORES
+# ===================================
+st.subheader("Indicadores")
+
+total_pedidos = df["Pedido"].nunique() if "Pedido" in df.columns else len(df)
+total_pecas = len(df)
+total_m2 = pd.to_numeric(df["M2 Vendido"], errors="coerce").sum() if "M2 Vendido" in df.columns else 0
+total_peso = pd.to_numeric(df["Peso"], errors="coerce").sum() if "Peso" in df.columns else 0
+total_rotas = df["Rota"].nunique() if "Rota" in df.columns else 0
+
+c1, c2, c3, c4, c5 = st.columns(5)
+c1.metric("Pedidos", total_pedidos)
+c2.metric("Peças", total_pecas)
+c3.metric("Total M²", round(total_m2, 2))
+c4.metric("Peso Total", round(total_peso, 2))
+c5.metric("Rotas", total_rotas)
+
+# ===================================
+# TABELA
+# ===================================
+st.subheader("Pedidos Em Aberto")
+if "Rota" in df.columns and "M2 Vendido" in df.columns:
+    tabela = pd.pivot_table(df, values="M2 Vendido", index="Rota", aggfunc="sum", fill_value=0, margins=True, margins_name="TOTAL GERAL")
+    st.dataframe(tabela, use_container_width=True, height=500)
+
+# ===================================
+# GRÁFICO POR ROTA
+# ===================================
+st.subheader("Produção por Rota")
+if "Rota" in df.columns and "M2 Vendido" in df.columns:
+    grafico_rota = df.groupby("Rota")["M2 Vendido"].sum().reset_index()
+    fig_rota = px.bar(grafico_rota, x="M2 Vendido", y="Rota", orientation="h", title="Produção por Rota", text="M2 Vendido")
+    fig_rota.update_traces(texttemplate='%{text:.2f}', textposition='outside')
+    st.plotly_chart(fig_rota, use_container_width=True)
+
+# ===================================
+# GRÁFICO POR PRODUTO
+# ===================================
+st.subheader("Produção por Produto")
+if "Produto" in df.columns and "M2 Vendido" in df.columns:
+    grafico_produto = df.groupby("Produto")["M2 Vendido"].sum().reset_index()
+    fig_produto = px.bar(grafico_produto, x="M2 Vendido", y="Produto", orientation="h", title="Produção por Produto", text="M2 Vendido")
+    fig_produto.update_traces(texttemplate='%{text:.2f}', textposition='outside')
+    st.plotly_chart(fig_produto, use_container_width=True)
+
+# ===================================
+# BASE COMPLETA
+# ===================================
+st.subheader("Base Completa")
+st.dataframe(df, use_container_width=True, height=400)
