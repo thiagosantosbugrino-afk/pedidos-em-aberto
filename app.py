@@ -81,14 +81,24 @@ if "Rota" in df.columns and "M2 Vendido" in df.columns:
     st.dataframe(tabela, use_container_width=True, height=500)
 
 # ===================================
-# GRÁFICO
+# GRÁFICO POR ROTA
 # ===================================
 
 st.subheader("Produção por Rota")
 if "Rota" in df.columns and "M2 Vendido" in df.columns:
-    grafico = df.groupby("Rota")["M2 Vendido"].sum().reset_index()
-    fig = px.bar(grafico, x="M2 Vendido", y="Rota", orientation="h", title="Produção por Rota")
-    st.plotly_chart(fig, use_container_width=True)
+    grafico_rota = df.groupby("Rota")["M2 Vendido"].sum().reset_index()
+    fig_rota = px.bar(grafico_rota, x="M2 Vendido", y="Rota", orientation="h", title="Produção por Rota")
+    st.plotly_chart(fig_rota, use_container_width=True)
+
+# ===================================
+# GRÁFICO POR PRODUTO
+# ===================================
+
+st.subheader("Produção por Produto")
+if "Produto" in df.columns and "M2 Vendido" in df.columns:
+    grafico_produto = df.groupby("Produto")["M2 Vendido"].sum().reset_index()
+    fig_produto = px.bar(grafico_produto, x="M2 Vendido", y="Produto", orientation="h", title="Produção por Produto")
+    st.plotly_chart(fig_produto, use_container_width=True)
 
 # ===================================
 # BASE COMPLETA
