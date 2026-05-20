@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import json
+from io import BytesIO
 
 st.set_page_config(page_title="Pedidos Em Aberto - Visualização", page_icon="📊", layout="wide")
 st.title("📊 Pedidos Em Aberto - Visualização")
@@ -95,3 +96,23 @@ if "Produto" in df.columns and "M2 Vendido" in df.columns:
 # ===================================
 st.subheader("Base Completa")
 st.dataframe(df, use_container_width=True, height=400)
+
+# ===================================
+# DOWNLOAD DA PLANILHA FILTRADA
+# ===================================
+st.subheader("📥 Exportar dados filtrados")
+
+def to_excel(df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Base Filtrada")
+    return output.getvalue()
+
+excel_file = to_excel(df)
+
+st.download_button(
+    label="Baixar planilha filtrada (Excel)",
+    data=excel_file,
+    file_name="dados_filtrados.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
