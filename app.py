@@ -2,14 +2,18 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Pedidos Em Aberto - Viewer", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Pedidos Em Aberto - Visualização", page_icon="📊", layout="wide")
 st.title("📊 Pedidos Em Aberto - Visualização")
 
 # Lê direto do arquivo salvo pela página de edição
 try:
-    df = pd.read_excel("dados.xlsx", sheet_name="Base")
+    # pega sempre a primeira aba
+    df = pd.read_excel("dados.xlsx", sheet_name=0)
 except FileNotFoundError:
     st.error("⚠️ Nenhum arquivo foi carregado ainda na página de edição.")
+    st.stop()
+except Exception as e:
+    st.error(f"Erro ao abrir a planilha: {e}")
     st.stop()
 
 df.columns = df.columns.astype(str)
