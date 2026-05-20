@@ -7,8 +7,7 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 
 # Lê direto do arquivo salvo pela página de edição
 try:
-    # pega sempre a primeira aba
-    df = pd.read_excel("dados.xlsx", sheet_name=0)
+    df = pd.read_excel("dados.xlsx", sheet_name=0)  # lê sempre a primeira aba
 except FileNotFoundError:
     st.error("⚠️ Nenhum arquivo foi carregado ainda na página de edição.")
     st.stop()
