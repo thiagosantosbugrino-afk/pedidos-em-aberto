@@ -16,3 +16,4 @@ if senha == "minha_senha_secreta":  # troque pela sua senha
         st.dataframe(df)
 else:
     st.warning("⚠️ Acesso restrito. Digite a senha correta.")
+
