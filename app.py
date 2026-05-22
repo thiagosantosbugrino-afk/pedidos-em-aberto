@@ -130,10 +130,39 @@ if "PC" in df.columns:
         .unique()
     )
 
+    # ===================================
+    # LER FILTRO SALVO
+    # ===================================
+
+    pcs_padrao = []
+
+    try:
+
+        with open("filtros.json", "r") as f:
+
+            filtros_salvos = json.load(f)[0]
+
+            if "pcs" in filtros_salvos:
+
+                pcs_padrao = filtros_salvos["pcs"]
+
+    except:
+
+        pass
+
+    # ===================================
+    # SIDEBAR
+    # ===================================
+
     pc_selecionado = st.sidebar.multiselect(
         "Programação de carga",
-        pcs
+        pcs,
+        default=pcs_padrao
     )
+
+    # ===================================
+    # APLICAR FILTRO
+    # ===================================
 
     if pc_selecionado:
 
