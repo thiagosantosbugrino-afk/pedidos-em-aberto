@@ -50,6 +50,60 @@ arquivo = st.file_uploader(
 )
 
 # =========================================
+# FUNÇÃO INTELIGENTE
+# =========================================
+
+def encontrar_base_excel(arquivo):
+
+    excel = pd.ExcelFile(arquivo)
+
+    palavras_chave = [
+        "pedido",
+        "rota",
+        "previs",
+        "produto",
+        "cliente",
+        "pc"
+    ]
+
+    for aba in excel.sheet_names:
+
+        try:
+
+            for linha in range(10):
+
+                teste = pd.read_excel(
+                    arquivo,
+                    sheet_name=aba,
+                    header=linha
+                )
+
+                teste.columns = (
+                    teste.columns
+                    .astype(str)
+                    .str.strip()
+                )
+
+                nomes = " ".join(
+                    teste.columns.astype(str).str.lower()
+                )
+
+                encontrou = any(
+                    palavra in nomes
+                    for palavra in palavras_chave
+                )
+
+                if encontrou:
+
+                    return teste, aba, linha
+
+        except:
+
+            pass
+
+    return None, None, None
+
+# =========================================
 # PROCESSAMENTO
 # =========================================
 
@@ -57,20 +111,54 @@ if arquivo:
 
     try:
 
-        df = pd.read_excel(
-            arquivo,
-            sheet_name=0
-        )
+        # =========================================
+        # LEITURA AUTOMÁTICA
+        # =========================================
 
+        df, aba_encontrada, linha_encontrada = encontrar_base_excel(arquivo)
+
+        if df is None:
+
+            st.error(
+                "❌ Não foi possível encontrar automaticamente a base da planilha."
+            )
+
+            st.stop()
+
+        # =========================================
         # LIMPEZA COLUNAS
+        # =========================================
+
         df.columns = (
             df.columns
             .astype(str)
             .str.strip()
         )
 
+        # REMOVE COLUNAS UNNAMED
+        df = df.loc[
+            :,
+            ~df.columns.str.contains(
+                "^Unnamed",
+                case=False
+            )
+        ]
+
+        # REMOVE LINHAS TOTALMENTE VAZIAS
+        df = df.dropna(
+            how="all"
+        )
+
         # =========================================
-        # SALVAR BASE PRINCIPAL
+        # INFORMAÇÕES
+        # =========================================
+
+        st.success(
+            f"✅ Base encontrada automaticamente | Aba: {aba_encontrada} | Cabeçalho linha: {linha_encontrada + 1}"
+        )
+
+        # =========================================
+        # SALVAR BASE
         # =========================================
 
         df.to_excel(
@@ -183,7 +271,7 @@ if arquivo:
             st.success("✅ Filtros salvos!")
 
         # =========================================
-        # DOWNLOAD EXCEL
+        # DOWNLOAD
         # =========================================
 
         st.subheader("📥 Exportar dados filtrados")
