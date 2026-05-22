@@ -46,15 +46,6 @@ if df.empty:
     st.stop()
 
 # ===================================
-# FILTRO EXTRA: Programação de carga (PC)
-# ===================================
-if "PC" in df.columns:
-    pcs = sorted(df["PC"].dropna().astype(str).unique())
-    pc_selecionado = st.sidebar.multiselect("Programação de carga", pcs)
-    if pc_selecionado:
-        df = df[df["PC"].astype(str).isin(pc_selecionado)]
-
-# ===================================
 # INDICADORES
 # ===================================
 st.subheader("Indicadores")
@@ -125,3 +116,4 @@ st.download_button(
     file_name="dados_filtrados.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
+
