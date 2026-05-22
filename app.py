@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import pandas as pd
 from io import BytesIO
@@ -242,4 +241,3 @@ try:
 except Exception:
 
     st.info("Nenhuma planilha carregada ainda.")
-```
