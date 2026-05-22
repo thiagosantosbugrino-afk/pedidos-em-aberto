@@ -240,4 +240,4 @@ try:
 except Exception:
 
     st.info("Nenhuma planilha carregada ainda.")
-```
+
