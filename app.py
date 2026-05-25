@@ -167,8 +167,7 @@ if "Previsão" in df.columns:
             value=pd.to_datetime(start_padrao).date(),
             min_value=min_date,
             max_value=max_date,
-            format="DD/MM/YYYY",
-            locale="pt_BR"
+            format="DD/MM/YYYY"
         )
 
         end_date = st.sidebar.date_input(
@@ -176,8 +175,7 @@ if "Previsão" in df.columns:
             value=pd.to_datetime(end_padrao).date(),
             min_value=min_date,
             max_value=max_date,
-            format="DD/MM/YYYY",
-            locale="pt_BR"
+            format="DD/MM/YYYY"
         )
 
         df = df[
@@ -328,12 +326,12 @@ if (
     )
 
 # ===================================
-# DETALHAMENTO POR ROTA
+# DETALHAMENTO
 # ===================================
 
 if "Rota" in df.columns:
 
-    st.subheader("Detalhamento por Rota")
+    st.subheader("Detalhamento")
 
     rota_detalhe = st.selectbox(
         "Escolha a rota",
@@ -341,7 +339,7 @@ if "Rota" in df.columns:
     )
 
     filtro_data = st.radio(
-        "Filtrar por:",
+        "Filtrar por",
         ["Uma data", "Período"]
     )
 
@@ -354,8 +352,7 @@ if "Rota" in df.columns:
         data_unica = st.date_input(
             "Escolha a data",
             value=df["Previsão"].min().date(),
-            format="DD/MM/YYYY",
-            locale="pt_BR"
+            format="DD/MM/YYYY"
         )
 
         df_detalhe = df_detalhe[
@@ -365,17 +362,15 @@ if "Rota" in df.columns:
     else:
 
         data_inicio = st.date_input(
-            "Data inicial detalhe",
+            "Data inicial",
             value=df["Previsão"].min().date(),
-            format="DD/MM/YYYY",
-            locale="pt_BR"
+            format="DD/MM/YYYY"
         )
 
         data_fim = st.date_input(
-            "Data final detalhe",
+            "Data final",
             value=df["Previsão"].max().date(),
-            format="DD/MM/YYYY",
-            locale="pt_BR"
+            format="DD/MM/YYYY"
         )
 
         df_detalhe = df_detalhe[
@@ -395,7 +390,7 @@ if "Rota" in df.columns:
     )
 
 # ===================================
-# TABELA POR PRODUTO
+# TABELA PRODUTO
 # ===================================
 
 if (
