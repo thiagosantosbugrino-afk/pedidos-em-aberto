@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 import json
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
 # =========================================
 # CONFIGURAÇÃO
@@ -36,7 +34,20 @@ if senha != "Thiago2026!":
     st.error("❌ Senha incorreta.")
     st.stop()
 
+# =========================================
+# ACESSO LIBERADO
+# =========================================
+
 st.success("✅ Acesso liberado.")
+
+# =========================================
+# UPLOAD
+# =========================================
+
+arquivo = st.file_uploader(
+    "Importar planilha",
+    type=["xlsx", "xlsm"]
+)
 
 # =========================================
 # FUNÇÃO INTELIGENTE
@@ -49,9 +60,9 @@ def encontrar_base_excel(arquivo):
     palavras_chave = [
         "pedido",
         "rota",
+        "previs",
         "produto",
         "cliente",
-        "previs",
         "pc"
     ]
 
@@ -59,7 +70,7 @@ def encontrar_base_excel(arquivo):
 
         try:
 
-            for linha in range(15):
+            for linha in range(10):
 
                 teste = pd.read_excel(
                     arquivo,
@@ -74,9 +85,7 @@ def encontrar_base_excel(arquivo):
                 )
 
                 nomes = " ".join(
-                    teste.columns
-                    .astype(str)
-                    .str.lower()
+                    teste.columns.astype(str).str.lower()
                 )
 
                 encontrou = any(
@@ -95,34 +104,6 @@ def encontrar_base_excel(arquivo):
     return None, None, None
 
 # =========================================
-# MOSTRAR BASE ATUAL
-# =========================================
-
-df_existente = None
-
-try:
-
-    df_existente = pd.read_excel(
-        "dados.xlsx",
-        sheet_name="Base"
-    )
-
-    st.success("✅ Base atual carregada.")
-
-except:
-
-    pass
-
-# =========================================
-# UPLOAD
-# =========================================
-
-arquivo = st.file_uploader(
-    "Importar planilha",
-    type=["xlsx", "xlsm"]
-)
-
-# =========================================
 # PROCESSAMENTO
 # =========================================
 
@@ -130,18 +111,22 @@ if arquivo:
 
     try:
 
-        df, aba, linha = encontrar_base_excel(arquivo)
+        # =========================================
+        # LEITURA AUTOMÁTICA
+        # =========================================
+
+        df, aba_encontrada, linha_encontrada = encontrar_base_excel(arquivo)
 
         if df is None:
 
             st.error(
-                "❌ Não foi possível localizar a base automaticamente."
+                "❌ Não foi possível encontrar automaticamente a base da planilha."
             )
 
             st.stop()
 
         # =========================================
-        # LIMPEZA
+        # LIMPEZA COLUNAS
         # =========================================
 
         df.columns = (
@@ -150,6 +135,7 @@ if arquivo:
             .str.strip()
         )
 
+        # REMOVE COLUNAS UNNAMED
         df = df.loc[
             :,
             ~df.columns.str.contains(
@@ -158,111 +144,188 @@ if arquivo:
             )
         ]
 
+        # REMOVE LINHAS TOTALMENTE VAZIAS
         df = df.dropna(
             how="all"
         )
 
         # =========================================
-        # MOSTRA INFORMAÇÕES
+        # INFORMAÇÕES
         # =========================================
 
         st.success(
-            f"✅ Base encontrada | Aba: {aba} | Linha do cabeçalho: {linha + 1}"
+            f"✅ Base encontrada automaticamente | Aba: {aba_encontrada} | Cabeçalho linha: {linha_encontrada + 1}"
         )
-
-        st.write("Quantidade de linhas:", len(df))
-        st.write("Quantidade de colunas:", len(df.columns))
-
-        st.write("Colunas encontradas:")
-        st.write(df.columns.tolist())
 
         # =========================================
         # SALVAR BASE
         # =========================================
 
-        with pd.ExcelWriter(
+        df.to_excel(
             "dados.xlsx",
+            index=False,
             engine="openpyxl"
-        ) as writer:
+        )
 
-            df.to_excel(
-                writer,
-                index=False,
-                sheet_name="Base"
-            )
+        st.success("✅ Planilha carregada e salva!")
+
+        filtros = {}
 
         # =========================================
-        # SALVAR DATA ATUALIZAÇÃO
+        # FILTRO ROTA
         # =========================================
 
-        horario_brasilia = datetime.now(
-            ZoneInfo("America/Sao_Paulo")
-        ).strftime("%d/%m/%Y %H:%M:%S")
+        if "Rota" in df.columns:
 
-        with open(
-            "ultima_atualizacao.json",
-            "w",
-            encoding="utf-8"
-        ) as f:
-
-            json.dump(
-                {
-                    "horario": horario_brasilia
-                },
-                f,
-                ensure_ascii=False
+            rotas = sorted(
+                df["Rota"]
+                .dropna()
+                .astype(str)
+                .unique()
             )
 
-        st.success("✅ Planilha carregada com sucesso!")
+            rotas_selecionadas = st.multiselect(
+                "Selecione as rotas prioritárias:",
+                rotas
+            )
 
-        df_existente = df
+            if rotas_selecionadas:
+
+                filtros["rotas"] = rotas_selecionadas
+
+        # =========================================
+        # FILTRO DATA
+        # =========================================
+
+        if "Previsão" in df.columns:
+
+            df["Previsão"] = pd.to_datetime(
+                df["Previsão"],
+                errors="coerce",
+                dayfirst=True
+            )
+
+            df = df.dropna(
+                subset=["Previsão"]
+            )
+
+            if not df.empty:
+
+                min_date = df["Previsão"].min().date()
+                max_date = df["Previsão"].max().date()
+
+                start_date = st.date_input(
+                    "Data inicial",
+                    value=min_date,
+                    min_value=min_date,
+                    max_value=max_date,
+                    format="DD/MM/YYYY"
+                )
+
+                end_date = st.date_input(
+                    "Data final",
+                    value=max_date,
+                    min_value=min_date,
+                    max_value=max_date,
+                    format="DD/MM/YYYY"
+                )
+
+                filtros["start_date"] = str(start_date)
+                filtros["end_date"] = str(end_date)
+
+        # =========================================
+        # FILTRO PC
+        # =========================================
+
+        if "PC" in df.columns:
+
+            pcs = sorted(
+                df["PC"]
+                .dropna()
+                .astype(str)
+                .unique()
+            )
+
+            pcs_selecionados = st.multiselect(
+                "Programação de carga:",
+                pcs
+            )
+
+            if pcs_selecionados:
+
+                filtros["pcs"] = pcs_selecionados
+
+        # =========================================
+        # SALVAR FILTROS
+        # =========================================
+
+        if filtros:
+
+            with open("filtros.json", "w") as f:
+
+                json.dump(
+                    [filtros],
+                    f
+                )
+
+            st.success("✅ Filtros salvos!")
+
+        # =========================================
+        # DOWNLOAD
+        # =========================================
+
+        st.subheader("📥 Exportar dados filtrados")
+
+        def to_excel(df):
+
+            output = BytesIO()
+
+            with pd.ExcelWriter(
+                output,
+                engine="openpyxl"
+            ) as writer:
+
+                df.to_excel(
+                    writer,
+                    index=False,
+                    sheet_name="Base Filtrada"
+                )
+
+            return output.getvalue()
+
+        excel_file = to_excel(df)
+
+        st.download_button(
+            label="Baixar planilha filtrada (Excel)",
+            data=excel_file,
+            file_name="dados_filtrados.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
     except Exception as e:
 
-        st.error(f"Erro ao processar planilha: {e}")
+        st.error(f"Erro ao ler a planilha: {e}")
 
 # =========================================
-# EXIBIR BASE
+# MOSTRAR BASE ATUAL
 # =========================================
 
-if df_existente is not None:
+st.subheader("📋 Base Atual")
 
-    st.subheader("📋 Base Atual")
+try:
+
+    df_atual = pd.read_excel(
+        "dados.xlsx",
+        sheet_name=0
+    )
 
     st.dataframe(
-        df_existente,
+        df_atual,
         use_container_width=True,
-        height=500
+        height=400
     )
 
-    # =========================================
-    # DOWNLOAD
-    # =========================================
+except Exception:
 
-    st.subheader("📥 Exportar Base")
+    st.info("Nenhuma planilha carregada ainda.")
 
-    def to_excel(df):
-
-        output = BytesIO()
-
-        with pd.ExcelWriter(
-            output,
-            engine="openpyxl"
-        ) as writer:
-
-            df.to_excel(
-                writer,
-                index=False,
-                sheet_name="Base"
-            )
-
-        return output.getvalue()
-
-    excel_file = to_excel(df_existente)
-
-    st.download_button(
-        label="Baixar dados.xlsx",
-        data=excel_file,
-        file_name="dados.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
