@@ -30,7 +30,7 @@ try:
 
 except FileNotFoundError:
 
-    st.error("⚠️ Nenhum arquivo carregado ainda.")
+    st.error("⚠️ Nenhum arquivo foi carregado ainda.")
     st.stop()
 
 except Exception as e:
@@ -80,7 +80,7 @@ except:
     pass
 
 # ===================================
-# CONVERTER DATA
+# CONVERTE DATA
 # ===================================
 
 if "Previsão" in df.columns:
@@ -106,14 +106,12 @@ except:
     filtros = {}
 
 # ===================================
-# SIDEBAR
+# FILTRO SIDEBAR
 # ===================================
 
 st.sidebar.title("Filtros")
 
-# ===================================
-# FILTRO DATA
-# ===================================
+# DATA
 
 if "Previsão" in df.columns:
 
@@ -140,9 +138,7 @@ if "Previsão" in df.columns:
         )
     ]
 
-# ===================================
-# FILTRO ROTA
-# ===================================
+# ROTA
 
 if "Rota" in df.columns:
 
@@ -169,9 +165,7 @@ if "Rota" in df.columns:
             .isin(rotas_selecionadas)
         ]
 
-# ===================================
-# FILTRO PRODUTO
-# ===================================
+# PRODUTO
 
 if "Produto" in df.columns:
 
@@ -195,9 +189,7 @@ if "Produto" in df.columns:
             .isin(produtos_selecionados)
         ]
 
-# ===================================
-# FILTRO PC
-# ===================================
+# PC
 
 if "PC" in df.columns:
 
@@ -230,7 +222,10 @@ if "PC" in df.columns:
 
 if df.empty:
 
-    st.warning("⚠️ Nenhum dado encontrado.")
+    st.warning(
+        "⚠️ Nenhum dado encontrado."
+    )
+
     st.stop()
 
 # ===================================
@@ -293,13 +288,13 @@ mostrar_produto = st.checkbox(
     value=True
 )
 
-mostrar_detalhamento = st.checkbox(
-    "🔎 Mostrar Detalhamento",
+mostrar_base = st.checkbox(
+    "📋 Mostrar Base Completa",
     value=False
 )
 
-mostrar_base = st.checkbox(
-    "📋 Mostrar Base Completa",
+mostrar_detalhamento = st.checkbox(
+    "🔎 Mostrar Detalhamento",
     value=False
 )
 
@@ -475,8 +470,6 @@ if mostrar_detalhamento:
 
     df_detalhe = df.copy()
 
-    # DATA
-
     if "Previsão" in df_detalhe.columns:
 
         min_det = df_detalhe["Previsão"].min().date()
@@ -510,83 +503,6 @@ if mostrar_detalhamento:
             )
         ]
 
-    # PRODUTO
-
-    if "Produto" in df_detalhe.columns:
-
-        produtos_det = sorted(
-            df_detalhe["Produto"]
-            .dropna()
-            .astype(str)
-            .unique()
-        )
-
-        produto_det = st.multiselect(
-            "Filtrar Produto",
-            produtos_det,
-            key="produto_det"
-        )
-
-        if produto_det:
-
-            df_detalhe = df_detalhe[
-                df_detalhe["Produto"]
-                .astype(str)
-                .isin(produto_det)
-            ]
-
-    # ROTA
-
-    if "Rota" in df_detalhe.columns:
-
-        rotas_det = sorted(
-            df_detalhe["Rota"]
-            .dropna()
-            .astype(str)
-            .unique()
-        )
-
-        rota_det = st.multiselect(
-            "Filtrar Rota",
-            rotas_det,
-            key="rota_det"
-        )
-
-        if rota_det:
-
-            df_detalhe = df_detalhe[
-                df_detalhe["Rota"]
-                .astype(str)
-                .isin(rota_det)
-            ]
-
-    # CARREGAMENTO
-
-    if "PC" in df_detalhe.columns:
-
-        pcs_det = sorted(
-            df_detalhe["PC"]
-            .dropna()
-            .astype(str)
-            .unique()
-        )
-
-        pc_det = st.multiselect(
-            "Filtrar Carregamento",
-            pcs_det,
-            key="pc_det"
-        )
-
-        if pc_det:
-
-            df_detalhe = df_detalhe[
-                df_detalhe["PC"]
-                .astype(str)
-                .isin(pc_det)
-            ]
-
-    # PEDIDO
-
     if "Pedido" in df_detalhe.columns:
 
         pedidos = sorted(
@@ -611,7 +527,7 @@ if mostrar_detalhamento:
     st.dataframe(
         df_detalhe,
         use_container_width=True,
-        height=500
+        height=400
     )
 
 # ===================================
