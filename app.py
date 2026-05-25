@@ -4,7 +4,6 @@ import plotly.express as px
 import json
 from io import BytesIO
 from datetime import datetime
-import pytz
 import os
 
 # ===================================
@@ -25,14 +24,9 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 
 if os.path.exists("dados.xlsx"):
 
-    fuso_brasil = pytz.timezone("America/Sao_Paulo")
-
     timestamp = os.path.getmtime("dados.xlsx")
 
-    horario = datetime.fromtimestamp(
-        timestamp,
-        tz=fuso_brasil
-    )
+    horario = datetime.fromtimestamp(timestamp)
 
     horario_formatado = horario.strftime("%d/%m/%Y %H:%M:%S")
 
@@ -70,6 +64,18 @@ df.columns = (
 )
 
 # ===================================
+# CONVERTER DATA
+# ===================================
+
+if "Previsão" in df.columns:
+
+    df["Previsão"] = pd.to_datetime(
+        df["Previsão"],
+        errors="coerce",
+        dayfirst=True
+    )
+
+# ===================================
 # APLICA FILTROS SALVOS
 # ===================================
 
@@ -80,7 +86,7 @@ try:
         filtros = json.load(f)[0]
 
     # ===================================
-    # ROTA
+    # FILTRO ROTA
     # ===================================
 
     if (
@@ -96,7 +102,7 @@ try:
         ]
 
     # ===================================
-    # DATA
+    # FILTRO DATA
     # ===================================
 
     if (
@@ -106,16 +112,6 @@ try:
         and
         "Previsão" in df.columns
     ):
-
-        df["Previsão"] = pd.to_datetime(
-            df["Previsão"],
-            errors="coerce",
-            dayfirst=True
-        )
-
-        df = df.dropna(
-            subset=["Previsão"]
-        )
 
         start_date = pd.to_datetime(
             filtros["start_date"]
@@ -188,11 +184,34 @@ if "PC" in df.columns:
 
 if df.empty:
 
-    st.warning(
-        "⚠️ Nenhum dado encontrado."
-    )
+    st.warning("⚠️ Nenhum dado encontrado.")
 
     st.stop()
+
+# ===================================
+# DATA FORMATADA
+# ===================================
+
+meses_pt = {
+    1: "jan",
+    2: "fev",
+    3: "mar",
+    4: "abr",
+    5: "mai",
+    6: "jun",
+    7: "jul",
+    8: "ago",
+    9: "set",
+    10: "out",
+    11: "nov",
+    12: "dez"
+}
+
+df["Data_Formatada"] = df["Previsão"].apply(
+    lambda x: f"{x.day}/{meses_pt[x.month]}"
+    if pd.notnull(x)
+    else ""
+)
 
 # ===================================
 # INDICADORES
@@ -241,7 +260,7 @@ c4.metric("Peso Total", round(total_peso, 2))
 c5.metric("Rotas", total_rotas)
 
 # ===================================
-# TABELA DINÂMICA ROTA
+# VISÃO ROTA
 # ===================================
 
 st.markdown("---")
@@ -254,38 +273,9 @@ mostrar_tabela_rota = st.checkbox(
 if (
     mostrar_tabela_rota
     and "Rota" in df.columns
-    and "Previsão" in df.columns
-    and "M2 Vendido" in df.columns
 ):
 
     st.subheader("📊 Pedidos por Rota e Data")
-
-    df["Previsão"] = pd.to_datetime(
-        df["Previsão"],
-        errors="coerce",
-        dayfirst=True
-    )
-
-    meses_pt = {
-        1: "jan",
-        2: "fev",
-        3: "mar",
-        4: "abr",
-        5: "mai",
-        6: "jun",
-        7: "jul",
-        8: "ago",
-        9: "set",
-        10: "out",
-        11: "nov",
-        12: "dez"
-    }
-
-    df["Data_Formatada"] = df["Previsão"].apply(
-        lambda x: f"{x.day}/{meses_pt[x.month]}"
-        if pd.notnull(x)
-        else ""
-    )
 
     tabela_rota = pd.pivot_table(
         df,
@@ -304,19 +294,27 @@ if (
         height=500
     )
 
-    # ===================================
-    # DETALHAMENTO
-    # ===================================
+# ===================================
+# DETALHAMENTO
+# ===================================
 
-    st.markdown("---")
-    st.subheader("🔎 Detalhamento")
+st.markdown("---")
 
-    col1, col2 = st.columns(2)
+mostrar_detalhamento = st.checkbox(
+    "Mostrar detalhamento",
+    value=True
+)
+
+if mostrar_detalhamento:
+
+    st.subheader("🔎 Detalhamento dos Pedidos")
+
+    col1, col2, col3 = st.columns(3)
 
     with col1:
 
         rota_detalhe = st.selectbox(
-            "Selecione a rota",
+            "Rota",
             sorted(
                 df["Rota"]
                 .dropna()
@@ -327,14 +325,16 @@ if (
 
     with col2:
 
-        data_detalhe = st.selectbox(
-            "Selecione a data",
-            sorted(
-                df["Data_Formatada"]
-                .dropna()
-                .astype(str)
-                .unique()
-            )
+        data_inicio = st.date_input(
+            "Data inicial",
+            value=df["Previsão"].min().date()
+        )
+
+    with col3:
+
+        data_fim = st.date_input(
+            "Data final",
+            value=df["Previsão"].max().date()
         )
 
     detalhe = df[
@@ -344,8 +344,11 @@ if (
         )
         &
         (
-            df["Data_Formatada"].astype(str)
-            == data_detalhe
+            df["Previsão"].dt.date >= data_inicio
+        )
+        &
+        (
+            df["Previsão"].dt.date <= data_fim
         )
     ]
 
@@ -371,8 +374,53 @@ if (
         height=400
     )
 
+    # ===================================
+    # RESUMO
+    # ===================================
+
+    d1, d2, d3 = st.columns(3)
+
+    total_pedidos_detalhe = (
+        detalhe["Pedido"].nunique()
+        if "Pedido" in detalhe.columns
+        else len(detalhe)
+    )
+
+    total_m2_detalhe = (
+        pd.to_numeric(
+            detalhe["M2 Vendido"],
+            errors="coerce"
+        ).sum()
+        if "M2 Vendido" in detalhe.columns
+        else 0
+    )
+
+    total_peso_detalhe = (
+        pd.to_numeric(
+            detalhe["Peso"],
+            errors="coerce"
+        ).sum()
+        if "Peso" in detalhe.columns
+        else 0
+    )
+
+    d1.metric(
+        "Pedidos",
+        total_pedidos_detalhe
+    )
+
+    d2.metric(
+        "M²",
+        round(total_m2_detalhe, 2)
+    )
+
+    d3.metric(
+        "Peso",
+        round(total_peso_detalhe, 2)
+    )
+
 # ===================================
-# TABELA DINÂMICA PRODUTO
+# VISÃO PRODUTO
 # ===================================
 
 st.markdown("---")
@@ -385,8 +433,6 @@ mostrar_tabela_produto = st.checkbox(
 if (
     mostrar_tabela_produto
     and "Produto" in df.columns
-    and "Previsão" in df.columns
-    and "M2 Vendido" in df.columns
 ):
 
     st.subheader("📊 Produção por Produto e Data")
@@ -407,28 +453,30 @@ if (
             df["Produto"]
             .astype(str)
             .isin(filtro_produto)
-        ]
+        ].copy()
 
     else:
 
         df_produto = df.copy()
 
-    tabela_produto = pd.pivot_table(
-        df_produto,
-        values="M2 Vendido",
-        index="Produto",
-        columns="Data_Formatada",
-        aggfunc="sum",
-        fill_value=0
-    )
+    if not df_produto.empty:
 
-    tabela_produto = tabela_produto.replace(0, "")
+        tabela_produto = pd.pivot_table(
+            df_produto,
+            values="M2 Vendido",
+            index="Produto",
+            columns="Data_Formatada",
+            aggfunc="sum",
+            fill_value=0
+        )
 
-    st.dataframe(
-        tabela_produto,
-        use_container_width=True,
-        height=500
-    )
+        tabela_produto = tabela_produto.replace(0, "")
+
+        st.dataframe(
+            tabela_produto,
+            use_container_width=True,
+            height=500
+        )
 
 # ===================================
 # GRÁFICO ROTA
@@ -440,8 +488,7 @@ st.subheader("📈 Produção por Rota")
 
 if (
     "Rota" in df.columns
-    and
-    "M2 Vendido" in df.columns
+    and "M2 Vendido" in df.columns
 ):
 
     grafico_rota = (
@@ -478,8 +525,7 @@ st.subheader("📈 Produção por Produto")
 
 if (
     "Produto" in df.columns
-    and
-    "M2 Vendido" in df.columns
+    and "M2 Vendido" in df.columns
 ):
 
     grafico_produto = (
