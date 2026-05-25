@@ -3,8 +3,8 @@ import pandas as pd
 import plotly.express as px
 import json
 from io import BytesIO
-import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # ===================================
 # CONFIGURAÇÃO
@@ -19,21 +19,13 @@ st.set_page_config(
 st.title("📊 Pedidos Em Aberto - Visualização")
 
 # ===================================
-# ÚLTIMA ATUALIZAÇÃO
+# HORÁRIO BRASÍLIA
 # ===================================
 
-if os.path.exists("dados.xlsx"):
-
-    data_modificacao = os.path.getmtime("dados.xlsx")
-
-    ultima_atualizacao = datetime.fromtimestamp(
-        data_modificacao
-    ).strftime("%d/%m/%Y %H:%M")
-
-    st.info(f"🕒 Última atualização: {ultima_atualizacao}")
+fuso_brasilia = ZoneInfo("America/Sao_Paulo")
 
 # ===================================
-# LEITURA PLANILHA
+# LEITURA DA PLANILHA
 # ===================================
 
 try:
@@ -45,12 +37,12 @@ try:
 
 except FileNotFoundError:
 
-    st.error("⚠️ Nenhum arquivo carregado ainda.")
+    st.error("⚠️ Nenhum arquivo foi carregado ainda.")
     st.stop()
 
 except Exception as e:
 
-    st.error(f"Erro ao abrir planilha: {e}")
+    st.error(f"Erro ao abrir a planilha: {e}")
     st.stop()
 
 # ===================================
@@ -64,78 +56,28 @@ df.columns = (
 )
 
 # ===================================
-# CARREGAR FILTROS SALVOS
+# ÚLTIMA ATUALIZAÇÃO
 # ===================================
-
-filtros_salvos = {}
 
 try:
 
-    with open("filtros.json", "r") as f:
+    with open("ultima_atualizacao.json", "r") as f:
 
-        filtros_salvos = json.load(f)[0]
+        ultima = json.load(f)
+
+        horario = ultima["horario"]
+
+        st.info(f"🕒 Última atualização: {horario}")
 
 except:
 
     pass
 
 # ===================================
-# FILTRO PC
+# SIDEBAR
 # ===================================
 
-if "PC" in df.columns:
-
-    pcs = sorted(
-        df["PC"]
-        .dropna()
-        .astype(str)
-        .unique()
-    )
-
-    pcs_padrao = filtros_salvos.get("pcs", [])
-
-    pc_selecionado = st.sidebar.multiselect(
-        "Programação de carga",
-        pcs,
-        default=pcs_padrao
-    )
-
-    if pc_selecionado:
-
-        df = df[
-            df["PC"]
-            .astype(str)
-            .isin(pc_selecionado)
-        ]
-
-# ===================================
-# FILTRO ROTA
-# ===================================
-
-if "Rota" in df.columns:
-
-    rotas = sorted(
-        df["Rota"]
-        .dropna()
-        .astype(str)
-        .unique()
-    )
-
-    rotas_padrao = filtros_salvos.get("rotas", [])
-
-    rota_selecionada = st.sidebar.multiselect(
-        "Rotas",
-        rotas,
-        default=rotas_padrao
-    )
-
-    if rota_selecionada:
-
-        df = df[
-            df["Rota"]
-            .astype(str)
-            .isin(rota_selecionada)
-        ]
+st.sidebar.title("Filtros")
 
 # ===================================
 # FILTRO DATA
@@ -156,29 +98,20 @@ if "Previsão" in df.columns:
         min_date = df["Previsão"].min().date()
         max_date = df["Previsão"].max().date()
 
-        data_inicial_padrao = min_date
-        data_final_padrao = max_date
-
-        if "start_date" in filtros_salvos:
-
-            data_inicial_padrao = pd.to_datetime(
-                filtros_salvos["start_date"]
-            ).date()
-
-        if "end_date" in filtros_salvos:
-
-            data_final_padrao = pd.to_datetime(
-                filtros_salvos["end_date"]
-            ).date()
-
         start_date = st.sidebar.date_input(
             "Data inicial",
-            value=data_inicial_padrao
+            value=min_date,
+            min_value=min_date,
+            max_value=max_date,
+            format="DD/MM/YYYY"
         )
 
         end_date = st.sidebar.date_input(
             "Data final",
-            value=data_final_padrao
+            value=max_date,
+            min_value=min_date,
+            max_value=max_date,
+            format="DD/MM/YYYY"
         )
 
         df = df[
@@ -192,12 +125,91 @@ if "Previsão" in df.columns:
         ]
 
 # ===================================
+# FILTRO ROTA
+# ===================================
+
+if "Rota" in df.columns:
+
+    rotas = sorted(
+        df["Rota"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    rota_selecionada = st.sidebar.multiselect(
+        "Rota",
+        rotas
+    )
+
+    if rota_selecionada:
+
+        df = df[
+            df["Rota"]
+            .astype(str)
+            .isin(rota_selecionada)
+        ]
+
+# ===================================
+# FILTRO PRODUTO
+# ===================================
+
+if "Produto" in df.columns:
+
+    produtos = sorted(
+        df["Produto"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    produto_selecionado = st.sidebar.multiselect(
+        "Produto",
+        produtos
+    )
+
+    if produto_selecionado:
+
+        df = df[
+            df["Produto"]
+            .astype(str)
+            .isin(produto_selecionado)
+        ]
+
+# ===================================
+# FILTRO PC
+# ===================================
+
+if "PC" in df.columns:
+
+    pcs = sorted(
+        df["PC"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    pc_selecionado = st.sidebar.multiselect(
+        "Programação de carga",
+        pcs
+    )
+
+    if pc_selecionado:
+
+        df = df[
+            df["PC"]
+            .astype(str)
+            .isin(pc_selecionado)
+        ]
+
+# ===================================
 # SEM DADOS
 # ===================================
 
 if df.empty:
 
     st.warning("⚠️ Nenhum dado encontrado.")
+
     st.stop()
 
 # ===================================
@@ -247,65 +259,71 @@ c4.metric("Peso Total", round(total_peso, 2))
 c5.metric("Rotas", total_rotas)
 
 # ===================================
-# TABELA PRINCIPAL
+# EXIBIR VISÕES
 # ===================================
 
-st.subheader("Pedidos Em Aberto")
+st.sidebar.title("Visualizações")
 
-if (
-    "Rota" in df.columns
-    and
-    "M2 Vendido" in df.columns
-):
+mostrar_rota = st.sidebar.checkbox(
+    "Tabela previsão por rota",
+    value=True
+)
 
-    tabela = pd.pivot_table(
+mostrar_produto = st.sidebar.checkbox(
+    "Tabela previsão por produto",
+    value=True
+)
+
+# ===================================
+# TABELA PREVISÃO POR ROTA
+# ===================================
+
+if mostrar_rota:
+
+    st.subheader("📅 Previsão por Rota")
+
+    tabela_rota = pd.pivot_table(
         df,
         values="M2 Vendido",
         index="Rota",
-        aggfunc="sum",
-        fill_value=0,
-        margins=True,
-        margins_name="TOTAL GERAL"
-    )
-
-    st.dataframe(
-        tabela,
-        use_container_width=True,
-        height=400
-    )
-
-# ===================================
-# VISÃO POR DATA
-# ===================================
-
-st.subheader("📅 Produção por Data")
-
-if (
-    "Rota" in df.columns
-    and
-    "Previsão" in df.columns
-    and
-    "M2 Vendido" in df.columns
-):
-
-    df["Data Formatada"] = (
-        df["Previsão"]
-        .dt.strftime("%d/%b")
-    )
-
-    tabela_datas = pd.pivot_table(
-        df,
-        values="M2 Vendido",
-        index="Rota",
-        columns="Data Formatada",
+        columns=df["Previsão"].dt.strftime("%d/%b"),
         aggfunc="sum",
         fill_value=0,
         margins=True,
         margins_name="Total Geral"
     )
 
+    tabela_rota = tabela_rota.replace(0, "")
+
     st.dataframe(
-        tabela_datas,
+        tabela_rota,
+        use_container_width=True,
+        height=500
+    )
+
+# ===================================
+# TABELA PREVISÃO POR PRODUTO
+# ===================================
+
+if mostrar_produto:
+
+    st.subheader("📅 Previsão por Produto")
+
+    tabela_produto = pd.pivot_table(
+        df,
+        values="M2 Vendido",
+        index="Produto",
+        columns=df["Previsão"].dt.strftime("%d/%b"),
+        aggfunc="sum",
+        fill_value=0,
+        margins=True,
+        margins_name="Total Geral"
+    )
+
+    tabela_produto = tabela_produto.replace(0, "")
+
+    st.dataframe(
+        tabela_produto,
         use_container_width=True,
         height=500
     )
