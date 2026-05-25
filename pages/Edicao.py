@@ -111,13 +111,18 @@ if arquivo:
             ZoneInfo("America/Sao_Paulo")
         ).strftime("%d/%m/%Y %H:%M:%S")
 
-        with open("ultima_atualizacao.json", "w") as f:
+        with open(
+            "ultima_atualizacao.json",
+            "w",
+            encoding="utf-8"
+        ) as f:
 
             json.dump(
                 {
                     "horario": horario_brasilia
                 },
-                f
+                f,
+                ensure_ascii=False
             )
 
         st.success("✅ Planilha carregada!")
@@ -206,11 +211,16 @@ if df_existente is not None:
 
     if st.button("💾 Salvar filtros"):
 
-        with open("filtros.json", "w") as f:
+        with open(
+            "filtros.json",
+            "w",
+            encoding="utf-8"
+        ) as f:
 
             json.dump(
                 [filtros],
-                f
+                f,
+                ensure_ascii=False
             )
 
         st.success("✅ Filtros salvos!")
