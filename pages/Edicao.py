@@ -107,10 +107,6 @@ if arquivo:
             engine="openpyxl"
         )
 
-        # =========================================
-        # HORÁRIO BRASÍLIA
-        # =========================================
-
         horario_brasilia = datetime.now(
             ZoneInfo("America/Sao_Paulo")
         ).strftime("%d/%m/%Y %H:%M:%S")
@@ -140,10 +136,6 @@ if df_existente is not None:
 
     filtros = {}
 
-    # =========================================
-    # ROTA
-    # =========================================
-
     if "Rota" in df_existente.columns:
 
         rotas = sorted(
@@ -161,10 +153,6 @@ if df_existente is not None:
         if rotas_selecionadas:
 
             filtros["rotas"] = rotas_selecionadas
-
-    # =========================================
-    # DATA
-    # =========================================
 
     if "Previsão" in df_existente.columns:
 
@@ -198,10 +186,6 @@ if df_existente is not None:
             filtros["start_date"] = str(start_date)
             filtros["end_date"] = str(end_date)
 
-    # =========================================
-    # PC
-    # =========================================
-
     if "PC" in df_existente.columns:
 
         pcs = sorted(
@@ -220,10 +204,6 @@ if df_existente is not None:
 
             filtros["pcs"] = pcs_selecionados
 
-    # =========================================
-    # SALVAR FILTROS
-    # =========================================
-
     if st.button("💾 Salvar filtros"):
 
         with open("filtros.json", "w") as f:
@@ -235,10 +215,6 @@ if df_existente is not None:
 
         st.success("✅ Filtros salvos!")
 
-    # =========================================
-    # BASE
-    # =========================================
-
     st.subheader("📋 Base Atual")
 
     st.dataframe(
@@ -246,10 +222,6 @@ if df_existente is not None:
         use_container_width=True,
         height=400
     )
-
-    # =========================================
-    # DOWNLOAD
-    # =========================================
 
     st.subheader("📥 Exportar dados")
 
