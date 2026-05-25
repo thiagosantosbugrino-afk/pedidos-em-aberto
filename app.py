@@ -53,17 +53,28 @@ df.columns = (
 
 try:
 
-    with open("ultima_atualizacao.json", "r") as f:
+    with open(
+        "ultima_atualizacao.json",
+        "r",
+        encoding="utf-8"
+    ) as f:
 
         ultima = json.load(f)
 
-        horario = ultima["horario"]
+    horario = ultima.get(
+        "horario",
+        "Não encontrado"
+    )
 
-        st.info(f"🕒 Última atualização: {horario}")
+    st.info(
+        f"🕒 Última atualização da planilha: {horario}"
+    )
 
-except:
+except Exception:
 
-    pass
+    st.warning(
+        "⚠️ Não foi possível carregar a data da atualização."
+    )
 
 # ===================================
 # SIDEBAR
@@ -266,8 +277,13 @@ mostrar_produto = st.sidebar.checkbox(
     value=True
 )
 
+mostrar_base = st.sidebar.checkbox(
+    "Mostrar base completa",
+    value=False
+)
+
 # ===================================
-# CRIAR COLUNA DATA FORMATADA
+# DATA FORMATADA
 # ===================================
 
 if "Previsão" in df.columns:
@@ -294,7 +310,7 @@ if "Previsão" in df.columns:
     )
 
 # ===================================
-# TABELA PREVISÃO POR ROTA
+# TABELA PREVISÃO ROTA
 # ===================================
 
 if mostrar_rota:
@@ -329,7 +345,7 @@ if mostrar_rota:
         st.error(f"Erro na tabela por rota: {e}")
 
 # ===================================
-# TABELA PREVISÃO POR PRODUTO
+# TABELA PREVISÃO PRODUTO
 # ===================================
 
 if mostrar_produto:
@@ -439,13 +455,15 @@ if (
 # BASE COMPLETA
 # ===================================
 
-st.subheader("Base Completa")
+if mostrar_base:
 
-st.dataframe(
-    df,
-    use_container_width=True,
-    height=400
-)
+    st.subheader("📋 Base Completa")
+
+    st.dataframe(
+        df,
+        use_container_width=True,
+        height=400
+    )
 
 # ===================================
 # DOWNLOAD
