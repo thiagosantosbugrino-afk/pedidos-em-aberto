@@ -2,11 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import json
-import os
-
 from io import BytesIO
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta
 
 # ===================================
 # CONFIGURAÇÃO
@@ -24,36 +21,21 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 # ÚLTIMA ATUALIZAÇÃO
 # ===================================
 
-if os.path.exists("dados.xlsx"):
+try:
 
-    ultima_atualizacao = datetime.fromtimestamp(
-        os.path.getmtime("dados.xlsx"),
-        tz=ZoneInfo("America/Sao_Paulo")
+    data_modificacao = datetime.fromtimestamp(
+        __import__("os").path.getmtime("dados.xlsx")
     )
 
-    meses_pt = {
-        1: "janeiro",
-        2: "fevereiro",
-        3: "março",
-        4: "abril",
-        5: "maio",
-        6: "junho",
-        7: "julho",
-        8: "agosto",
-        9: "setembro",
-        10: "outubro",
-        11: "novembro",
-        12: "dezembro"
-    }
+    # Ajuste Brasília
+    data_modificacao = data_modificacao - timedelta(hours=3)
 
-    data_formatada = (
-        f"{ultima_atualizacao.day:02d} de "
-        f"{meses_pt[ultima_atualizacao.month]} de "
-        f"{ultima_atualizacao.year} às "
-        f"{ultima_atualizacao.strftime('%H:%M:%S')}"
-    )
+    data_formatada = data_modificacao.strftime("%d/%m/%Y %H:%M:%S")
 
-    st.caption(f"🕒 Última atualização: {data_formatada}")
+    st.info(f"🕒 Última atualização: {data_formatada}")
+
+except:
+    pass
 
 # ===================================
 # LEITURA DA PLANILHA
@@ -68,7 +50,7 @@ try:
 
 except FileNotFoundError:
 
-    st.error("⚠️ Nenhum arquivo carregado.")
+    st.error("⚠️ Nenhum arquivo foi carregado ainda.")
     st.stop()
 
 except Exception as e:
@@ -77,7 +59,7 @@ except Exception as e:
     st.stop()
 
 # ===================================
-# LIMPEZA
+# LIMPEZA COLUNAS
 # ===================================
 
 df.columns = (
@@ -87,10 +69,8 @@ df.columns = (
 )
 
 # ===================================
-# FILTROS SALVOS
+# APLICA FILTROS SALVOS
 # ===================================
-
-filtros = {}
 
 try:
 
@@ -98,85 +78,47 @@ try:
 
         filtros = json.load(f)[0]
 
-except:
+    # ROTA
 
-    pass
-
-# ===================================
-# FILTRO ROTA
-# ===================================
-
-if "Rota" in df.columns:
-
-    rotas = sorted(
-        df["Rota"]
-        .dropna()
-        .astype(str)
-        .unique()
-    )
-
-    rotas_padrao = filtros.get("rotas", [])
-
-    rotas_selecionadas = st.sidebar.multiselect(
-        "Rota",
-        rotas,
-        default=rotas_padrao
-    )
-
-    if rotas_selecionadas:
+    if (
+        "rotas" in filtros
+        and
+        "Rota" in df.columns
+    ):
 
         df = df[
             df["Rota"]
             .astype(str)
-            .isin(rotas_selecionadas)
+            .isin(filtros["rotas"])
         ]
 
-# ===================================
-# FILTRO DATA
-# ===================================
+    # DATA
 
-if "Previsão" in df.columns:
+    if (
+        "start_date" in filtros
+        and
+        "end_date" in filtros
+        and
+        "Previsão" in df.columns
+    ):
 
-    df["Previsão"] = pd.to_datetime(
-        df["Previsão"],
-        errors="coerce",
-        dayfirst=True
-    )
-
-    df = df.dropna(
-        subset=["Previsão"]
-    )
-
-    if not df.empty:
-
-        min_date = df["Previsão"].min().date()
-        max_date = df["Previsão"].max().date()
-
-        start_padrao = filtros.get(
-            "start_date",
-            str(min_date)
+        df["Previsão"] = pd.to_datetime(
+            df["Previsão"],
+            errors="coerce",
+            dayfirst=True
         )
 
-        end_padrao = filtros.get(
-            "end_date",
-            str(max_date)
+        df = df.dropna(
+            subset=["Previsão"]
         )
 
-        start_date = st.sidebar.date_input(
-            "Data inicial",
-            value=pd.to_datetime(start_padrao).date(),
-            min_value=min_date,
-            max_value=max_date,
-            format="DD/MM/YYYY"
-        )
+        start_date = pd.to_datetime(
+            filtros["start_date"]
+        ).date()
 
-        end_date = st.sidebar.date_input(
-            "Data final",
-            value=pd.to_datetime(end_padrao).date(),
-            min_value=min_date,
-            max_value=max_date,
-            format="DD/MM/YYYY"
-        )
+        end_date = pd.to_datetime(
+            filtros["end_date"]
+        ).date()
 
         df = df[
             (
@@ -187,6 +129,9 @@ if "Previsão" in df.columns:
                 df["Previsão"].dt.date <= end_date
             )
         ]
+
+except:
+    pass
 
 # ===================================
 # FILTRO PC
@@ -201,31 +146,42 @@ if "PC" in df.columns:
         .unique()
     )
 
-    pcs_padrao = filtros.get("pcs", [])
+    pcs_padrao = []
 
-    pcs_selecionados = st.sidebar.multiselect(
+    try:
+
+        with open("filtros.json", "r") as f:
+
+            filtros_salvos = json.load(f)[0]
+
+            if "pcs" in filtros_salvos:
+
+                pcs_padrao = filtros_salvos["pcs"]
+
+    except:
+        pass
+
+    pc_selecionado = st.sidebar.multiselect(
         "Programação de carga",
         pcs,
         default=pcs_padrao
     )
 
-    if pcs_selecionados:
+    if pc_selecionado:
 
         df = df[
             df["PC"]
             .astype(str)
-            .isin(pcs_selecionados)
+            .isin(pc_selecionado)
         ]
 
 # ===================================
-# SE NÃO SOBRAR DADOS
+# SEM DADOS
 # ===================================
 
 if df.empty:
 
-    st.warning(
-        "⚠️ Nenhum dado encontrado."
-    )
+    st.warning("⚠️ Nenhum dado encontrado.")
 
     st.stop()
 
@@ -276,183 +232,161 @@ c4.metric("Peso Total", round(total_peso, 2))
 c5.metric("Rotas", total_rotas)
 
 # ===================================
-# MOSTRAR / OCULTAR
-# ===================================
-
-mostrar_tabela_rota = st.checkbox(
-    "Mostrar tabela por rota",
-    value=True
-)
-
-mostrar_tabela_produto = st.checkbox(
-    "Mostrar tabela por produto",
-    value=True
-)
-
-mostrar_base = st.checkbox(
-    "Mostrar base completa",
-    value=False
-)
-
-# ===================================
 # TABELA POR ROTA
 # ===================================
 
-if (
-    mostrar_tabela_rota
-    and
-    "Rota" in df.columns
-    and
-    "M2 Vendido" in df.columns
-):
+mostrar_tabela_rota = st.checkbox(
+    "Mostrar Tabela por Rota",
+    value=True
+)
 
-    st.subheader("Previsão por Rota")
+if mostrar_tabela_rota:
 
-    tabela_rota = pd.pivot_table(
-        df,
-        values="M2 Vendido",
-        index="Rota",
-        columns=df["Previsão"].dt.strftime("%d/%m/%Y"),
-        aggfunc="sum",
-        fill_value=0
-    )
+    st.subheader("📊 Tabela por Rota")
 
-    tabela_rota = tabela_rota.replace(0, "")
+    if (
+        "Rota" in df.columns
+        and
+        "M2 Vendido" in df.columns
+        and
+        "Previsão" in df.columns
+    ):
 
-    st.dataframe(
-        tabela_rota,
-        use_container_width=True,
-        height=500
-    )
+        df_rota = df.copy()
+
+        df_rota["Previsão"] = pd.to_datetime(
+            df_rota["Previsão"],
+            errors="coerce",
+            dayfirst=True
+        )
+
+        df_rota = df_rota.dropna(subset=["Previsão"])
+
+        df_rota["Data"] = df_rota["Previsão"].dt.strftime("%d/%m/%Y")
+
+        tabela_rota = pd.pivot_table(
+            df_rota,
+            values="M2 Vendido",
+            index="Rota",
+            columns="Data",
+            aggfunc="sum",
+            fill_value=0
+        )
+
+        tabela_rota = tabela_rota.replace(0, "")
+
+        st.dataframe(
+            tabela_rota,
+            use_container_width=True,
+            height=500
+        )
 
 # ===================================
-# DETALHAMENTO
+# TABELA POR PRODUTO
 # ===================================
 
-if "Rota" in df.columns:
+mostrar_tabela_produto = st.checkbox(
+    "Mostrar Tabela por Produto",
+    value=True
+)
 
-    st.subheader("Detalhamento")
+if mostrar_tabela_produto:
 
-    rota_detalhe = st.selectbox(
-        "Escolha a rota",
-        sorted(df["Rota"].dropna().astype(str).unique())
-    )
+    st.subheader("📦 Tabela por Produto")
 
-    filtro_data = st.radio(
-        "Filtrar por",
-        ["Uma data", "Período"]
-    )
+    if (
+        "Produto" in df.columns
+        and
+        "M2 Vendido" in df.columns
+        and
+        "Previsão" in df.columns
+    ):
 
-    df_detalhe = df[
-        df["Rota"].astype(str) == rota_detalhe
-    ]
+        df_produto = df.copy()
 
-    if filtro_data == "Uma data":
+        df_produto["Previsão"] = pd.to_datetime(
+            df_produto["Previsão"],
+            errors="coerce",
+            dayfirst=True
+        )
 
-        data_unica = st.date_input(
-            "Escolha a data",
-            value=df["Previsão"].min().date(),
+        df_produto = df_produto.dropna(subset=["Previsão"])
+
+        produtos = sorted(
+            df_produto["Produto"]
+            .dropna()
+            .astype(str)
+            .unique()
+        )
+
+        produto_filtro = st.multiselect(
+            "Filtrar Produto",
+            produtos
+        )
+
+        if produto_filtro:
+
+            df_produto = df_produto[
+                df_produto["Produto"]
+                .astype(str)
+                .isin(produto_filtro)
+            ]
+
+        data_inicial = st.date_input(
+            "Data Inicial Produto",
+            value=df_produto["Previsão"].min().date(),
             format="DD/MM/YYYY"
         )
 
-        df_detalhe = df_detalhe[
-            df_detalhe["Previsão"].dt.date == data_unica
-        ]
-
-    else:
-
-        data_inicio = st.date_input(
-            "Data inicial",
-            value=df["Previsão"].min().date(),
+        data_final = st.date_input(
+            "Data Final Produto",
+            value=df_produto["Previsão"].max().date(),
             format="DD/MM/YYYY"
         )
 
-        data_fim = st.date_input(
-            "Data final",
-            value=df["Previsão"].max().date(),
-            format="DD/MM/YYYY"
-        )
-
-        df_detalhe = df_detalhe[
+        df_produto = df_produto[
             (
-                df_detalhe["Previsão"].dt.date >= data_inicio
+                df_produto["Previsão"].dt.date >= data_inicial
             )
             &
             (
-                df_detalhe["Previsão"].dt.date <= data_fim
+                df_produto["Previsão"].dt.date <= data_final
             )
         ]
 
-    st.dataframe(
-        df_detalhe,
-        use_container_width=True,
-        height=400
-    )
+        df_produto["Data"] = (
+            df_produto["Previsão"]
+            .dt.strftime("%d/%m/%Y")
+        )
 
-# ===================================
-# TABELA PRODUTO
-# ===================================
+        tabela_produto = pd.pivot_table(
+            df_produto,
+            values="M2 Vendido",
+            index="Produto",
+            columns="Data",
+            aggfunc="sum",
+            fill_value=0
+        )
 
-if (
-    mostrar_tabela_produto
-    and
-    "Produto" in df.columns
-    and
-    "M2 Vendido" in df.columns
-):
+        tabela_produto = tabela_produto.replace(0, "")
 
-    st.subheader("Previsão por Produto")
-
-    produtos = sorted(
-        df["Produto"]
-        .dropna()
-        .astype(str)
-        .unique()
-    )
-
-    produto_filtro = st.multiselect(
-        "Filtrar produtos",
-        produtos
-    )
-
-    df_produto = df.copy()
-
-    if produto_filtro:
-
-        df_produto = df_produto[
-            df_produto["Produto"]
-            .astype(str)
-            .isin(produto_filtro)
-        ]
-
-    tabela_produto = pd.pivot_table(
-        df_produto,
-        values="M2 Vendido",
-        index="Produto",
-        columns=df_produto["Previsão"].dt.strftime("%d/%m/%Y"),
-        aggfunc="sum",
-        fill_value=0
-    )
-
-    tabela_produto = tabela_produto.replace(0, "")
-
-    st.dataframe(
-        tabela_produto,
-        use_container_width=True,
-        height=500
-    )
+        st.dataframe(
+            tabela_produto,
+            use_container_width=True,
+            height=500
+        )
 
 # ===================================
 # GRÁFICO ROTA
 # ===================================
 
+st.subheader("📈 Produção por Rota")
+
 if (
     "Rota" in df.columns
     and
     "M2 Vendido" in df.columns
 ):
-
-    st.subheader("Produção por Rota")
 
     grafico_rota = (
         df.groupby("Rota")["M2 Vendido"]
@@ -477,13 +411,13 @@ if (
 # GRÁFICO PRODUTO
 # ===================================
 
+st.subheader("📈 Produção por Produto")
+
 if (
     "Produto" in df.columns
     and
     "M2 Vendido" in df.columns
 ):
-
-    st.subheader("Produção por Produto")
 
     grafico_produto = (
         df.groupby("Produto")["M2 Vendido"]
@@ -505,12 +439,59 @@ if (
     )
 
 # ===================================
+# DETALHAMENTO
+# ===================================
+
+st.subheader("🔍 Detalhamento")
+
+if "Previsão" in df.columns:
+
+    df["Previsão"] = pd.to_datetime(
+        df["Previsão"],
+        errors="coerce",
+        dayfirst=True
+    )
+
+    data_inicio = st.date_input(
+        "Detalhamento - Data Inicial",
+        value=df["Previsão"].min().date(),
+        format="DD/MM/YYYY"
+    )
+
+    data_fim = st.date_input(
+        "Detalhamento - Data Final",
+        value=df["Previsão"].max().date(),
+        format="DD/MM/YYYY"
+    )
+
+    detalhe = df[
+        (
+            df["Previsão"].dt.date >= data_inicio
+        )
+        &
+        (
+            df["Previsão"].dt.date <= data_fim
+        )
+    ]
+
+    st.dataframe(
+        detalhe,
+        use_container_width=True,
+        height=400
+    )
+
+# ===================================
 # BASE COMPLETA
 # ===================================
 
+mostrar_base = st.checkbox(
+    "Mostrar Base Completa",
+    value=False
+)
+
 if mostrar_base:
 
-    st.subheader("Base Completa")
+    st.subheader("📋 Base Completa")
 
     st.dataframe(
         df,
