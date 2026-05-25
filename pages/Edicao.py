@@ -36,11 +36,63 @@ if senha != "Thiago2026!":
     st.error("❌ Senha incorreta.")
     st.stop()
 
+st.success("✅ Acesso liberado.")
+
 # =========================================
-# ACESSO
+# FUNÇÃO INTELIGENTE
 # =========================================
 
-st.success("✅ Acesso liberado.")
+def encontrar_base_excel(arquivo):
+
+    excel = pd.ExcelFile(arquivo)
+
+    palavras_chave = [
+        "pedido",
+        "rota",
+        "produto",
+        "cliente",
+        "previs",
+        "pc"
+    ]
+
+    for aba in excel.sheet_names:
+
+        try:
+
+            for linha in range(15):
+
+                teste = pd.read_excel(
+                    arquivo,
+                    sheet_name=aba,
+                    header=linha
+                )
+
+                teste.columns = (
+                    teste.columns
+                    .astype(str)
+                    .str.strip()
+                )
+
+                nomes = " ".join(
+                    teste.columns
+                    .astype(str)
+                    .str.lower()
+                )
+
+                encontrou = any(
+                    palavra in nomes
+                    for palavra in palavras_chave
+                )
+
+                if encontrou:
+
+                    return teste, aba, linha
+
+        except:
+
+            pass
+
+    return None, None, None
 
 # =========================================
 # MOSTRAR BASE ATUAL
@@ -52,7 +104,7 @@ try:
 
     df_existente = pd.read_excel(
         "dados.xlsx",
-        sheet_name=0
+        sheet_name="Base"
     )
 
     st.success("✅ Base atual carregada.")
@@ -78,10 +130,19 @@ if arquivo:
 
     try:
 
-        df = pd.read_excel(
-            arquivo,
-            sheet_name=0
-        )
+        df, aba, linha = encontrar_base_excel(arquivo)
+
+        if df is None:
+
+            st.error(
+                "❌ Não foi possível localizar a base automaticamente."
+            )
+
+            st.stop()
+
+        # =========================================
+        # LIMPEZA
+        # =========================================
 
         df.columns = (
             df.columns
@@ -101,11 +162,38 @@ if arquivo:
             how="all"
         )
 
-        df.to_excel(
-            "dados.xlsx",
-            index=False,
-            engine="openpyxl"
+        # =========================================
+        # MOSTRA INFORMAÇÕES
+        # =========================================
+
+        st.success(
+            f"✅ Base encontrada | Aba: {aba} | Linha do cabeçalho: {linha + 1}"
         )
+
+        st.write("Quantidade de linhas:", len(df))
+        st.write("Quantidade de colunas:", len(df.columns))
+
+        st.write("Colunas encontradas:")
+        st.write(df.columns.tolist())
+
+        # =========================================
+        # SALVAR BASE
+        # =========================================
+
+        with pd.ExcelWriter(
+            "dados.xlsx",
+            engine="openpyxl"
+        ) as writer:
+
+            df.to_excel(
+                writer,
+                index=False,
+                sheet_name="Base"
+            )
+
+        # =========================================
+        # SALVAR DATA ATUALIZAÇÃO
+        # =========================================
 
         horario_brasilia = datetime.now(
             ZoneInfo("America/Sao_Paulo")
@@ -125,115 +213,33 @@ if arquivo:
                 ensure_ascii=False
             )
 
-        st.success("✅ Planilha carregada!")
+        st.success("✅ Planilha carregada com sucesso!")
 
         df_existente = df
 
     except Exception as e:
 
-        st.error(f"Erro ao ler planilha: {e}")
+        st.error(f"Erro ao processar planilha: {e}")
 
 # =========================================
-# FILTROS
+# EXIBIR BASE
 # =========================================
 
 if df_existente is not None:
-
-    filtros = {}
-
-    if "Rota" in df_existente.columns:
-
-        rotas = sorted(
-            df_existente["Rota"]
-            .dropna()
-            .astype(str)
-            .unique()
-        )
-
-        rotas_selecionadas = st.multiselect(
-            "Rotas prioritárias",
-            rotas
-        )
-
-        if rotas_selecionadas:
-
-            filtros["rotas"] = rotas_selecionadas
-
-    if "Previsão" in df_existente.columns:
-
-        df_existente["Previsão"] = pd.to_datetime(
-            df_existente["Previsão"],
-            errors="coerce",
-            dayfirst=True
-        )
-
-        df_existente = df_existente.dropna(
-            subset=["Previsão"]
-        )
-
-        if not df_existente.empty:
-
-            min_date = df_existente["Previsão"].min().date()
-            max_date = df_existente["Previsão"].max().date()
-
-            start_date = st.date_input(
-                "Data inicial",
-                value=min_date,
-                format="DD/MM/YYYY"
-            )
-
-            end_date = st.date_input(
-                "Data final",
-                value=max_date,
-                format="DD/MM/YYYY"
-            )
-
-            filtros["start_date"] = str(start_date)
-            filtros["end_date"] = str(end_date)
-
-    if "PC" in df_existente.columns:
-
-        pcs = sorted(
-            df_existente["PC"]
-            .dropna()
-            .astype(str)
-            .unique()
-        )
-
-        pcs_selecionados = st.multiselect(
-            "Programação de carga",
-            pcs
-        )
-
-        if pcs_selecionados:
-
-            filtros["pcs"] = pcs_selecionados
-
-    if st.button("💾 Salvar filtros"):
-
-        with open(
-            "filtros.json",
-            "w",
-            encoding="utf-8"
-        ) as f:
-
-            json.dump(
-                [filtros],
-                f,
-                ensure_ascii=False
-            )
-
-        st.success("✅ Filtros salvos!")
 
     st.subheader("📋 Base Atual")
 
     st.dataframe(
         df_existente,
         use_container_width=True,
-        height=400
+        height=500
     )
 
-    st.subheader("📥 Exportar dados")
+    # =========================================
+    # DOWNLOAD
+    # =========================================
+
+    st.subheader("📥 Exportar Base")
 
     def to_excel(df):
 
@@ -255,7 +261,7 @@ if df_existente is not None:
     excel_file = to_excel(df_existente)
 
     st.download_button(
-        label="Baixar Excel",
+        label="Baixar dados.xlsx",
         data=excel_file,
         file_name="dados.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
