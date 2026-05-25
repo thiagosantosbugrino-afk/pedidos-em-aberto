@@ -1,10 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import json
 from io import BytesIO
-from datetime import datetime
-from zoneinfo import ZoneInfo
+import json
 
 # ===================================
 # CONFIGURAÇÃO
@@ -17,12 +15,6 @@ st.set_page_config(
 )
 
 st.title("📊 Pedidos Em Aberto - Visualização")
-
-# ===================================
-# HORÁRIO BRASÍLIA
-# ===================================
-
-fuso_brasilia = ZoneInfo("America/Sao_Paulo")
 
 # ===================================
 # LEITURA DA PLANILHA
@@ -275,6 +267,33 @@ mostrar_produto = st.sidebar.checkbox(
 )
 
 # ===================================
+# CRIAR COLUNA DATA FORMATADA
+# ===================================
+
+if "Previsão" in df.columns:
+
+    meses_pt = {
+        "Jan": "jan",
+        "Feb": "fev",
+        "Mar": "mar",
+        "Apr": "abr",
+        "May": "mai",
+        "Jun": "jun",
+        "Jul": "jul",
+        "Aug": "ago",
+        "Sep": "set",
+        "Oct": "out",
+        "Nov": "nov",
+        "Dec": "dez"
+    }
+
+    df["DATA_FORMATADA"] = (
+        df["Previsão"]
+        .dt.strftime("%d/%b")
+        .replace(meses_pt, regex=True)
+    )
+
+# ===================================
 # TABELA PREVISÃO POR ROTA
 # ===================================
 
@@ -282,24 +301,32 @@ if mostrar_rota:
 
     st.subheader("📅 Previsão por Rota")
 
-    tabela_rota = pd.pivot_table(
-        df,
-        values="M2 Vendido",
-        index="Rota",
-        columns=df["Previsão"].dt.strftime("%d/%b"),
-        aggfunc="sum",
-        fill_value=0,
-        margins=True,
-        margins_name="Total Geral"
-    )
+    try:
 
-    tabela_rota = tabela_rota.replace(0, "")
+        tabela_rota = pd.pivot_table(
+            df,
+            values="M2 Vendido",
+            index="Rota",
+            columns="DATA_FORMATADA",
+            aggfunc="sum",
+            fill_value=0
+        )
 
-    st.dataframe(
-        tabela_rota,
-        use_container_width=True,
-        height=500
-    )
+        tabela_rota.loc["Total Geral"] = tabela_rota.sum()
+
+        tabela_rota["Total Geral"] = tabela_rota.sum(axis=1)
+
+        tabela_rota = tabela_rota.replace(0, "")
+
+        st.dataframe(
+            tabela_rota,
+            use_container_width=True,
+            height=500
+        )
+
+    except Exception as e:
+
+        st.error(f"Erro na tabela por rota: {e}")
 
 # ===================================
 # TABELA PREVISÃO POR PRODUTO
@@ -309,24 +336,32 @@ if mostrar_produto:
 
     st.subheader("📅 Previsão por Produto")
 
-    tabela_produto = pd.pivot_table(
-        df,
-        values="M2 Vendido",
-        index="Produto",
-        columns=df["Previsão"].dt.strftime("%d/%b"),
-        aggfunc="sum",
-        fill_value=0,
-        margins=True,
-        margins_name="Total Geral"
-    )
+    try:
 
-    tabela_produto = tabela_produto.replace(0, "")
+        tabela_produto = pd.pivot_table(
+            df,
+            values="M2 Vendido",
+            index="Produto",
+            columns="DATA_FORMATADA",
+            aggfunc="sum",
+            fill_value=0
+        )
 
-    st.dataframe(
-        tabela_produto,
-        use_container_width=True,
-        height=500
-    )
+        tabela_produto.loc["Total Geral"] = tabela_produto.sum()
+
+        tabela_produto["Total Geral"] = tabela_produto.sum(axis=1)
+
+        tabela_produto = tabela_produto.replace(0, "")
+
+        st.dataframe(
+            tabela_produto,
+            use_container_width=True,
+            height=500
+        )
+
+    except Exception as e:
+
+        st.error(f"Erro na tabela por produto: {e}")
 
 # ===================================
 # GRÁFICO ROTA
