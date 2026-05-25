@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # =========================================
 # CONFIGURAÇÃO
@@ -34,7 +36,30 @@ if senha != "Thiago2026!":
     st.error("❌ Senha incorreta.")
     st.stop()
 
+# =========================================
+# ACESSO
+# =========================================
+
 st.success("✅ Acesso liberado.")
+
+# =========================================
+# MOSTRAR BASE ATUAL
+# =========================================
+
+df_existente = None
+
+try:
+
+    df_existente = pd.read_excel(
+        "dados.xlsx",
+        sheet_name=0
+    )
+
+    st.success("✅ Base atual carregada.")
+
+except:
+
+    pass
 
 # =========================================
 # UPLOAD
@@ -46,253 +71,210 @@ arquivo = st.file_uploader(
 )
 
 # =========================================
-# FUNÇÃO INTELIGENTE
-# =========================================
-
-def encontrar_base_excel(arquivo):
-
-    excel = pd.ExcelFile(arquivo)
-
-    palavras_chave = [
-        "pedido",
-        "rota",
-        "previs",
-        "produto",
-        "cliente",
-        "pc"
-    ]
-
-    for aba in excel.sheet_names:
-
-        try:
-
-            for linha in range(10):
-
-                teste = pd.read_excel(
-                    arquivo,
-                    sheet_name=aba,
-                    header=linha
-                )
-
-                teste.columns = (
-                    teste.columns
-                    .astype(str)
-                    .str.strip()
-                )
-
-                nomes = " ".join(
-                    teste.columns.astype(str).str.lower()
-                )
-
-                encontrou = any(
-                    palavra in nomes
-                    for palavra in palavras_chave
-                )
-
-                if encontrou:
-
-                    return teste
-
-        except:
-
-            pass
-
-    return None
-
-# =========================================
-# PROCESSAMENTO NOVO UPLOAD
+# PROCESSAMENTO
 # =========================================
 
 if arquivo:
 
     try:
 
-        df_novo = encontrar_base_excel(arquivo)
+        df = pd.read_excel(
+            arquivo,
+            sheet_name=0
+        )
 
-        if df_novo is None:
-
-            st.error("❌ Não foi possível localizar a base.")
-            st.stop()
-
-        df_novo.columns = (
-            df_novo.columns
+        df.columns = (
+            df.columns
             .astype(str)
             .str.strip()
         )
 
-        df_novo = df_novo.loc[
+        df = df.loc[
             :,
-            ~df_novo.columns.str.contains("^Unnamed")
+            ~df.columns.str.contains(
+                "^Unnamed",
+                case=False
+            )
         ]
 
-        df_novo = df_novo.dropna(how="all")
+        df = df.dropna(
+            how="all"
+        )
 
-        df_novo.to_excel(
+        df.to_excel(
             "dados.xlsx",
             index=False,
             engine="openpyxl"
         )
 
-        st.success("✅ Nova planilha salva!")
+        # =========================================
+        # HORÁRIO BRASÍLIA
+        # =========================================
+
+        horario_brasilia = datetime.now(
+            ZoneInfo("America/Sao_Paulo")
+        ).strftime("%d/%m/%Y %H:%M:%S")
+
+        with open("ultima_atualizacao.json", "w") as f:
+
+            json.dump(
+                {
+                    "horario": horario_brasilia
+                },
+                f
+            )
+
+        st.success("✅ Planilha carregada!")
+
+        df_existente = df
 
     except Exception as e:
 
-        st.error(f"Erro ao processar planilha: {e}")
+        st.error(f"Erro ao ler planilha: {e}")
 
 # =========================================
-# LER BASE ATUAL
+# FILTROS
 # =========================================
 
-try:
+if df_existente is not None:
 
-    df = pd.read_excel(
-        "dados.xlsx",
-        sheet_name=0
-    )
+    filtros = {}
 
-except:
+    # =========================================
+    # ROTA
+    # =========================================
 
-    st.warning("⚠️ Nenhuma planilha salva ainda.")
-    st.stop()
+    if "Rota" in df_existente.columns:
 
-# =========================================
-# CARREGAR FILTROS EXISTENTES
-# =========================================
-
-filtros_salvos = {}
-
-try:
-
-    with open("filtros.json", "r") as f:
-
-        filtros_salvos = json.load(f)[0]
-
-except:
-
-    pass
-
-filtros = {}
-
-# =========================================
-# FILTRO ROTA
-# =========================================
-
-if "Rota" in df.columns:
-
-    rotas = sorted(
-        df["Rota"]
-        .dropna()
-        .astype(str)
-        .unique()
-    )
-
-    rotas_padrao = filtros_salvos.get("rotas", [])
-
-    rotas_sel = st.multiselect(
-        "Rotas prioritárias",
-        rotas,
-        default=rotas_padrao
-    )
-
-    if rotas_sel:
-
-        filtros["rotas"] = rotas_sel
-
-# =========================================
-# FILTRO PC
-# =========================================
-
-if "PC" in df.columns:
-
-    pcs = sorted(
-        df["PC"]
-        .dropna()
-        .astype(str)
-        .unique()
-    )
-
-    pcs_padrao = filtros_salvos.get("pcs", [])
-
-    pcs_sel = st.multiselect(
-        "Programação de carga",
-        pcs,
-        default=pcs_padrao
-    )
-
-    if pcs_sel:
-
-        filtros["pcs"] = pcs_sel
-
-# =========================================
-# FILTRO DATA
-# =========================================
-
-if "Previsão" in df.columns:
-
-    df["Previsão"] = pd.to_datetime(
-        df["Previsão"],
-        errors="coerce",
-        dayfirst=True
-    )
-
-    df = df.dropna(subset=["Previsão"])
-
-    if not df.empty:
-
-        min_date = df["Previsão"].min().date()
-        max_date = df["Previsão"].max().date()
-
-        data_inicial_padrao = min_date
-        data_final_padrao = max_date
-
-        if "start_date" in filtros_salvos:
-
-            data_inicial_padrao = pd.to_datetime(
-                filtros_salvos["start_date"]
-            ).date()
-
-        if "end_date" in filtros_salvos:
-
-            data_final_padrao = pd.to_datetime(
-                filtros_salvos["end_date"]
-            ).date()
-
-        start_date = st.date_input(
-            "Data inicial",
-            value=data_inicial_padrao
+        rotas = sorted(
+            df_existente["Rota"]
+            .dropna()
+            .astype(str)
+            .unique()
         )
 
-        end_date = st.date_input(
-            "Data final",
-            value=data_final_padrao
+        rotas_selecionadas = st.multiselect(
+            "Rotas prioritárias",
+            rotas
         )
 
-        filtros["start_date"] = str(start_date)
-        filtros["end_date"] = str(end_date)
+        if rotas_selecionadas:
 
-# =========================================
-# SALVAR FILTROS
-# =========================================
+            filtros["rotas"] = rotas_selecionadas
 
-if st.button("💾 Salvar filtros"):
+    # =========================================
+    # DATA
+    # =========================================
 
-    with open("filtros.json", "w") as f:
+    if "Previsão" in df_existente.columns:
 
-        json.dump(
-            [filtros],
-            f
+        df_existente["Previsão"] = pd.to_datetime(
+            df_existente["Previsão"],
+            errors="coerce",
+            dayfirst=True
         )
 
-    st.success("✅ Filtros salvos!")
+        df_existente = df_existente.dropna(
+            subset=["Previsão"]
+        )
 
-# =========================================
-# BASE ATUAL
-# =========================================
+        if not df_existente.empty:
 
-st.subheader("📋 Base Atual")
+            min_date = df_existente["Previsão"].min().date()
+            max_date = df_existente["Previsão"].max().date()
 
-st.dataframe(
-    df,
-    use_container_width=True,
-    height=400
-)
+            start_date = st.date_input(
+                "Data inicial",
+                value=min_date,
+                format="DD/MM/YYYY"
+            )
+
+            end_date = st.date_input(
+                "Data final",
+                value=max_date,
+                format="DD/MM/YYYY"
+            )
+
+            filtros["start_date"] = str(start_date)
+            filtros["end_date"] = str(end_date)
+
+    # =========================================
+    # PC
+    # =========================================
+
+    if "PC" in df_existente.columns:
+
+        pcs = sorted(
+            df_existente["PC"]
+            .dropna()
+            .astype(str)
+            .unique()
+        )
+
+        pcs_selecionados = st.multiselect(
+            "Programação de carga",
+            pcs
+        )
+
+        if pcs_selecionados:
+
+            filtros["pcs"] = pcs_selecionados
+
+    # =========================================
+    # SALVAR FILTROS
+    # =========================================
+
+    if st.button("💾 Salvar filtros"):
+
+        with open("filtros.json", "w") as f:
+
+            json.dump(
+                [filtros],
+                f
+            )
+
+        st.success("✅ Filtros salvos!")
+
+    # =========================================
+    # BASE
+    # =========================================
+
+    st.subheader("📋 Base Atual")
+
+    st.dataframe(
+        df_existente,
+        use_container_width=True,
+        height=400
+    )
+
+    # =========================================
+    # DOWNLOAD
+    # =========================================
+
+    st.subheader("📥 Exportar dados")
+
+    def to_excel(df):
+
+        output = BytesIO()
+
+        with pd.ExcelWriter(
+            output,
+            engine="openpyxl"
+        ) as writer:
+
+            df.to_excel(
+                writer,
+                index=False,
+                sheet_name="Base"
+            )
+
+        return output.getvalue()
+
+    excel_file = to_excel(df_existente)
+
+    st.download_button(
+        label="Baixar Excel",
+        data=excel_file,
+        file_name="dados.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
