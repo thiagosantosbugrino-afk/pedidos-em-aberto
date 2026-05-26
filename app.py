@@ -196,7 +196,11 @@ if "Rota" in df.columns:
         .unique()
     )
 
-    rotas_default = filtros.get("rotas", [])
+    rotas_default = [
+        str(x).replace(".0", "")
+        for x in filtros.get("rotas", [])
+        if str(x).replace(".0", "") in rotas
+    ]
 
     rotas_selecionadas = st.sidebar.multiselect(
         "Rotas",
@@ -248,10 +252,15 @@ if "PC" in df.columns:
         df["PC"]
         .dropna()
         .astype(str)
+        .str.replace(".0", "", regex=False)
         .unique()
     )
 
-    pcs_default = filtros.get("pcs", [])
+    pcs_default = [
+        str(x).replace(".0", "")
+        for x in filtros.get("pcs", [])
+        if str(x).replace(".0", "") in pcs
+    ]
 
     pcs_selecionados = st.sidebar.multiselect(
         "Programação de carga",
@@ -264,6 +273,7 @@ if "PC" in df.columns:
         df = df[
             df["PC"]
             .astype(str)
+            .str.replace(".0", "", regex=False)
             .isin(pcs_selecionados)
         ]
 
@@ -314,13 +324,32 @@ total_rotas = (
     else 0
 )
 
-c1, c2, c3, c4, c5 = st.columns(5)
+# ===================================
+# ATRASADOS
+# ===================================
+
+pedidos_atrasados = 0
+
+if "Previsão" in df.columns:
+
+    limite = (
+        datetime.now() + timedelta(days=2)
+    ).date()
+
+    pedidos_atrasados = len(
+        df[
+            df["Previsão"].dt.date < limite
+        ]
+    )
+
+c1, c2, c3, c4, c5, c6 = st.columns(6)
 
 c1.metric("Pedidos", total_pedidos)
 c2.metric("Peças", total_pecas)
 c3.metric("Total M²", round(total_m2, 2))
 c4.metric("Peso Total", round(total_peso, 2))
 c5.metric("Rotas", total_rotas)
+c6.metric("⚠️ Atrasados", pedidos_atrasados)
 
 # ===================================
 # TABELA POR ROTA
