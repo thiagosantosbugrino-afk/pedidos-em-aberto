@@ -394,7 +394,7 @@ if mostrar_rota:
 
     df_rota = df.copy()
 
-    df_rota["Previsão Texto"] = (
+    df_rota["Previsão"] = (
         df_rota["Previsão"]
         .dt.strftime("%d/%m/%Y")
     )
@@ -412,7 +412,7 @@ if mostrar_rota:
         df_rota,
         values="M2 Vendido",
         index="Rota",
-        columns="Previsão Texto",
+        columns="Previsão",
         aggfunc="sum",
         fill_value=0,
         margins=True,
