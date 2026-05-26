@@ -24,18 +24,9 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 st.markdown(
     """
     <style>
-
     input[type="date"] {
         display: block;
     }
-
-    div[data-testid="metric-container"] {
-        background-color: #111827;
-        border: 1px solid #374151;
-        padding: 15px;
-        border-radius: 12px;
-    }
-
     </style>
     """,
     unsafe_allow_html=True
@@ -171,13 +162,13 @@ if "Previsão" in df.columns:
     st.sidebar.markdown("### 📅 Período")
 
     start_date = st.sidebar.date_input(
-        "Data inicial (dd/mm/aaaa)",
+        "Data inicial",
         value=min_data,
         format="DD/MM/YYYY"
     )
 
     end_date = st.sidebar.date_input(
-        "Data final (dd/mm/aaaa)",
+        "Data final",
         value=max_data,
         format="DD/MM/YYYY"
     )
@@ -286,28 +277,6 @@ if df.empty:
     st.stop()
 
 # ===================================
-# STATUS DE ATRASO
-# ===================================
-
-if "Previsão" in df.columns:
-
-    hoje = datetime.now().date()
-
-    limite_atraso = hoje + timedelta(days=2)
-
-    df["Status"] = "🟢 No Prazo"
-
-    df.loc[
-        df["Previsão"].dt.date < limite_atraso,
-        "Status"
-    ] = "🔴 Atrasado"
-
-    df.loc[
-        df["Previsão"].dt.date == limite_atraso,
-        "Status"
-    ] = "🟡 Produzir Hoje"
-
-# ===================================
 # INDICADORES
 # ===================================
 
@@ -345,27 +314,13 @@ total_rotas = (
     else 0
 )
 
-total_atrasados = (
-    len(df[df["Status"] == "🔴 Atrasado"])
-    if "Status" in df.columns
-    else 0
-)
-
-total_hoje = (
-    len(df[df["Status"] == "🟡 Produzir Hoje"])
-    if "Status" in df.columns
-    else 0
-)
-
-c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
+c1, c2, c3, c4, c5 = st.columns(5)
 
 c1.metric("Pedidos", total_pedidos)
 c2.metric("Peças", total_pecas)
 c3.metric("Total M²", round(total_m2, 2))
 c4.metric("Peso Total", round(total_peso, 2))
 c5.metric("Rotas", total_rotas)
-c6.metric("🔴 Atrasados", total_atrasados)
-c7.metric("🟡 Produzir Hoje", total_hoje)
 
 # ===================================
 # TABELA POR ROTA
@@ -435,64 +390,11 @@ if mostrar_rota:
             ""
         )
 
-        evento_rota = st.dataframe(
+        st.dataframe(
             tabela_rota,
             use_container_width=True,
-            height=400,
-            on_select="rerun",
-            selection_mode="single-cell"
+            height=400
         )
-
-        # ===================================
-        # DRILL DOWN ROTA
-        # ===================================
-
-        try:
-
-            selecao = evento_rota.selection["cells"]
-
-            if selecao:
-
-                linha = selecao[0]["row"]
-                coluna = selecao[0]["column"]
-
-                rota = tabela_rota.index[linha]
-                data_coluna = tabela_rota.columns[coluna]
-
-                if (
-                    rota != "TOTAL GERAL"
-                    and
-                    data_coluna != "TOTAL GERAL"
-                ):
-
-                    data_real = pd.to_datetime(
-                        data_coluna,
-                        dayfirst=True
-                    ).date()
-
-                    detalhe = df[
-                        (
-                            df["Rota"].astype(str) == str(rota)
-                        )
-                        &
-                        (
-                            df["Previsão"].dt.date == data_real
-                        )
-                    ]
-
-                    st.subheader(
-                        f"🔎 Detalhamento | Rota: {rota} | Data: {data_coluna}"
-                    )
-
-                    st.dataframe(
-                        detalhe,
-                        use_container_width=True,
-                        height=350
-                    )
-
-        except:
-
-            pass
 
 # ===================================
 # TABELA POR PRODUTO
@@ -562,64 +464,11 @@ if mostrar_produto:
             ""
         )
 
-        evento_produto = st.dataframe(
+        st.dataframe(
             tabela_produto,
             use_container_width=True,
-            height=400,
-            on_select="rerun",
-            selection_mode="single-cell"
+            height=400
         )
-
-        # ===================================
-        # DRILL DOWN PRODUTO
-        # ===================================
-
-        try:
-
-            selecao = evento_produto.selection["cells"]
-
-            if selecao:
-
-                linha = selecao[0]["row"]
-                coluna = selecao[0]["column"]
-
-                produto = tabela_produto.index[linha]
-                data_coluna = tabela_produto.columns[coluna]
-
-                if (
-                    produto != "TOTAL GERAL"
-                    and
-                    data_coluna != "TOTAL GERAL"
-                ):
-
-                    data_real = pd.to_datetime(
-                        data_coluna,
-                        dayfirst=True
-                    ).date()
-
-                    detalhe = df[
-                        (
-                            df["Produto"].astype(str) == str(produto)
-                        )
-                        &
-                        (
-                            df["Previsão"].dt.date == data_real
-                        )
-                    ]
-
-                    st.subheader(
-                        f"🔎 Detalhamento | Produto: {produto} | Data: {data_coluna}"
-                    )
-
-                    st.dataframe(
-                        detalhe,
-                        use_container_width=True,
-                        height=350
-                    )
-
-        except:
-
-            pass
 
 # ===================================
 # GRÁFICO ROTA
@@ -644,9 +493,7 @@ if (
         x="M2 Vendido",
         y="Rota",
         orientation="h",
-        text="M2 Vendido",
-        color="M2 Vendido",
-        color_continuous_scale="RdYlGn"
+        text="M2 Vendido"
     )
 
     fig_rota.update_traces(
@@ -682,9 +529,7 @@ if (
         x="M2 Vendido",
         y="Produto",
         orientation="h",
-        text="M2 Vendido",
-        color="M2 Vendido",
-        color_continuous_scale="Blues"
+        text="M2 Vendido"
     )
 
     fig_produto.update_traces(
@@ -695,6 +540,117 @@ if (
     st.plotly_chart(
         fig_produto,
         use_container_width=True
+    )
+
+# ===================================
+# DETALHAMENTO
+# ===================================
+
+st.markdown("---")
+
+mostrar_detalhamento = st.checkbox(
+    "🔎 Mostrar Detalhamento",
+    value=False
+)
+
+if mostrar_detalhamento:
+
+    st.subheader("🔎 Detalhamento")
+
+    df_detalhe = df.copy()
+
+    if "Previsão" in df_detalhe.columns:
+
+        min_det = df_detalhe["Previsão"].min().date()
+        max_det = df_detalhe["Previsão"].max().date()
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            detalhe_inicio = st.date_input(
+                "Detalhamento - Data Inicial",
+                value=min_det,
+                key="det_inicio",
+                format="DD/MM/YYYY"
+            )
+
+        with col2:
+
+            detalhe_fim = st.date_input(
+                "Detalhamento - Data Final",
+                value=max_det,
+                key="det_fim",
+                format="DD/MM/YYYY"
+            )
+
+        df_detalhe = df_detalhe[
+            (
+                df_detalhe["Previsão"].dt.date >= detalhe_inicio
+            )
+            &
+            (
+                df_detalhe["Previsão"].dt.date <= detalhe_fim
+            )
+        ]
+
+    if "Pedido" in df_detalhe.columns:
+
+        pedidos = sorted(
+            df_detalhe["Pedido"]
+            .dropna()
+            .astype(str)
+            .unique()
+        )
+
+        pedido_sel = st.selectbox(
+            "Selecione o Pedido",
+            ["Todos"] + pedidos
+        )
+
+        if pedido_sel != "Todos":
+
+            df_detalhe = df_detalhe[
+                df_detalhe["Pedido"]
+                .astype(str)
+                == pedido_sel
+            ]
+
+    if "Previsão" in df_detalhe.columns:
+
+        df_detalhe["Previsão"] = (
+            pd.to_datetime(
+                df_detalhe["Previsão"],
+                errors="coerce"
+            )
+            .dt.strftime("%d/%m/%Y")
+        )
+
+    st.dataframe(
+        df_detalhe,
+        use_container_width=True,
+        height=400
+    )
+
+# ===================================
+# BASE COMPLETA
+# ===================================
+
+st.markdown("---")
+
+mostrar_base = st.checkbox(
+    "📋 Mostrar Base Completa",
+    value=False
+)
+
+if mostrar_base:
+
+    st.subheader("📋 Base Completa")
+
+    st.dataframe(
+        df,
+        use_container_width=True,
+        height=400
     )
 
 # ===================================
