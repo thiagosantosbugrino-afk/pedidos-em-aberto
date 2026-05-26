@@ -25,16 +25,27 @@ st.markdown("""
 <style>
 
 table {
+    width: 100% !important;
+    border-collapse: collapse !important;
     text-align: center !important;
+    font-size: 14px !important;
 }
 
 thead tr th {
     text-align: center !important;
     font-weight: bold !important;
+    background-color: #f0f2f6 !important;
+    padding: 8px !important;
 }
 
 tbody tr td {
     text-align: center !important;
+    padding: 6px !important;
+}
+
+tbody tr:last-child {
+    font-weight: bold !important;
+    background-color: #f8f9fa !important;
 }
 
 </style>
@@ -351,13 +362,10 @@ if "Previsão" in df.columns:
 
     if "M2 Vendido" in df_atrasados.columns:
 
-        m2_atrasados = round(
-            pd.to_numeric(
-                df_atrasados["M2 Vendido"],
-                errors="coerce"
-            ).sum(),
-            2
-        )
+        m2_atrasados = pd.to_numeric(
+            df_atrasados["M2 Vendido"],
+            errors="coerce"
+        ).sum()
 
 c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
 
@@ -367,7 +375,7 @@ c3.metric("Total M²", round(total_m2, 2))
 c4.metric("Peso Total", round(total_peso, 2))
 c5.metric("Rotas", total_rotas)
 c6.metric("⚠️ Peças Atrasadas", pedidos_atrasados)
-c7.metric("📏 M² Atrasados", m2_atrasados)
+c7.metric("⚠️ M² Atrasado", round(m2_atrasados, 2))
 
 # ===================================
 # TABELA POR ROTA
@@ -438,25 +446,16 @@ if mostrar_rota:
         ""
     )
 
-    tabela_rota = tabela_rota.astype(object)
+    tabela_rota = tabela_rota.astype(str)
 
-    for coluna in tabela_rota.columns:
+    html_rota = tabela_rota.to_html(
+        classes="tabela-centralizada",
+        border=0
+    )
 
-        tabela_rota[coluna] = tabela_rota[coluna].apply(
-            lambda x: (
-                ""
-                if x == ""
-                else f"{float(x):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            )
-        )
-
-    st.dataframe(
-        tabela_rota,
-        use_container_width=True,
-        height=min(
-            45 * (len(tabela_rota) + 1),
-            600
-        )
+    st.markdown(
+        html_rota,
+        unsafe_allow_html=True
     )
 
 # ===================================
@@ -528,25 +527,16 @@ if mostrar_produto:
         ""
     )
 
-    tabela_produto = tabela_produto.astype(object)
+    tabela_produto = tabela_produto.astype(str)
 
-    for coluna in tabela_produto.columns:
+    html_produto = tabela_produto.to_html(
+        classes="tabela-centralizada",
+        border=0
+    )
 
-        tabela_produto[coluna] = tabela_produto[coluna].apply(
-            lambda x: (
-                ""
-                if x == ""
-                else f"{float(x):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            )
-        )
-
-    st.dataframe(
-        tabela_produto,
-        use_container_width=True,
-        height=min(
-            45 * (len(tabela_produto) + 1),
-            600
-        )
+    st.markdown(
+        html_produto,
+        unsafe_allow_html=True
     )
 
 # ===================================
