@@ -25,27 +25,25 @@ st.markdown("""
 <style>
 
 table {
-    width: 100% !important;
-    border-collapse: collapse !important;
     text-align: center !important;
-    font-size: 14px !important;
 }
 
 thead tr th {
     text-align: center !important;
     font-weight: bold !important;
-    background-color: #f0f2f6 !important;
-    padding: 8px !important;
 }
 
 tbody tr td {
     text-align: center !important;
-    padding: 6px !important;
 }
 
-tbody tr:last-child {
+div[data-testid="stDataFrame"] td {
+    text-align: center !important;
+}
+
+div[data-testid="stDataFrame"] th {
+    text-align: center !important;
     font-weight: bold !important;
-    background-color: #f8f9fa !important;
 }
 
 </style>
@@ -374,8 +372,43 @@ c2.metric("Peças", total_pecas)
 c3.metric("Total M²", round(total_m2, 2))
 c4.metric("Peso Total", round(total_peso, 2))
 c5.metric("Rotas", total_rotas)
-c6.metric("⚠️ Peças Atrasadas", pedidos_atrasados)
-c7.metric("⚠️ M² Atrasado", round(m2_atrasados, 2))
+c6.metric("⚠️ Atrasados", pedidos_atrasados)
+c7.metric("📏 M² Atrasados", round(m2_atrasados, 2))
+
+# ===================================
+# FUNÇÃO FORMATAR
+# ===================================
+
+def formatar_dataframe(df_tabela):
+
+    df_tabela = df_tabela.round(2)
+
+    df_tabela = df_tabela.loc[
+        (df_tabela != 0).any(axis=1)
+    ]
+
+    df_tabela = df_tabela.loc[
+        :,
+        (df_tabela != 0).any(axis=0)
+    ]
+
+    df_tabela = df_tabela.replace(
+        0,
+        ""
+    )
+
+    df_tabela = df_tabela.astype(object)
+
+    for coluna in df_tabela.columns:
+
+        df_tabela[coluna] = df_tabela[coluna].apply(
+            lambda x:
+            f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            if isinstance(x, (int, float))
+            else x
+        )
+
+    return df_tabela
 
 # ===================================
 # TABELA POR ROTA
@@ -394,7 +427,7 @@ if mostrar_rota:
 
     df_rota = df.copy()
 
-    df_rota["Previsão"] = (
+    df_rota["Previsão Texto"] = (
         df_rota["Previsão"]
         .dt.strftime("%d/%m/%Y")
     )
@@ -412,7 +445,7 @@ if mostrar_rota:
         df_rota,
         values="M2 Vendido",
         index="Rota",
-        columns="Previsão",
+        columns="Previsão Texto",
         aggfunc="sum",
         fill_value=0,
         margins=True,
@@ -430,32 +463,17 @@ if mostrar_rota:
 
     tabela_rota = tabela_rota[colunas]
 
-    tabela_rota = tabela_rota.round(2)
-
-    tabela_rota = tabela_rota.loc[
-        (tabela_rota != 0).any(axis=1)
-    ]
-
-    tabela_rota = tabela_rota.loc[
-        :,
-        (tabela_rota != 0).any(axis=0)
-    ]
-
-    tabela_rota = tabela_rota.replace(
-        0,
-        ""
+    tabela_rota = formatar_dataframe(
+        tabela_rota
     )
 
-    tabela_rota = tabela_rota.astype(str)
-
-    html_rota = tabela_rota.to_html(
-        classes="tabela-centralizada",
-        border=0
-    )
-
-    st.markdown(
-        html_rota,
-        unsafe_allow_html=True
+    st.dataframe(
+        tabela_rota,
+        use_container_width=True,
+        height=min(
+            45 * (len(tabela_rota) + 1),
+            700
+        )
     )
 
 # ===================================
@@ -475,7 +493,7 @@ if mostrar_produto:
 
     df_produto = df.copy()
 
-    df_produto["Previsão"] = (
+    df_produto["Previsão Texto"] = (
         df_produto["Previsão"]
         .dt.strftime("%d/%m/%Y")
     )
@@ -493,7 +511,7 @@ if mostrar_produto:
         df_produto,
         values="M2 Vendido",
         index="Produto",
-        columns="Previsão",
+        columns="Previsão Texto",
         aggfunc="sum",
         fill_value=0,
         margins=True,
@@ -511,32 +529,56 @@ if mostrar_produto:
 
     tabela_produto = tabela_produto[colunas]
 
-    tabela_produto = tabela_produto.round(2)
-
-    tabela_produto = tabela_produto.loc[
-        (tabela_produto != 0).any(axis=1)
-    ]
-
-    tabela_produto = tabela_produto.loc[
-        :,
-        (tabela_produto != 0).any(axis=0)
-    ]
-
-    tabela_produto = tabela_produto.replace(
-        0,
-        ""
+    tabela_produto = formatar_dataframe(
+        tabela_produto
     )
 
-    tabela_produto = tabela_produto.astype(str)
-
-    html_produto = tabela_produto.to_html(
-        classes="tabela-centralizada",
-        border=0
+    st.dataframe(
+        tabela_produto,
+        use_container_width=True,
+        height=min(
+            45 * (len(tabela_produto) + 1),
+            700
+        )
     )
 
-    st.markdown(
-        html_produto,
-        unsafe_allow_html=True
+# ===================================
+# TABELA ROTA X PRODUTO
+# ===================================
+
+st.markdown("---")
+
+mostrar_rota_produto = st.checkbox(
+    "📊 Mostrar Rota X Produto",
+    value=False
+)
+
+if mostrar_rota_produto:
+
+    st.subheader("📊 Rota X Produto")
+
+    tabela_rota_produto = pd.pivot_table(
+        df,
+        values="M2 Vendido",
+        index="Rota",
+        columns="Produto",
+        aggfunc="sum",
+        fill_value=0,
+        margins=True,
+        margins_name="TOTAL GERAL"
+    )
+
+    tabela_rota_produto = formatar_dataframe(
+        tabela_rota_produto
+    )
+
+    st.dataframe(
+        tabela_rota_produto,
+        use_container_width=True,
+        height=min(
+            45 * (len(tabela_rota_produto) + 1),
+            800
+        )
     )
 
 # ===================================
