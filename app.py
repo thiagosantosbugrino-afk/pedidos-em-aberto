@@ -332,7 +332,10 @@ total_rotas = (
     else 0
 )
 
+# ATRASADOS
+
 pedidos_atrasados = 0
+m2_atrasados = 0
 
 if "Previsão" in df.columns:
 
@@ -340,20 +343,31 @@ if "Previsão" in df.columns:
         datetime.now() + timedelta(days=2)
     ).date()
 
-    pedidos_atrasados = len(
-        df[
-            df["Previsão"].dt.date < limite
-        ]
-    )
+    df_atrasados = df[
+        df["Previsão"].dt.date < limite
+    ]
 
-c1, c2, c3, c4, c5, c6 = st.columns(6)
+    pedidos_atrasados = len(df_atrasados)
+
+    if "M2 Vendido" in df_atrasados.columns:
+
+        m2_atrasados = round(
+            pd.to_numeric(
+                df_atrasados["M2 Vendido"],
+                errors="coerce"
+            ).sum(),
+            2
+        )
+
+c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
 
 c1.metric("Pedidos", total_pedidos)
 c2.metric("Peças", total_pecas)
 c3.metric("Total M²", round(total_m2, 2))
 c4.metric("Peso Total", round(total_peso, 2))
 c5.metric("Rotas", total_rotas)
-c6.metric("⚠️ Atrasados", pedidos_atrasados)
+c6.metric("⚠️ Peças Atrasadas", pedidos_atrasados)
+c7.metric("📏 M² Atrasados", m2_atrasados)
 
 # ===================================
 # TABELA POR ROTA
