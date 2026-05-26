@@ -617,7 +617,6 @@ if mostrar_rota_produto:
             html_rota_produto,
             unsafe_allow_html=True
         )
-    )
 # ===================================
 # GRÁFICO ROTA
 # ===================================
