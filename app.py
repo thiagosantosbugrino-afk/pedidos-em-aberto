@@ -475,7 +475,7 @@ if mostrar_produto:
 
     df_produto = df.copy()
 
-    df_produto["Previsão Texto"] = (
+    df_produto["Previsão"] = (
         df_produto["Previsão"]
         .dt.strftime("%d/%m/%Y")
     )
@@ -493,7 +493,7 @@ if mostrar_produto:
         df_produto,
         values="M2 Vendido",
         index="Produto",
-        columns="Previsão Texto",
+        columns="Previsão",
         aggfunc="sum",
         fill_value=0,
         margins=True,
