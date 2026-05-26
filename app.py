@@ -21,23 +21,24 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 # CSS
 # ===================================
 
-st.markdown(
-    """
-    <style>
+st.markdown("""
+<style>
 
-    .stDataFrame td {
-        text-align: center !important;
-    }
+table {
+    text-align: center !important;
+}
 
-    .stDataFrame th {
-        text-align: center !important;
-        font-weight: bold !important;
-    }
+thead tr th {
+    text-align: center !important;
+    font-weight: bold !important;
+}
 
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+tbody tr td {
+    text-align: center !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 # ===================================
 # LEITURA PLANILHA
@@ -52,7 +53,7 @@ try:
 
 except FileNotFoundError:
 
-    st.error("⚠️ Nenhum arquivo foi carregado ainda.")
+    st.error("⚠️ Nenhum arquivo carregado.")
     st.stop()
 
 except Exception as e:
@@ -61,7 +62,7 @@ except Exception as e:
     st.stop()
 
 # ===================================
-# LIMPEZA COLUNAS
+# LIMPEZA
 # ===================================
 
 df.columns = (
@@ -70,9 +71,7 @@ df.columns = (
     .str.strip()
 )
 
-# ===================================
-# AJUSTAR PEDIDO
-# ===================================
+# PEDIDO
 
 if "Pedido" in df.columns:
 
@@ -82,9 +81,7 @@ if "Pedido" in df.columns:
         .str.replace(".0", "", regex=False)
     )
 
-# ===================================
-# AJUSTAR PC
-# ===================================
+# PC
 
 if "PC" in df.columns:
 
@@ -94,9 +91,7 @@ if "PC" in df.columns:
         .str.replace(".0", "", regex=False)
     )
 
-# ===================================
-# CONVERTE DATA
-# ===================================
+# DATA
 
 if "Previsão" in df.columns:
 
@@ -128,7 +123,7 @@ try:
     )
 
     st.info(
-        f"🕒 Última atualização da planilha: {data_formatada}"
+        f"🕒 Última atualização: {data_formatada}"
     )
 
 except:
@@ -156,7 +151,7 @@ except:
 st.sidebar.title("Filtros")
 
 # ===================================
-# FILTRO DATA
+# DATA
 # ===================================
 
 if "Previsão" in df.columns:
@@ -164,17 +159,23 @@ if "Previsão" in df.columns:
     min_data = df["Previsão"].min().date()
     max_data = df["Previsão"].max().date()
 
-    st.sidebar.markdown("### 📅 Período")
+    start_default = pd.to_datetime(
+        filtros.get("start_date", min_data)
+    ).date()
+
+    end_default = pd.to_datetime(
+        filtros.get("end_date", max_data)
+    ).date()
 
     start_date = st.sidebar.date_input(
         "Data inicial",
-        value=min_data,
+        value=start_default,
         format="DD/MM/YYYY"
     )
 
     end_date = st.sidebar.date_input(
         "Data final",
-        value=max_data,
+        value=end_default,
         format="DD/MM/YYYY"
     )
 
@@ -189,7 +190,7 @@ if "Previsão" in df.columns:
     ]
 
 # ===================================
-# FILTRO ROTA
+# ROTA
 # ===================================
 
 if "Rota" in df.columns:
@@ -206,22 +207,22 @@ if "Rota" in df.columns:
         if r in rotas
     ]
 
-    rotas_selecionadas = st.sidebar.multiselect(
+    rotas_sel = st.sidebar.multiselect(
         "Rotas",
         rotas,
         default=rotas_default
     )
 
-    if rotas_selecionadas:
+    if rotas_sel:
 
         df = df[
             df["Rota"]
             .astype(str)
-            .isin(rotas_selecionadas)
+            .isin(rotas_sel)
         ]
 
 # ===================================
-# FILTRO PRODUTO
+# PRODUTO
 # ===================================
 
 if "Produto" in df.columns:
@@ -238,22 +239,22 @@ if "Produto" in df.columns:
         if p in produtos
     ]
 
-    produtos_selecionados = st.sidebar.multiselect(
+    produtos_sel = st.sidebar.multiselect(
         "Produtos",
         produtos,
         default=produtos_default
     )
 
-    if produtos_selecionados:
+    if produtos_sel:
 
         df = df[
             df["Produto"]
             .astype(str)
-            .isin(produtos_selecionados)
+            .isin(produtos_sel)
         ]
 
 # ===================================
-# FILTRO PC
+# PC
 # ===================================
 
 if "PC" in df.columns:
@@ -270,18 +271,18 @@ if "PC" in df.columns:
         if p in pcs
     ]
 
-    pcs_selecionados = st.sidebar.multiselect(
+    pcs_sel = st.sidebar.multiselect(
         "Programação de carga",
         pcs,
         default=pcs_default
     )
 
-    if pcs_selecionados:
+    if pcs_sel:
 
         df = df[
             df["PC"]
             .astype(str)
-            .isin(pcs_selecionados)
+            .isin(pcs_sel)
         ]
 
 # ===================================
@@ -302,7 +303,7 @@ st.subheader("Indicadores")
 total_pedidos = (
     df["Pedido"].nunique()
     if "Pedido" in df.columns
-    else len(df)
+    else 0
 )
 
 total_pecas = len(df)
@@ -331,9 +332,7 @@ total_rotas = (
     else 0
 )
 
-# ===================================
 # ATRASADOS
-# ===================================
 
 pedidos_atrasados = 0
 
@@ -359,7 +358,7 @@ c5.metric("Rotas", total_rotas)
 c6.metric("⚠️ Atrasados", pedidos_atrasados)
 
 # ===================================
-# TABELA ROTA
+# TABELA POR ROTA
 # ===================================
 
 st.markdown("---")
@@ -385,8 +384,8 @@ if mostrar_rota:
     )
 
     ordem_datas = [
-        pd.to_datetime(data).strftime("%d/%m/%Y")
-        for data in ordem_datas
+        pd.to_datetime(d).strftime("%d/%m/%Y")
+        for d in ordem_datas
     ]
 
     tabela_rota = pd.pivot_table(
@@ -400,26 +399,27 @@ if mostrar_rota:
         margins_name="TOTAL GERAL"
     )
 
-    colunas_ordenadas = [
+    colunas = [
         c for c in ordem_datas
         if c in tabela_rota.columns
     ]
 
     if "TOTAL GERAL" in tabela_rota.columns:
 
-        colunas_ordenadas.append(
-            "TOTAL GERAL"
-        )
+        colunas.append("TOTAL GERAL")
 
-    tabela_rota = tabela_rota[
-        colunas_ordenadas
-    ]
+    tabela_rota = tabela_rota[colunas]
+
+    tabela_rota = tabela_rota.round(2)
 
     tabela_rota = tabela_rota.loc[
         (tabela_rota != 0).any(axis=1)
     ]
 
-    tabela_rota = tabela_rota.round(2)
+    tabela_rota = tabela_rota.loc[
+        :,
+        (tabela_rota != 0).any(axis=0)
+    ]
 
     tabela_rota = tabela_rota.replace(
         0,
@@ -462,8 +462,8 @@ if mostrar_produto:
     )
 
     ordem_datas = [
-        pd.to_datetime(data).strftime("%d/%m/%Y")
-        for data in ordem_datas
+        pd.to_datetime(d).strftime("%d/%m/%Y")
+        for d in ordem_datas
     ]
 
     tabela_produto = pd.pivot_table(
@@ -477,26 +477,27 @@ if mostrar_produto:
         margins_name="TOTAL GERAL"
     )
 
-    colunas_ordenadas = [
+    colunas = [
         c for c in ordem_datas
         if c in tabela_produto.columns
     ]
 
     if "TOTAL GERAL" in tabela_produto.columns:
 
-        colunas_ordenadas.append(
-            "TOTAL GERAL"
-        )
+        colunas.append("TOTAL GERAL")
 
-    tabela_produto = tabela_produto[
-        colunas_ordenadas
-    ]
+    tabela_produto = tabela_produto[colunas]
+
+    tabela_produto = tabela_produto.round(2)
 
     tabela_produto = tabela_produto.loc[
         (tabela_produto != 0).any(axis=1)
     ]
 
-    tabela_produto = tabela_produto.round(2)
+    tabela_produto = tabela_produto.loc[
+        :,
+        (tabela_produto != 0).any(axis=0)
+    ]
 
     tabela_produto = tabela_produto.replace(
         0,
