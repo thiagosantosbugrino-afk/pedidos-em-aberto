@@ -83,7 +83,9 @@ df.columns = (
     .str.strip()
 )
 
+# ===================================
 # PEDIDO
+# ===================================
 
 if "Pedido" in df.columns:
 
@@ -93,7 +95,9 @@ if "Pedido" in df.columns:
         .str.replace(".0", "", regex=False)
     )
 
+# ===================================
 # PC
+# ===================================
 
 if "PC" in df.columns:
 
@@ -103,7 +107,9 @@ if "PC" in df.columns:
         .str.replace(".0", "", regex=False)
     )
 
+# ===================================
 # DATA
+# ===================================
 
 if "Previsão" in df.columns:
 
@@ -344,8 +350,6 @@ total_rotas = (
     else 0
 )
 
-# ATRASADOS
-
 pedidos_atrasados = 0
 
 if "Previsão" in df.columns:
@@ -439,11 +443,21 @@ if mostrar_rota:
     )
 
     st.dataframe(
-        tabela_rota.style.set_properties(
+        tabela_rota.style
+        .format("{:.2f}")
+        .set_properties(
             **{
                 "text-align": "center"
             }
-        ),
+        )
+        .set_table_styles([
+            {
+                "selector": "th",
+                "props": [
+                    ("text-align", "center")
+                ]
+            }
+        ]),
         use_container_width=True,
         height=min(
             45 * (len(tabela_rota) + 1),
@@ -521,11 +535,21 @@ if mostrar_produto:
     )
 
     st.dataframe(
-        tabela_produto.style.set_properties(
+        tabela_produto.style
+        .format("{:.2f}")
+        .set_properties(
             **{
                 "text-align": "center"
             }
-        ),
+        )
+        .set_table_styles([
+            {
+                "selector": "th",
+                "props": [
+                    ("text-align", "center")
+                ]
+            }
+        ]),
         use_container_width=True,
         height=min(
             45 * (len(tabela_produto) + 1),
