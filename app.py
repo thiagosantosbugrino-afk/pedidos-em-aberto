@@ -419,15 +419,11 @@ if mostrar_rota:
         (tabela_rota != 0).any(axis=1)
     ]
 
+    tabela_rota = tabela_rota.round(2)
+
     tabela_rota = tabela_rota.replace(
         0,
         ""
-    )
-
-    tabela_rota = tabela_rota.applymap(
-        lambda x: round(x, 2)
-        if isinstance(x, (int, float))
-        else x
     )
 
     st.dataframe(
@@ -500,15 +496,11 @@ if mostrar_produto:
         (tabela_produto != 0).any(axis=1)
     ]
 
+    tabela_produto = tabela_produto.round(2)
+
     tabela_produto = tabela_produto.replace(
         0,
         ""
-    )
-
-    tabela_produto = tabela_produto.applymap(
-        lambda x: round(x, 2)
-        if isinstance(x, (int, float))
-        else x
     )
 
     st.dataframe(
@@ -629,6 +621,13 @@ if mostrar_detalhamento:
             df_detalhe["Previsão"].dt.date <= detalhe_fim
         )
     ]
+
+    if "Previsão" in df_detalhe.columns:
+
+        df_detalhe["Previsão"] = (
+            df_detalhe["Previsão"]
+            .dt.strftime("%d/%m/%Y")
+        )
 
     st.dataframe(
         df_detalhe,
