@@ -88,6 +88,17 @@ if "PC" in df.columns:
     )
 
 # ===================================
+# AJUSTE M2
+# ===================================
+
+if "M2 Vendido" in df.columns:
+
+    df["M2 Vendido"] = pd.to_numeric(
+        df["M2 Vendido"],
+        errors="coerce"
+    ).round(2)
+
+# ===================================
 # ÚLTIMA ATUALIZAÇÃO
 # ===================================
 
@@ -324,10 +335,6 @@ total_rotas = (
     else 0
 )
 
-# ===================================
-# ATRASADOS
-# ===================================
-
 pedidos_atrasados = 0
 
 if "Previsão" in df.columns:
@@ -399,7 +406,7 @@ if mostrar_rota:
             fill_value=0,
             margins=True,
             margins_name="TOTAL GERAL"
-        )
+        ).round(2)
 
         colunas_ordenadas = [
             c for c in ordem_datas
@@ -473,7 +480,7 @@ if mostrar_produto:
             fill_value=0,
             margins=True,
             margins_name="TOTAL GERAL"
-        )
+        ).round(2)
 
         colunas_ordenadas = [
             c for c in ordem_datas
@@ -500,7 +507,7 @@ if mostrar_produto:
         )
 
 # ===================================
-# GRÁFICO ROTA
+# GRÁFICOS
 # ===================================
 
 st.subheader("📈 Produção por Rota")
@@ -535,10 +542,6 @@ if (
         use_container_width=True
     )
 
-# ===================================
-# GRÁFICO PRODUTO
-# ===================================
-
 st.subheader("🪟 Produção por Produto")
 
 if (
@@ -569,117 +572,6 @@ if (
     st.plotly_chart(
         fig_produto,
         use_container_width=True
-    )
-
-# ===================================
-# DETALHAMENTO
-# ===================================
-
-st.markdown("---")
-
-mostrar_detalhamento = st.checkbox(
-    "🔎 Mostrar Detalhamento",
-    value=False
-)
-
-if mostrar_detalhamento:
-
-    st.subheader("🔎 Detalhamento")
-
-    df_detalhe = df.copy()
-
-    if "Previsão" in df_detalhe.columns:
-
-        min_det = df_detalhe["Previsão"].min().date()
-        max_det = df_detalhe["Previsão"].max().date()
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-
-            detalhe_inicio = st.date_input(
-                "Detalhamento - Data Inicial",
-                value=min_det,
-                key="det_inicio",
-                format="DD/MM/YYYY"
-            )
-
-        with col2:
-
-            detalhe_fim = st.date_input(
-                "Detalhamento - Data Final",
-                value=max_det,
-                key="det_fim",
-                format="DD/MM/YYYY"
-            )
-
-        df_detalhe = df_detalhe[
-            (
-                df_detalhe["Previsão"].dt.date >= detalhe_inicio
-            )
-            &
-            (
-                df_detalhe["Previsão"].dt.date <= detalhe_fim
-            )
-        ]
-
-    if "Pedido" in df_detalhe.columns:
-
-        pedidos = sorted(
-            df_detalhe["Pedido"]
-            .dropna()
-            .astype(str)
-            .unique()
-        )
-
-        pedido_sel = st.selectbox(
-            "Selecione o Pedido",
-            ["Todos"] + pedidos
-        )
-
-        if pedido_sel != "Todos":
-
-            df_detalhe = df_detalhe[
-                df_detalhe["Pedido"]
-                .astype(str)
-                == pedido_sel
-            ]
-
-    if "Previsão" in df_detalhe.columns:
-
-        df_detalhe["Previsão"] = (
-            pd.to_datetime(
-                df_detalhe["Previsão"],
-                errors="coerce"
-            )
-            .dt.strftime("%d/%m/%Y")
-        )
-
-    st.dataframe(
-        df_detalhe,
-        use_container_width=True,
-        height=400
-    )
-
-# ===================================
-# BASE COMPLETA
-# ===================================
-
-st.markdown("---")
-
-mostrar_base = st.checkbox(
-    "📋 Mostrar Base Completa",
-    value=False
-)
-
-if mostrar_base:
-
-    st.subheader("📋 Base Completa")
-
-    st.dataframe(
-        df,
-        use_container_width=True,
-        height=400
     )
 
 # ===================================
