@@ -21,25 +21,26 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 # CSS
 # ===================================
 
-st.markdown(
-    """
-    <style>
+st.markdown("""
+<style>
 
-    div[data-testid="stDataFrame"] table {
-        width: 100%;
-    }
+thead tr th {
+    text-align: center !important;
+}
 
-    div[data-testid="stDataFrame"] th {
-        font-weight: bold !important;
-    }
+tbody tr td {
+    text-align: center !important;
+}
 
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+tbody th {
+    text-align: center !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 # ===================================
-# LEITURA
+# LEITURA PLANILHA
 # ===================================
 
 try:
@@ -70,7 +71,7 @@ df.columns = (
 )
 
 # ===================================
-# AJUSTE PEDIDO
+# AJUSTAR PEDIDO
 # ===================================
 
 if "Pedido" in df.columns:
@@ -82,7 +83,7 @@ if "Pedido" in df.columns:
     )
 
 # ===================================
-# AJUSTE PC
+# AJUSTAR PC
 # ===================================
 
 if "PC" in df.columns:
@@ -92,17 +93,6 @@ if "PC" in df.columns:
         .astype(str)
         .str.replace(".0", "", regex=False)
     )
-
-# ===================================
-# AJUSTE M2
-# ===================================
-
-if "M2 Vendido" in df.columns:
-
-    df["M2 Vendido"] = pd.to_numeric(
-        df["M2 Vendido"],
-        errors="coerce"
-    ).round(2)
 
 # ===================================
 # ÚLTIMA ATUALIZAÇÃO
@@ -128,7 +118,7 @@ try:
         )
 
         st.info(
-            f"🕒 Última atualização: {data_formatada}"
+            f"🕒 Última atualização da planilha: {data_formatada}"
         )
 
 except:
@@ -136,7 +126,7 @@ except:
     pass
 
 # ===================================
-# DATA
+# CONVERTER DATA
 # ===================================
 
 if "Previsão" in df.columns:
@@ -175,6 +165,8 @@ if "Previsão" in df.columns:
 
     min_data = df["Previsão"].min().date()
     max_data = df["Previsão"].max().date()
+
+    st.sidebar.markdown("### 📅 Período")
 
     start_date = st.sidebar.date_input(
         "Data inicial",
@@ -309,42 +301,66 @@ if df.empty:
 
 st.subheader("Indicadores")
 
-c1, c2, c3, c4, c5 = st.columns(5)
-
-c1.metric(
-    "Pedidos",
+total_pedidos = (
     df["Pedido"].nunique()
+    if "Pedido" in df.columns
+    else len(df)
 )
 
-c2.metric(
-    "Peças",
-    len(df)
+total_pecas = len(df)
+
+total_m2 = (
+    pd.to_numeric(
+        df["M2 Vendido"],
+        errors="coerce"
+    ).sum()
 )
 
-c3.metric(
-    "Total M²",
-    round(df["M2 Vendido"].sum(), 2)
-)
-
-c4.metric(
-    "Peso Total",
-    round(
-        pd.to_numeric(
-            df["Peso"],
-            errors="coerce"
-        ).sum(),
-        2
-    )
+total_peso = (
+    pd.to_numeric(
+        df["Peso"],
+        errors="coerce"
+    ).sum()
     if "Peso" in df.columns
     else 0
 )
 
-c5.metric(
-    "Rotas",
+total_rotas = (
     df["Rota"].nunique()
     if "Rota" in df.columns
     else 0
 )
+
+# ===================================
+# ATRASADOS
+# ===================================
+
+pedidos_atrasados = 0
+
+if "Previsão" in df.columns:
+
+    data_limite = (
+        datetime.now() + timedelta(days=2)
+    ).date()
+
+    pedidos_atrasados = len(
+        df[
+            df["Previsão"].dt.date < data_limite
+        ]
+    )
+
+# ===================================
+# CARDS
+# ===================================
+
+c1, c2, c3, c4, c5, c6 = st.columns(6)
+
+c1.metric("Pedidos", total_pedidos)
+c2.metric("Peças", total_pecas)
+c3.metric("Total M²", round(total_m2, 2))
+c4.metric("Peso Total", round(total_peso, 2))
+c5.metric("Rotas", total_rotas)
+c6.metric("⚠️ Atrasados", pedidos_atrasados)
 
 # ===================================
 # TABELA ROTA
@@ -386,7 +402,7 @@ if mostrar_rota:
         fill_value=0,
         margins=True,
         margins_name="TOTAL GERAL"
-    ).round(2)
+    )
 
     colunas_ordenadas = [
         c for c in ordem_datas
@@ -395,21 +411,20 @@ if mostrar_rota:
 
     if "TOTAL GERAL" in tabela_rota.columns:
 
-        colunas_ordenadas.append("TOTAL GERAL")
+        colunas_ordenadas.append(
+            "TOTAL GERAL"
+        )
 
     tabela_rota = tabela_rota[
         colunas_ordenadas
     ]
 
-    # REMOVE LINHAS SEM VALOR
-    tabela_rota = tabela_rota.loc[
-        ~(tabela_rota == 0).all(axis=1)
-    ]
+    tabela_rota = tabela_rota.round(2)
 
-    # REMOVE COLUNAS SEM VALOR
-    tabela_rota = tabela_rota.loc[
-        :,
-        ~(tabela_rota == 0).all(axis=0)
+    tabela_rota = tabela_rota[
+        (
+            tabela_rota != 0
+        ).any(axis=1)
     ]
 
     tabela_rota = tabela_rota.replace(
@@ -418,11 +433,11 @@ if mostrar_rota:
     )
 
     st.dataframe(
-        tabela_rota,
+        tabela_rota.style.format("{:.2f}"),
         use_container_width=True,
         height=min(
-            500,
-            (len(tabela_rota) + 1) * 35
+            45 * (len(tabela_rota) + 1),
+            600
         )
     )
 
@@ -466,7 +481,7 @@ if mostrar_produto:
         fill_value=0,
         margins=True,
         margins_name="TOTAL GERAL"
-    ).round(2)
+    )
 
     colunas_ordenadas = [
         c for c in ordem_datas
@@ -475,21 +490,20 @@ if mostrar_produto:
 
     if "TOTAL GERAL" in tabela_produto.columns:
 
-        colunas_ordenadas.append("TOTAL GERAL")
+        colunas_ordenadas.append(
+            "TOTAL GERAL"
+        )
 
     tabela_produto = tabela_produto[
         colunas_ordenadas
     ]
 
-    # REMOVE LINHAS SEM VALOR
-    tabela_produto = tabela_produto.loc[
-        ~(tabela_produto == 0).all(axis=1)
-    ]
+    tabela_produto = tabela_produto.round(2)
 
-    # REMOVE COLUNAS SEM VALOR
-    tabela_produto = tabela_produto.loc[
-        :,
-        ~(tabela_produto == 0).all(axis=0)
+    tabela_produto = tabela_produto[
+        (
+            tabela_produto != 0
+        ).any(axis=1)
     ]
 
     tabela_produto = tabela_produto.replace(
@@ -498,17 +512,19 @@ if mostrar_produto:
     )
 
     st.dataframe(
-        tabela_produto,
+        tabela_produto.style.format("{:.2f}"),
         use_container_width=True,
         height=min(
-            500,
-            (len(tabela_produto) + 1) * 35
+            45 * (len(tabela_produto) + 1),
+            600
         )
     )
 
 # ===================================
 # GRÁFICO ROTA
 # ===================================
+
+st.markdown("---")
 
 st.subheader("📈 Produção por Rota")
 
@@ -518,8 +534,15 @@ grafico_rota = (
     .reset_index()
 )
 
+grafico_rota["M2 Vendido"] = (
+    grafico_rota["M2 Vendido"]
+    .round(2)
+)
+
 fig_rota = px.bar(
-    grafico_rota,
+    grafico_rota.sort_values(
+        "M2 Vendido"
+    ),
     x="M2 Vendido",
     y="Rota",
     orientation="h",
@@ -540,6 +563,8 @@ st.plotly_chart(
 # GRÁFICO PRODUTO
 # ===================================
 
+st.markdown("---")
+
 st.subheader("🪟 Produção por Produto")
 
 grafico_produto = (
@@ -548,8 +573,15 @@ grafico_produto = (
     .reset_index()
 )
 
+grafico_produto["M2 Vendido"] = (
+    grafico_produto["M2 Vendido"]
+    .round(2)
+)
+
 fig_produto = px.bar(
-    grafico_produto,
+    grafico_produto.sort_values(
+        "M2 Vendido"
+    ),
     x="M2 Vendido",
     y="Produto",
     orientation="h",
@@ -565,6 +597,151 @@ st.plotly_chart(
     fig_produto,
     use_container_width=True
 )
+
+# ===================================
+# DETALHAMENTO
+# ===================================
+
+st.markdown("---")
+
+mostrar_detalhamento = st.checkbox(
+    "🔎 Mostrar Detalhamento",
+    value=False
+)
+
+if mostrar_detalhamento:
+
+    st.subheader("🔎 Detalhamento")
+
+    df_detalhe = df.copy()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        detalhe_inicio = st.date_input(
+            "Data Inicial",
+            value=df_detalhe["Previsão"].min().date(),
+            format="DD/MM/YYYY"
+        )
+
+    with col2:
+
+        detalhe_fim = st.date_input(
+            "Data Final",
+            value=df_detalhe["Previsão"].max().date(),
+            format="DD/MM/YYYY"
+        )
+
+    df_detalhe = df_detalhe[
+        (
+            df_detalhe["Previsão"].dt.date >= detalhe_inicio
+        )
+        &
+        (
+            df_detalhe["Previsão"].dt.date <= detalhe_fim
+        )
+    ]
+
+    if "Produto" in df_detalhe.columns:
+
+        produtos_det = sorted(
+            df_detalhe["Produto"]
+            .dropna()
+            .astype(str)
+            .unique()
+        )
+
+        produto_sel = st.multiselect(
+            "Produto",
+            produtos_det
+        )
+
+        if produto_sel:
+
+            df_detalhe = df_detalhe[
+                df_detalhe["Produto"]
+                .astype(str)
+                .isin(produto_sel)
+            ]
+
+    if "Rota" in df_detalhe.columns:
+
+        rotas_det = sorted(
+            df_detalhe["Rota"]
+            .dropna()
+            .astype(str)
+            .unique()
+        )
+
+        rota_sel = st.multiselect(
+            "Rota",
+            rotas_det
+        )
+
+        if rota_sel:
+
+            df_detalhe = df_detalhe[
+                df_detalhe["Rota"]
+                .astype(str)
+                .isin(rota_sel)
+            ]
+
+    if "PC" in df_detalhe.columns:
+
+        pcs_det = sorted(
+            df_detalhe["PC"]
+            .dropna()
+            .astype(str)
+            .unique()
+        )
+
+        pc_sel = st.multiselect(
+            "Carregamento",
+            pcs_det
+        )
+
+        if pc_sel:
+
+            df_detalhe = df_detalhe[
+                df_detalhe["PC"]
+                .astype(str)
+                .isin(pc_sel)
+            ]
+
+    if "Previsão" in df_detalhe.columns:
+
+        df_detalhe["Previsão"] = (
+            df_detalhe["Previsão"]
+            .dt.strftime("%d/%m/%Y")
+        )
+
+    st.dataframe(
+        df_detalhe,
+        use_container_width=True,
+        height=500
+    )
+
+# ===================================
+# BASE COMPLETA
+# ===================================
+
+st.markdown("---")
+
+mostrar_base = st.checkbox(
+    "📋 Mostrar Base Completa",
+    value=False
+)
+
+if mostrar_base:
+
+    st.subheader("📋 Base Completa")
+
+    st.dataframe(
+        df,
+        use_container_width=True,
+        height=500
+    )
 
 # ===================================
 # DOWNLOAD
