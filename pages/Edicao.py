@@ -154,6 +154,7 @@ if arquivo is not None:
                 df["Pedido"]
                 .astype(str)
                 .str.replace(".0", "", regex=False)
+                .str.strip()
             )
 
         # =========================================
@@ -166,6 +167,7 @@ if arquivo is not None:
                 df["PC"]
                 .astype(str)
                 .str.replace(".0", "", regex=False)
+                .str.strip()
             )
 
         # =========================================
@@ -230,6 +232,7 @@ try:
             df["Pedido"]
             .astype(str)
             .str.replace(".0", "", regex=False)
+            .str.strip()
         )
 
     # =========================================
@@ -242,6 +245,7 @@ try:
             df["PC"]
             .astype(str)
             .str.replace(".0", "", regex=False)
+            .str.strip()
         )
 
 except:
@@ -270,7 +274,7 @@ if "Previsão" in df.columns:
 
 try:
 
-    with open("filtros.json", "r") as f:
+    with open("filtros.json", "r", encoding="utf-8") as f:
 
         filtros_salvos = json.load(f)[0]
 
@@ -408,15 +412,34 @@ if "Previsão" in df.columns:
 
 if "PC" in df.columns:
 
-    pcs = sorted(
+    # GARANTE FORMATO CORRETO
+    df["PC"] = (
         df["PC"]
-        .dropna()
         .astype(str)
-        .unique()
+        .str.replace(".0", "", regex=False)
+        .str.strip()
     )
 
+    pcs = sorted(
+        [
+            str(p).strip()
+            for p in df["PC"]
+            .dropna()
+            .unique()
+        ]
+    )
+
+    # FILTROS SALVOS
+    pcs_salvos = filtros_salvos.get("pcs", [])
+
+    pcs_salvos = [
+        str(p).replace(".0", "").strip()
+        for p in pcs_salvos
+    ]
+
+    # GARANTE EXISTÊNCIA
     pcs_padrao = [
-        p for p in filtros_salvos.get("pcs", [])
+        p for p in pcs_salvos
         if p in pcs
     ]
 
@@ -426,7 +449,10 @@ if "PC" in df.columns:
         default=pcs_padrao
     )
 
-    filtros["pcs"] = pcs_selecionados
+    filtros["pcs"] = [
+        str(p).replace(".0", "").strip()
+        for p in pcs_selecionados
+    ]
 
 # =========================================
 # SALVAR FILTROS
@@ -434,14 +460,26 @@ if "PC" in df.columns:
 
 if st.button("💾 Salvar filtros"):
 
-    with open("filtros.json", "w") as f:
+    try:
 
-        json.dump(
-            [filtros],
-            f
-        )
+        with open(
+            "filtros.json",
+            "w",
+            encoding="utf-8"
+        ) as f:
 
-    st.success("✅ Filtros salvos com sucesso!")
+            json.dump(
+                [filtros],
+                f,
+                ensure_ascii=False,
+                indent=4
+            )
+
+        st.success("✅ Filtros salvos com sucesso!")
+
+    except Exception as e:
+
+        st.error(f"Erro ao salvar filtros: {e}")
 
 # =========================================
 # MOSTRAR BASE
