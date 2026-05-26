@@ -606,34 +606,18 @@ if mostrar_rota_produto:
                 else x
             )
 
-        # CENTRALIZAR
-        st.markdown("""
-        <style>
-
-        div[data-testid="stDataFrame"] table {
-            width: 100%;
-        }
-
-        div[data-testid="stDataFrame"] th {
-            text-align: center !important;
-            font-weight: bold !important;
-        }
-
-        div[data-testid="stDataFrame"] td {
-            text-align: center !important;
-        }
-
-        </style>
-        """, unsafe_allow_html=True)
-
-        st.dataframe(
-            tabela_rota_produto,
-            use_container_width=True,
-            height=min(
-                45 * (len(tabela_rota_produto) + 1),
-                700
-            )
+        # CONVERTER PARA HTML
+        html_rota_produto = tabela_rota_produto.to_html(
+            classes="tabela-centralizada",
+            border=0
         )
+
+        # MOSTRAR
+        st.markdown(
+            html_rota_produto,
+            unsafe_allow_html=True
+        )
+    )
 # ===================================
 # GRÁFICO ROTA
 # ===================================
