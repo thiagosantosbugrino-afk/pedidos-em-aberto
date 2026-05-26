@@ -332,8 +332,6 @@ total_rotas = (
     else 0
 )
 
-# ATRASADOS
-
 pedidos_atrasados = 0
 
 if "Previsão" in df.columns:
@@ -412,10 +410,12 @@ if mostrar_rota:
 
     tabela_rota = tabela_rota.round(2)
 
+    # REMOVE LINHAS VAZIAS
     tabela_rota = tabela_rota.loc[
         (tabela_rota != 0).any(axis=1)
     ]
 
+    # REMOVE COLUNAS VAZIAS
     tabela_rota = tabela_rota.loc[
         :,
         (tabela_rota != 0).any(axis=0)
@@ -427,7 +427,11 @@ if mostrar_rota:
     )
 
     st.dataframe(
-        tabela_rota,
+        tabela_rota.style.set_properties(
+            **{
+                'text-align': 'center'
+            }
+        ),
         use_container_width=True,
         height=min(
             45 * (len(tabela_rota) + 1),
@@ -490,10 +494,12 @@ if mostrar_produto:
 
     tabela_produto = tabela_produto.round(2)
 
+    # REMOVE LINHAS VAZIAS
     tabela_produto = tabela_produto.loc[
         (tabela_produto != 0).any(axis=1)
     ]
 
+    # REMOVE COLUNAS VAZIAS
     tabela_produto = tabela_produto.loc[
         :,
         (tabela_produto != 0).any(axis=0)
@@ -505,7 +511,11 @@ if mostrar_produto:
     )
 
     st.dataframe(
-        tabela_produto,
+        tabela_produto.style.set_properties(
+            **{
+                'text-align': 'center'
+            }
+        ),
         use_container_width=True,
         height=min(
             45 * (len(tabela_produto) + 1),
