@@ -162,13 +162,13 @@ if "Previsão" in df.columns:
     st.sidebar.markdown("### 📅 Período")
 
     start_date = st.sidebar.date_input(
-        "Data inicial (dd/mm/aaaa)",
+        "Data inicial",
         value=min_data,
         format="DD/MM/YYYY"
     )
 
     end_date = st.sidebar.date_input(
-        "Data final (dd/mm/aaaa)",
+        "Data final",
         value=max_data,
         format="DD/MM/YYYY"
     )
@@ -569,7 +569,7 @@ if mostrar_detalhamento:
         with col1:
 
             detalhe_inicio = st.date_input(
-                "Detalhamento - Data Inicial (dd/mm/aaaa)",
+                "Detalhamento - Data Inicial",
                 value=min_det,
                 key="det_inicio",
                 format="DD/MM/YYYY"
@@ -578,7 +578,7 @@ if mostrar_detalhamento:
         with col2:
 
             detalhe_fim = st.date_input(
-                "Detalhamento - Data Final (dd/mm/aaaa)",
+                "Detalhamento - Data Final",
                 value=max_det,
                 key="det_fim",
                 format="DD/MM/YYYY"
