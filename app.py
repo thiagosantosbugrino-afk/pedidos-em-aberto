@@ -292,7 +292,7 @@ c4.metric("Peso Total", round(total_peso, 2))
 c5.metric("Rotas", total_rotas)
 
 # ===================================
-# TABELA ROTA
+# TABELA POR ROTA
 # ===================================
 
 st.markdown("---")
@@ -321,6 +321,15 @@ if mostrar_rota:
             .dt.strftime("%d/%m/%Y")
         )
 
+        ordem_datas = sorted(
+            df_rota["Previsão"].dropna().unique()
+        )
+
+        ordem_datas = [
+            pd.to_datetime(data).strftime("%d/%m/%Y")
+            for data in ordem_datas
+        ]
+
         tabela_rota = pd.pivot_table(
             df_rota,
             values="M2 Vendido",
@@ -331,6 +340,19 @@ if mostrar_rota:
             margins=True,
             margins_name="TOTAL GERAL"
         )
+
+        colunas_ordenadas = [
+            c for c in ordem_datas
+            if c in tabela_rota.columns
+        ]
+
+        if "TOTAL GERAL" in tabela_rota.columns:
+
+            colunas_ordenadas.append("TOTAL GERAL")
+
+        tabela_rota = tabela_rota[
+            colunas_ordenadas
+        ]
 
         tabela_rota = tabela_rota.replace(
             0,
@@ -344,7 +366,7 @@ if mostrar_rota:
         )
 
 # ===================================
-# TABELA PRODUTO
+# TABELA POR PRODUTO
 # ===================================
 
 st.markdown("---")
@@ -373,6 +395,15 @@ if mostrar_produto:
             .dt.strftime("%d/%m/%Y")
         )
 
+        ordem_datas = sorted(
+            df_produto["Previsão"].dropna().unique()
+        )
+
+        ordem_datas = [
+            pd.to_datetime(data).strftime("%d/%m/%Y")
+            for data in ordem_datas
+        ]
+
         tabela_produto = pd.pivot_table(
             df_produto,
             values="M2 Vendido",
@@ -383,6 +414,19 @@ if mostrar_produto:
             margins=True,
             margins_name="TOTAL GERAL"
         )
+
+        colunas_ordenadas = [
+            c for c in ordem_datas
+            if c in tabela_produto.columns
+        ]
+
+        if "TOTAL GERAL" in tabela_produto.columns:
+
+            colunas_ordenadas.append("TOTAL GERAL")
+
+        tabela_produto = tabela_produto[
+            colunas_ordenadas
+        ]
 
         tabela_produto = tabela_produto.replace(
             0,
@@ -484,8 +528,6 @@ if mostrar_detalhamento:
 
     df_detalhe = df.copy()
 
-    # DATA
-
     if "Previsão" in df_detalhe.columns:
 
         min_det = df_detalhe["Previsão"].min().date()
@@ -519,8 +561,6 @@ if mostrar_detalhamento:
             )
         ]
 
-    # PEDIDO
-
     if "Pedido" in df_detalhe.columns:
 
         pedidos = sorted(
@@ -542,6 +582,16 @@ if mostrar_detalhamento:
                 .astype(str)
                 == pedido_sel
             ]
+
+    if "Previsão" in df_detalhe.columns:
+
+        df_detalhe["Previsão"] = (
+            pd.to_datetime(
+                df_detalhe["Previsão"],
+                errors="coerce"
+            )
+            .dt.strftime("%d/%m/%Y")
+        )
 
     st.dataframe(
         df_detalhe,
