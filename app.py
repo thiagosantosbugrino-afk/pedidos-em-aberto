@@ -37,18 +37,6 @@ tbody tr td {
     text-align: center !important;
 }
 
-[data-testid="stDataFrame"] div {
-    text-align: center !important;
-}
-
-[data-testid="stDataFrame"] td {
-    text-align: center !important;
-}
-
-[data-testid="stDataFrame"] th {
-    text-align: center !important;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -83,9 +71,7 @@ df.columns = (
     .str.strip()
 )
 
-# ===================================
 # PEDIDO
-# ===================================
 
 if "Pedido" in df.columns:
 
@@ -95,9 +81,7 @@ if "Pedido" in df.columns:
         .str.replace(".0", "", regex=False)
     )
 
-# ===================================
 # PC
-# ===================================
 
 if "PC" in df.columns:
 
@@ -107,9 +91,7 @@ if "PC" in df.columns:
         .str.replace(".0", "", regex=False)
     )
 
-# ===================================
 # DATA
-# ===================================
 
 if "Previsão" in df.columns:
 
@@ -442,22 +424,20 @@ if mostrar_rota:
         ""
     )
 
-    st.dataframe(
-        tabela_rota.style
-        .format("{:.2f}")
-        .set_properties(
-            **{
-                "text-align": "center"
-            }
+    tabela_rota = tabela_rota.astype(object)
+
+    for coluna in tabela_rota.columns:
+
+        tabela_rota[coluna] = tabela_rota[coluna].apply(
+            lambda x: (
+                ""
+                if x == ""
+                else f"{float(x):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            )
         )
-        .set_table_styles([
-            {
-                "selector": "th",
-                "props": [
-                    ("text-align", "center")
-                ]
-            }
-        ]),
+
+    st.dataframe(
+        tabela_rota,
         use_container_width=True,
         height=min(
             45 * (len(tabela_rota) + 1),
@@ -534,22 +514,20 @@ if mostrar_produto:
         ""
     )
 
-    st.dataframe(
-        tabela_produto.style
-        .format("{:.2f}")
-        .set_properties(
-            **{
-                "text-align": "center"
-            }
+    tabela_produto = tabela_produto.astype(object)
+
+    for coluna in tabela_produto.columns:
+
+        tabela_produto[coluna] = tabela_produto[coluna].apply(
+            lambda x: (
+                ""
+                if x == ""
+                else f"{float(x):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            )
         )
-        .set_table_styles([
-            {
-                "selector": "th",
-                "props": [
-                    ("text-align", "center")
-                ]
-            }
-        ]),
+
+    st.dataframe(
+        tabela_produto,
         use_container_width=True,
         height=min(
             45 * (len(tabela_produto) + 1),
