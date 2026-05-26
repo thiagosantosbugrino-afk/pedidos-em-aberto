@@ -24,16 +24,22 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 st.markdown(
     """
     <style>
-    input[type="date"] {
-        display: block;
+
+    div[data-testid="stDataFrame"] table {
+        width: 100%;
     }
+
+    div[data-testid="stDataFrame"] th {
+        font-weight: bold !important;
+    }
+
     </style>
     """,
     unsafe_allow_html=True
 )
 
 # ===================================
-# LEITURA DA PLANILHA
+# LEITURA
 # ===================================
 
 try:
@@ -45,16 +51,16 @@ try:
 
 except FileNotFoundError:
 
-    st.error("⚠️ Nenhum arquivo foi carregado ainda.")
+    st.error("⚠️ Nenhum arquivo carregado.")
     st.stop()
 
 except Exception as e:
 
-    st.error(f"Erro ao abrir a planilha: {e}")
+    st.error(f"Erro ao abrir planilha: {e}")
     st.stop()
 
 # ===================================
-# LIMPEZA DAS COLUNAS
+# LIMPEZA
 # ===================================
 
 df.columns = (
@@ -122,7 +128,7 @@ try:
         )
 
         st.info(
-            f"🕒 Última atualização da planilha: {data_formatada}"
+            f"🕒 Última atualização: {data_formatada}"
         )
 
 except:
@@ -130,7 +136,7 @@ except:
     pass
 
 # ===================================
-# CONVERTE DATA
+# DATA
 # ===================================
 
 if "Previsão" in df.columns:
@@ -170,8 +176,6 @@ if "Previsão" in df.columns:
     min_data = df["Previsão"].min().date()
     max_data = df["Previsão"].max().date()
 
-    st.sidebar.markdown("### 📅 Período")
-
     start_date = st.sidebar.date_input(
         "Data inicial",
         value=min_data,
@@ -208,9 +212,8 @@ if "Rota" in df.columns:
     )
 
     rotas_default = [
-        str(x).replace(".0", "")
-        for x in filtros.get("rotas", [])
-        if str(x).replace(".0", "") in rotas
+        r for r in filtros.get("rotas", [])
+        if r in rotas
     ]
 
     rotas_selecionadas = st.sidebar.multiselect(
@@ -240,9 +243,15 @@ if "Produto" in df.columns:
         .unique()
     )
 
+    produtos_default = [
+        p for p in filtros.get("produtos", [])
+        if p in produtos
+    ]
+
     produtos_selecionados = st.sidebar.multiselect(
         "Produtos",
-        produtos
+        produtos,
+        default=produtos_default
     )
 
     if produtos_selecionados:
@@ -263,14 +272,12 @@ if "PC" in df.columns:
         df["PC"]
         .dropna()
         .astype(str)
-        .str.replace(".0", "", regex=False)
         .unique()
     )
 
     pcs_default = [
-        str(x).replace(".0", "")
-        for x in filtros.get("pcs", [])
-        if str(x).replace(".0", "") in pcs
+        p for p in filtros.get("pcs", [])
+        if p in pcs
     ]
 
     pcs_selecionados = st.sidebar.multiselect(
@@ -284,7 +291,6 @@ if "PC" in df.columns:
         df = df[
             df["PC"]
             .astype(str)
-            .str.replace(".0", "", regex=False)
             .isin(pcs_selecionados)
         ]
 
@@ -303,63 +309,45 @@ if df.empty:
 
 st.subheader("Indicadores")
 
-total_pedidos = (
+c1, c2, c3, c4, c5 = st.columns(5)
+
+c1.metric(
+    "Pedidos",
     df["Pedido"].nunique()
-    if "Pedido" in df.columns
-    else len(df)
 )
 
-total_pecas = len(df)
-
-total_m2 = (
-    pd.to_numeric(
-        df["M2 Vendido"],
-        errors="coerce"
-    ).sum()
-    if "M2 Vendido" in df.columns
-    else 0
+c2.metric(
+    "Peças",
+    len(df)
 )
 
-total_peso = (
-    pd.to_numeric(
-        df["Peso"],
-        errors="coerce"
-    ).sum()
+c3.metric(
+    "Total M²",
+    round(df["M2 Vendido"].sum(), 2)
+)
+
+c4.metric(
+    "Peso Total",
+    round(
+        pd.to_numeric(
+            df["Peso"],
+            errors="coerce"
+        ).sum(),
+        2
+    )
     if "Peso" in df.columns
     else 0
 )
 
-total_rotas = (
+c5.metric(
+    "Rotas",
     df["Rota"].nunique()
     if "Rota" in df.columns
     else 0
 )
 
-pedidos_atrasados = 0
-
-if "Previsão" in df.columns:
-
-    limite = (
-        datetime.now() + timedelta(days=2)
-    ).date()
-
-    pedidos_atrasados = len(
-        df[
-            df["Previsão"].dt.date < limite
-        ]
-    )
-
-c1, c2, c3, c4, c5, c6 = st.columns(6)
-
-c1.metric("Pedidos", total_pedidos)
-c2.metric("Peças", total_pecas)
-c3.metric("Total M²", round(total_m2, 2))
-c4.metric("Peso Total", round(total_peso, 2))
-c5.metric("Rotas", total_rotas)
-c6.metric("⚠️ Atrasados", pedidos_atrasados)
-
 # ===================================
-# TABELA POR ROTA
+# TABELA ROTA
 # ===================================
 
 st.markdown("---")
@@ -373,67 +361,73 @@ if mostrar_rota:
 
     st.subheader("📊 Tabela por Rota")
 
-    if (
-        "Rota" in df.columns
-        and
-        "Previsão" in df.columns
-        and
-        "M2 Vendido" in df.columns
-    ):
+    df_rota = df.copy()
 
-        df_rota = df.copy()
+    df_rota["Previsão Texto"] = (
+        df_rota["Previsão"]
+        .dt.strftime("%d/%m/%Y")
+    )
 
-        df_rota["Previsão Texto"] = (
-            df_rota["Previsão"]
-            .dt.strftime("%d/%m/%Y")
+    ordem_datas = sorted(
+        df_rota["Previsão"].dropna().unique()
+    )
+
+    ordem_datas = [
+        pd.to_datetime(data).strftime("%d/%m/%Y")
+        for data in ordem_datas
+    ]
+
+    tabela_rota = pd.pivot_table(
+        df_rota,
+        values="M2 Vendido",
+        index="Rota",
+        columns="Previsão Texto",
+        aggfunc="sum",
+        fill_value=0,
+        margins=True,
+        margins_name="TOTAL GERAL"
+    ).round(2)
+
+    colunas_ordenadas = [
+        c for c in ordem_datas
+        if c in tabela_rota.columns
+    ]
+
+    if "TOTAL GERAL" in tabela_rota.columns:
+
+        colunas_ordenadas.append("TOTAL GERAL")
+
+    tabela_rota = tabela_rota[
+        colunas_ordenadas
+    ]
+
+    # REMOVE LINHAS SEM VALOR
+    tabela_rota = tabela_rota.loc[
+        ~(tabela_rota == 0).all(axis=1)
+    ]
+
+    # REMOVE COLUNAS SEM VALOR
+    tabela_rota = tabela_rota.loc[
+        :,
+        ~(tabela_rota == 0).all(axis=0)
+    ]
+
+    tabela_rota = tabela_rota.replace(
+        0,
+        ""
+    )
+
+    st.dataframe(
+        tabela_rota,
+        use_container_width=True,
+        height=min(
+            500,
+            (len(tabela_rota) + 1) * 35
         )
-
-        ordem_datas = sorted(
-            df_rota["Previsão"].dropna().unique()
-        )
-
-        ordem_datas = [
-            pd.to_datetime(data).strftime("%d/%m/%Y")
-            for data in ordem_datas
-        ]
-
-        tabela_rota = pd.pivot_table(
-            df_rota,
-            values="M2 Vendido",
-            index="Rota",
-            columns="Previsão Texto",
-            aggfunc="sum",
-            fill_value=0,
-            margins=True,
-            margins_name="TOTAL GERAL"
-        ).round(2)
-
-        colunas_ordenadas = [
-            c for c in ordem_datas
-            if c in tabela_rota.columns
-        ]
-
-        if "TOTAL GERAL" in tabela_rota.columns:
-
-            colunas_ordenadas.append("TOTAL GERAL")
-
-        tabela_rota = tabela_rota[
-            colunas_ordenadas
-        ]
-
-        tabela_rota = tabela_rota.replace(
-            0,
-            ""
-        )
-
-        st.dataframe(
-            tabela_rota,
-            use_container_width=True,
-            height=400
-        )
+    )
 
 # ===================================
-# TABELA POR PRODUTO
+# TABELA PRODUTO
 # ===================================
 
 st.markdown("---")
@@ -447,136 +441,136 @@ if mostrar_produto:
 
     st.subheader("🪟 Tabela por Produto")
 
-    if (
-        "Produto" in df.columns
-        and
-        "Previsão" in df.columns
-        and
-        "M2 Vendido" in df.columns
-    ):
+    df_produto = df.copy()
 
-        df_produto = df.copy()
+    df_produto["Previsão Texto"] = (
+        df_produto["Previsão"]
+        .dt.strftime("%d/%m/%Y")
+    )
 
-        df_produto["Previsão Texto"] = (
-            df_produto["Previsão"]
-            .dt.strftime("%d/%m/%Y")
+    ordem_datas = sorted(
+        df_produto["Previsão"].dropna().unique()
+    )
+
+    ordem_datas = [
+        pd.to_datetime(data).strftime("%d/%m/%Y")
+        for data in ordem_datas
+    ]
+
+    tabela_produto = pd.pivot_table(
+        df_produto,
+        values="M2 Vendido",
+        index="Produto",
+        columns="Previsão Texto",
+        aggfunc="sum",
+        fill_value=0,
+        margins=True,
+        margins_name="TOTAL GERAL"
+    ).round(2)
+
+    colunas_ordenadas = [
+        c for c in ordem_datas
+        if c in tabela_produto.columns
+    ]
+
+    if "TOTAL GERAL" in tabela_produto.columns:
+
+        colunas_ordenadas.append("TOTAL GERAL")
+
+    tabela_produto = tabela_produto[
+        colunas_ordenadas
+    ]
+
+    # REMOVE LINHAS SEM VALOR
+    tabela_produto = tabela_produto.loc[
+        ~(tabela_produto == 0).all(axis=1)
+    ]
+
+    # REMOVE COLUNAS SEM VALOR
+    tabela_produto = tabela_produto.loc[
+        :,
+        ~(tabela_produto == 0).all(axis=0)
+    ]
+
+    tabela_produto = tabela_produto.replace(
+        0,
+        ""
+    )
+
+    st.dataframe(
+        tabela_produto,
+        use_container_width=True,
+        height=min(
+            500,
+            (len(tabela_produto) + 1) * 35
         )
-
-        ordem_datas = sorted(
-            df_produto["Previsão"].dropna().unique()
-        )
-
-        ordem_datas = [
-            pd.to_datetime(data).strftime("%d/%m/%Y")
-            for data in ordem_datas
-        ]
-
-        tabela_produto = pd.pivot_table(
-            df_produto,
-            values="M2 Vendido",
-            index="Produto",
-            columns="Previsão Texto",
-            aggfunc="sum",
-            fill_value=0,
-            margins=True,
-            margins_name="TOTAL GERAL"
-        ).round(2)
-
-        colunas_ordenadas = [
-            c for c in ordem_datas
-            if c in tabela_produto.columns
-        ]
-
-        if "TOTAL GERAL" in tabela_produto.columns:
-
-            colunas_ordenadas.append("TOTAL GERAL")
-
-        tabela_produto = tabela_produto[
-            colunas_ordenadas
-        ]
-
-        tabela_produto = tabela_produto.replace(
-            0,
-            ""
-        )
-
-        st.dataframe(
-            tabela_produto,
-            use_container_width=True,
-            height=400
-        )
+    )
 
 # ===================================
-# GRÁFICOS
+# GRÁFICO ROTA
 # ===================================
 
 st.subheader("📈 Produção por Rota")
 
-if (
-    "Rota" in df.columns
-    and
-    "M2 Vendido" in df.columns
-):
+grafico_rota = (
+    df.groupby("Rota")["M2 Vendido"]
+    .sum()
+    .reset_index()
+)
 
-    grafico_rota = (
-        df.groupby("Rota")["M2 Vendido"]
-        .sum()
-        .reset_index()
-    )
+fig_rota = px.bar(
+    grafico_rota,
+    x="M2 Vendido",
+    y="Rota",
+    orientation="h",
+    text="M2 Vendido"
+)
 
-    fig_rota = px.bar(
-        grafico_rota,
-        x="M2 Vendido",
-        y="Rota",
-        orientation="h",
-        text="M2 Vendido"
-    )
+fig_rota.update_traces(
+    texttemplate='%{text:.2f}',
+    textposition='outside'
+)
 
-    fig_rota.update_traces(
-        texttemplate='%{text:.2f}',
-        textposition='outside'
-    )
+st.plotly_chart(
+    fig_rota,
+    use_container_width=True
+)
 
-    st.plotly_chart(
-        fig_rota,
-        use_container_width=True
-    )
+# ===================================
+# GRÁFICO PRODUTO
+# ===================================
 
 st.subheader("🪟 Produção por Produto")
 
-if (
-    "Produto" in df.columns
-    and
-    "M2 Vendido" in df.columns
-):
+grafico_produto = (
+    df.groupby("Produto")["M2 Vendido"]
+    .sum()
+    .reset_index()
+)
 
-    grafico_produto = (
-        df.groupby("Produto")["M2 Vendido"]
-        .sum()
-        .reset_index()
-    )
+fig_produto = px.bar(
+    grafico_produto,
+    x="M2 Vendido",
+    y="Produto",
+    orientation="h",
+    text="M2 Vendido"
+)
 
-    fig_produto = px.bar(
-        grafico_produto,
-        x="M2 Vendido",
-        y="Produto",
-        orientation="h",
-        text="M2 Vendido"
-    )
+fig_produto.update_traces(
+    texttemplate='%{text:.2f}',
+    textposition='outside'
+)
 
-    fig_produto.update_traces(
-        texttemplate='%{text:.2f}',
-        textposition='outside'
-    )
-
-    st.plotly_chart(
-        fig_produto,
-        use_container_width=True
-    )
+st.plotly_chart(
+    fig_produto,
+    use_container_width=True
+)
 
 # ===================================
 # DOWNLOAD
 # ===================================
+
+st.markdown("---")
 
 st.subheader("📥 Exportar dados filtrados")
 
