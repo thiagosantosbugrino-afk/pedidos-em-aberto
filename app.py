@@ -569,7 +569,7 @@ if mostrar_detalhamento:
         with col1:
 
             detalhe_inicio = st.date_input(
-                "Detalhamento - Data Inicial",
+                "Data Inicial",
                 value=min_det,
                 key="det_inicio",
                 format="DD/MM/YYYY"
@@ -578,7 +578,7 @@ if mostrar_detalhamento:
         with col2:
 
             detalhe_fim = st.date_input(
-                "Detalhamento - Data Final",
+                "Data Final",
                 value=max_det,
                 key="det_fim",
                 format="DD/MM/YYYY"
