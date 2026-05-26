@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 import json
+from datetime import datetime
 
 # =========================================
 # CONFIGURAÇÃO
@@ -41,7 +42,7 @@ if senha != "Thiago2026!":
 st.success("✅ Acesso liberado.")
 
 # =========================================
-# FUNÇÃO INTELIGENTE
+# FUNÇÃO ENCONTRAR BASE
 # =========================================
 
 def encontrar_base_excel(arquivo):
@@ -95,25 +96,6 @@ def encontrar_base_excel(arquivo):
     return None, None, None
 
 # =========================================
-# CARREGAR BASE JÁ EXISTENTE
-# =========================================
-
-df = None
-
-try:
-
-    df = pd.read_excel(
-        "dados.xlsx",
-        sheet_name=0
-    )
-
-    st.success("✅ Base já carregada encontrada.")
-
-except:
-
-    pass
-
-# =========================================
 # UPLOAD
 # =========================================
 
@@ -123,102 +105,163 @@ arquivo = st.file_uploader(
 )
 
 # =========================================
-# PROCESSAMENTO DO UPLOAD
+# SE ENVIAR NOVA PLANILHA
 # =========================================
 
-if arquivo:
+if arquivo is not None:
 
     try:
 
-        # =========================================
-        # LEITURA AUTOMÁTICA
-        # =========================================
+        df, aba_encontrada, linha_encontrada = encontrar_base_excel(arquivo)
 
-        novo_df, aba_encontrada, linha_encontrada = encontrar_base_excel(arquivo)
-
-        if novo_df is None:
+        if df is None:
 
             st.error(
-                "❌ Não foi possível encontrar automaticamente a base da planilha."
+                "❌ Não foi possível encontrar automaticamente a base."
             )
 
             st.stop()
 
         # =========================================
-        # LIMPEZA COLUNAS
+        # LIMPEZA
         # =========================================
 
-        novo_df.columns = (
-            novo_df.columns
+        df.columns = (
+            df.columns
             .astype(str)
             .str.strip()
         )
 
-        # REMOVE COLUNAS UNNAMED
-        novo_df = novo_df.loc[
+        df = df.loc[
             :,
-            ~novo_df.columns.str.contains(
+            ~df.columns.str.contains(
                 "^Unnamed",
                 case=False
             )
         ]
 
-        # REMOVE LINHAS TOTALMENTE VAZIAS
-        novo_df = novo_df.dropna(
+        df = df.dropna(
             how="all"
         )
 
         # =========================================
-        # INFORMAÇÕES
+        # AJUSTE PEDIDO
         # =========================================
 
-        st.success(
-            f"✅ Base encontrada automaticamente | Aba: {aba_encontrada} | Cabeçalho linha: {linha_encontrada + 1}"
-        )
+        if "Pedido" in df.columns:
+
+            df["Pedido"] = (
+                df["Pedido"]
+                .astype(str)
+                .str.replace(".0", "", regex=False)
+            )
+
+        # =========================================
+        # AJUSTE PC
+        # =========================================
+
+        if "PC" in df.columns:
+
+            df["PC"] = (
+                df["PC"]
+                .astype(str)
+                .str.replace(".0", "", regex=False)
+            )
 
         # =========================================
         # SALVAR BASE
         # =========================================
 
-        novo_df.to_excel(
+        df.to_excel(
             "dados.xlsx",
             index=False,
             engine="openpyxl"
         )
 
-        st.success("✅ Planilha carregada e salva!")
+        # =========================================
+        # SALVAR DATA UPDATE
+        # =========================================
 
-        # Atualiza df principal
-        df = novo_df
+        with open("ultima_atualizacao.json", "w") as f:
+
+            json.dump(
+                {
+                    "ultima_atualizacao":
+                    datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
+                },
+                f
+            )
+
+        st.success(
+            f"✅ Base encontrada automaticamente | Aba: {aba_encontrada} | Cabeçalho linha: {linha_encontrada + 1}"
+        )
+
+        st.success("✅ Planilha carregada e salva!")
 
     except Exception as e:
 
-        st.error(f"Erro ao ler a planilha: {e}")
+        st.error(f"Erro ao ler planilha: {e}")
 
 # =========================================
-# VERIFICA SE TEM BASE
+# CARREGAR BASE SALVA
 # =========================================
 
-if df is None:
+try:
 
-    st.warning("⚠️ Nenhuma base carregada ainda.")
+    df = pd.read_excel(
+        "dados.xlsx"
+    )
+
+    df.columns = (
+        df.columns
+        .astype(str)
+        .str.strip()
+    )
+
+except:
+
+    st.warning(
+        "⚠️ Nenhuma base carregada ainda."
+    )
+
     st.stop()
+
+# =========================================
+# CONVERTE DATA
+# =========================================
+
+if "Previsão" in df.columns:
+
+    df["Previsão"] = pd.to_datetime(
+        df["Previsão"],
+        errors="coerce",
+        dayfirst=True
+    )
 
 # =========================================
 # CARREGAR FILTROS SALVOS
 # =========================================
 
-filtros = {}
-
 try:
 
     with open("filtros.json", "r") as f:
 
-        filtros = json.load(f)[0]
+        filtros_salvos = json.load(f)[0]
 
 except:
 
-    filtros = {}
+    filtros_salvos = {}
+
+# =========================================
+# FILTROS
+# =========================================
+
+filtros = {}
+
+st.markdown("---")
+st.subheader("🎯 Configuração de Filtros")
 
 # =========================================
 # FILTRO ROTA
@@ -233,15 +276,44 @@ if "Rota" in df.columns:
         .unique()
     )
 
+    rotas_padrao = [
+        r for r in filtros_salvos.get("rotas", [])
+        if r in rotas
+    ]
+
     rotas_selecionadas = st.multiselect(
         "Selecione as rotas prioritárias:",
         rotas,
-        default=filtros.get("rotas", [])
+        default=rotas_padrao
     )
 
-    if rotas_selecionadas:
+    filtros["rotas"] = rotas_selecionadas
 
-        filtros["rotas"] = rotas_selecionadas
+# =========================================
+# FILTRO PRODUTO
+# =========================================
+
+if "Produto" in df.columns:
+
+    produtos = sorted(
+        df["Produto"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    produtos_padrao = [
+        p for p in filtros_salvos.get("produtos", [])
+        if p in produtos
+    ]
+
+    produtos_selecionados = st.multiselect(
+        "Selecione os produtos:",
+        produtos,
+        default=produtos_padrao
+    )
+
+    filtros["produtos"] = produtos_selecionados
 
 # =========================================
 # FILTRO DATA
@@ -249,40 +321,59 @@ if "Rota" in df.columns:
 
 if "Previsão" in df.columns:
 
-    df["Previsão"] = pd.to_datetime(
-        df["Previsão"],
-        errors="coerce",
-        dayfirst=True
-    )
-
-    df = df.dropna(
+    df_data = df.dropna(
         subset=["Previsão"]
     )
 
-    if not df.empty:
+    if not df_data.empty:
 
-        min_date = df["Previsão"].min().date()
-        max_date = df["Previsão"].max().date()
-
-        start_date = st.date_input(
-            "Data inicial",
-            value=pd.to_datetime(
-                filtros.get("start_date", min_date)
-            ).date(),
-            min_value=min_date,
-            max_value=max_date,
-            format="DD/MM/YYYY"
+        min_date = (
+            df_data["Previsão"]
+            .min()
+            .date()
         )
 
-        end_date = st.date_input(
-            "Data final",
-            value=pd.to_datetime(
-                filtros.get("end_date", max_date)
-            ).date(),
-            min_value=min_date,
-            max_value=max_date,
-            format="DD/MM/YYYY"
+        max_date = (
+            df_data["Previsão"]
+            .max()
+            .date()
         )
+
+        start_padrao = pd.to_datetime(
+            filtros_salvos.get(
+                "start_date",
+                min_date
+            )
+        ).date()
+
+        end_padrao = pd.to_datetime(
+            filtros_salvos.get(
+                "end_date",
+                max_date
+            )
+        ).date()
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            start_date = st.date_input(
+                "Data inicial",
+                value=start_padrao,
+                min_value=min_date,
+                max_value=max_date,
+                format="DD/MM/YYYY"
+            )
+
+        with col2:
+
+            end_date = st.date_input(
+                "Data final",
+                value=end_padrao,
+                min_value=min_date,
+                max_value=max_date,
+                format="DD/MM/YYYY"
+            )
 
         filtros["start_date"] = str(start_date)
         filtros["end_date"] = str(end_date)
@@ -300,18 +391,21 @@ if "PC" in df.columns:
         .unique()
     )
 
+    pcs_padrao = [
+        p for p in filtros_salvos.get("pcs", [])
+        if p in pcs
+    ]
+
     pcs_selecionados = st.multiselect(
         "Programação de carga:",
         pcs,
-        default=filtros.get("pcs", [])
+        default=pcs_padrao
     )
 
-    if pcs_selecionados:
-
-        filtros["pcs"] = pcs_selecionados
+    filtros["pcs"] = pcs_selecionados
 
 # =========================================
-# BOTÃO SALVAR FILTROS
+# SALVAR FILTROS
 # =========================================
 
 if st.button("💾 Salvar filtros"):
@@ -326,10 +420,45 @@ if st.button("💾 Salvar filtros"):
     st.success("✅ Filtros salvos com sucesso!")
 
 # =========================================
+# MOSTRAR BASE
+# =========================================
+
+st.markdown("---")
+
+mostrar_base = st.checkbox(
+    "📋 Mostrar Base Atual",
+    value=True
+)
+
+if mostrar_base:
+
+    st.subheader("📋 Base Atual")
+
+    df_exibir = df.copy()
+
+    if "Previsão" in df_exibir.columns:
+
+        df_exibir["Previsão"] = (
+            pd.to_datetime(
+                df_exibir["Previsão"],
+                errors="coerce"
+            )
+            .dt.strftime("%d/%m/%Y")
+        )
+
+    st.dataframe(
+        df_exibir,
+        use_container_width=True,
+        height=500
+    )
+
+# =========================================
 # DOWNLOAD
 # =========================================
 
-st.subheader("📥 Exportar dados filtrados")
+st.markdown("---")
+
+st.subheader("📥 Exportar base")
 
 def to_excel(df):
 
@@ -343,7 +472,7 @@ def to_excel(df):
         df.to_excel(
             writer,
             index=False,
-            sheet_name="Base Filtrada"
+            sheet_name="Base"
         )
 
     return output.getvalue()
@@ -351,20 +480,8 @@ def to_excel(df):
 excel_file = to_excel(df)
 
 st.download_button(
-    label="Baixar planilha filtrada (Excel)",
+    label="Baixar planilha",
     data=excel_file,
-    file_name="dados_filtrados.xlsx",
+    file_name="dados.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
-
-# =========================================
-# MOSTRAR BASE ATUAL
-# =========================================
-
-st.subheader("📋 Base Atual")
-
-st.dataframe(
-    df,
-    use_container_width=True,
-    height=400
 )
