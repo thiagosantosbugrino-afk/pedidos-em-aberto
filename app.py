@@ -18,6 +18,21 @@ st.set_page_config(
 st.title("📊 Pedidos Em Aberto - Visualização")
 
 # ===================================
+# CSS
+# ===================================
+
+st.markdown(
+    """
+    <style>
+    input[type="date"] {
+        display: block;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# ===================================
 # LEITURA DA PLANILHA
 # ===================================
 
@@ -56,6 +71,18 @@ if "Pedido" in df.columns:
 
     df["Pedido"] = (
         df["Pedido"]
+        .astype(str)
+        .str.replace(".0", "", regex=False)
+    )
+
+# ===================================
+# AJUSTE PC
+# ===================================
+
+if "PC" in df.columns:
+
+    df["PC"] = (
+        df["PC"]
         .astype(str)
         .str.replace(".0", "", regex=False)
     )
@@ -132,14 +159,18 @@ if "Previsão" in df.columns:
     min_data = df["Previsão"].min().date()
     max_data = df["Previsão"].max().date()
 
+    st.sidebar.markdown("### 📅 Período")
+
     start_date = st.sidebar.date_input(
-        "Data inicial",
-        value=min_data
+        "Data inicial (dd/mm/aaaa)",
+        value=min_data,
+        format="DD/MM/YYYY"
     )
 
     end_date = st.sidebar.date_input(
-        "Data final",
-        value=max_data
+        "Data final (dd/mm/aaaa)",
+        value=max_data,
+        format="DD/MM/YYYY"
     )
 
     df = df[
@@ -538,17 +569,19 @@ if mostrar_detalhamento:
         with col1:
 
             detalhe_inicio = st.date_input(
-                "Detalhamento - Data Inicial",
+                "Detalhamento - Data Inicial (dd/mm/aaaa)",
                 value=min_det,
-                key="det_inicio"
+                key="det_inicio",
+                format="DD/MM/YYYY"
             )
 
         with col2:
 
             detalhe_fim = st.date_input(
-                "Detalhamento - Data Final",
+                "Detalhamento - Data Final (dd/mm/aaaa)",
                 value=max_det,
-                key="det_fim"
+                key="det_fim",
+                format="DD/MM/YYYY"
             )
 
         df_detalhe = df_detalhe[
