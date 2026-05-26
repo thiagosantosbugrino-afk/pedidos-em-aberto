@@ -220,6 +220,30 @@ try:
         .str.strip()
     )
 
+    # =========================================
+    # AJUSTE PEDIDO
+    # =========================================
+
+    if "Pedido" in df.columns:
+
+        df["Pedido"] = (
+            df["Pedido"]
+            .astype(str)
+            .str.replace(".0", "", regex=False)
+        )
+
+    # =========================================
+    # AJUSTE PC
+    # =========================================
+
+    if "PC" in df.columns:
+
+        df["PC"] = (
+            df["PC"]
+            .astype(str)
+            .str.replace(".0", "", regex=False)
+        )
+
 except:
 
     st.warning(
