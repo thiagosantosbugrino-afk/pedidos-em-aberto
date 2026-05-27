@@ -171,21 +171,6 @@ if arquivo is not None:
             )
 
         # =========================================
-        # AJUSTE PRODUTO
-        # =========================================
-
-        if "Produto" in df.columns:
-
-            df["Produto"] = (
-                df["Produto"]
-                .astype(str)
-                .str.strip()
-                .str.replace("\n", "", regex=False)
-                .str.replace("\r", "", regex=False)
-                .str.replace("  ", " ", regex=False)
-            )
-
-        # =========================================
         # SALVAR BASE
         # =========================================
 
@@ -263,21 +248,6 @@ try:
             .str.strip()
         )
 
-    # =========================================
-    # AJUSTE PRODUTO
-    # =========================================
-
-    if "Produto" in df.columns:
-
-        df["Produto"] = (
-            df["Produto"]
-            .astype(str)
-            .str.strip()
-            .str.replace("\n", "", regex=False)
-            .str.replace("\r", "", regex=False)
-            .str.replace("  ", " ", regex=False)
-        )
-
 except:
 
     st.warning(
@@ -353,31 +323,16 @@ if "Rota" in df.columns:
 
 if "Produto" in df.columns:
 
-    # LIMPEZA COMPLETA
-    df["Produto"] = (
-        df["Produto"]
-        .astype(str)
-        .str.strip()
-        .str.replace("\n", "", regex=False)
-        .str.replace("\r", "", regex=False)
-        .str.replace("  ", " ", regex=False)
-    )
-
     produtos = sorted(
-        [
-            str(p).strip()
-            for p in df["Produto"]
-            .dropna()
-            .unique()
-            if str(p).strip() != ""
-            and str(p).lower().strip() != "nan"
-        ]
+        df["Produto"]
+        .dropna()
+        .astype(str)
+        .unique()
     )
 
     produtos_padrao = [
-        str(p).strip()
-        for p in filtros_salvos.get("produtos", [])
-        if str(p).strip() in produtos
+        p for p in filtros_salvos.get("produtos", [])
+        if p in produtos
     ]
 
     produtos_selecionados = st.multiselect(
@@ -386,10 +341,7 @@ if "Produto" in df.columns:
         default=produtos_padrao
     )
 
-    filtros["produtos"] = [
-        str(p).strip()
-        for p in produtos_selecionados
-    ]
+    filtros["produtos"] = produtos_selecionados
 
 # =========================================
 # FILTRO DATA
@@ -460,6 +412,7 @@ if "Previsão" in df.columns:
 
 if "PC" in df.columns:
 
+    # GARANTE FORMATO CORRETO
     df["PC"] = (
         df["PC"]
         .astype(str)
@@ -476,6 +429,7 @@ if "PC" in df.columns:
         ]
     )
 
+    # FILTROS SALVOS
     pcs_salvos = filtros_salvos.get("pcs", [])
 
     pcs_salvos = [
@@ -483,6 +437,7 @@ if "PC" in df.columns:
         for p in pcs_salvos
     ]
 
+    # GARANTE EXISTÊNCIA
     pcs_padrao = [
         p for p in pcs_salvos
         if p in pcs
