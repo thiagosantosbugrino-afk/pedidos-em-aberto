@@ -268,75 +268,69 @@ if "Produto" in df.columns:
 # PC
 # ===================================
 
+df_pc = pd.DataFrame()
+
 if "PC" in df.columns:
 
-    pcs = sorted(
-        df["PC"]
-        .dropna()
-        .astype(str)
-        .unique()
-    )
-
-    pcs_default = [
-        p for p in filtros.get("pcs", [])
-        if p in pcs
-    ]
+    pcs = sorted(df["PC"].dropna().astype(str).unique())
 
     pcs_sel = st.sidebar.multiselect(
         "Programação de carga",
         pcs,
-        default=pcs_default
+        default=[p for p in filtros.get("pcs", []) if p in pcs]
     )
 
     if pcs_sel:
-
-        df = df[
-            df["PC"]
-            .astype(str)
-            .isin(pcs_sel)
-        ]
+        df_pc = df[df["PC"].astype(str).isin(pcs_sel)]
 
 # ===================================
 # PEDIDOS MANUAIS
 # ===================================
 
 pedidos_manuais = filtros.get("pedidos_manuais", [])
+pedidos_manuais = [str(p).strip().replace(".0", "") for p in pedidos_manuais]
 
-# Sempre exibe lista limpa
-pedidos_manuais = [str(p).strip() for p in pedidos_manuais if p]
+df_pedidos = pd.DataFrame()
 
-df_pedidos_manuais = pd.DataFrame()
+if pedidos_manuais and "Pedido" in df.columns:
+    df_pedidos = df[df["Pedido"].astype(str).isin(pedidos_manuais)]
 
-if pedidos_manuais:
+# ===================================
+# ROTAS MANUAIS (NOVO)
+# ===================================
 
-    df_pedidos_manuais = pd.read_excel("dados.xlsx")
+rotas_manuais = filtros.get("rotas_manuais", [])
+rotas_manuais = [str(r).strip() for r in rotas_manuais]
 
-    df_pedidos_manuais.columns = (
-        df_pedidos_manuais.columns.astype(str).str.strip()
-    )
+df_rotas = pd.DataFrame()
 
-    if "Pedido" in df_pedidos_manuais.columns:
+if rotas_manuais and "Rota" in df.columns:
+    df_rotas = df[df["Rota"].astype(str).isin(rotas_manuais)]
 
-        df_pedidos_manuais["Pedido"] = (
-            df_pedidos_manuais["Pedido"]
-            .astype(str)
-            .str.replace(".0", "", regex=False)
-            .str.strip()
-        )
+# ===================================
+# CONSOLIDAÇÃO FINAL (CORRIGIDA)
+# ===================================
 
-        pedidos_manuais = [
-            str(p).replace(".0", "").strip()
-            for p in pedidos_manuais
-        ]
+dfs = []
 
-        df_extra = df_pedidos_manuais[
-            df_pedidos_manuais["Pedido"].isin(pedidos_manuais)
-        ]
+# PC
+if not df_pc.empty:
+    dfs.append(df_pc)
 
-        df = pd.concat(
-            [df, df_extra],
-            ignore_index=True
-        ).drop_duplicates()
+# Pedidos manuais
+if not df_pedidos.empty:
+    dfs.append(df_pedidos)
+
+# Rotas manuais
+if not df_rotas.empty:
+    dfs.append(df_rotas)
+
+# Se nada foi selecionado → usa base completa
+if len(dfs) == 0:
+    df = df.copy()
+
+else:
+    df = pd.concat(dfs, ignore_index=True).drop_duplicates()
 
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS (NOVO LOCAL)
