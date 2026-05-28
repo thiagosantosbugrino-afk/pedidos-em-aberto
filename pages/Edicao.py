@@ -169,11 +169,9 @@ if arquivo is not None:
                 .str.replace(".0", "", regex=False)
                 .str.strip()
             )
-
-        # =========================================
-        # SALVAR BASE
-        # =========================================
-        # ===================================
+# =========================================
+# TRATAR ROTA EM BRANCO (RETIRA)
+# =========================================
 
 if "Rota" in df.columns:
 
@@ -184,6 +182,10 @@ if "Rota" in df.columns:
         .replace(["", "nan", "None"], "RETIRA")
     )
 
+        # =========================================
+        # SALVAR BASE
+        # =========================================
+     
         df.to_excel(
             "dados.xlsx",
             index=False,
