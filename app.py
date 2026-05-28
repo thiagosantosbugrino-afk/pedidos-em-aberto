@@ -389,26 +389,39 @@ if rotas_manuais:
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS (NOVO LOCAL)
 # ===================================
-
 st.sidebar.markdown("---")
-st.sidebar.subheader("📌 Pedidos manuais")
+st.sidebar.subheader("📌 Pedidos Manuais")
 
-if pedidos_manuais:
-    st.sidebar.info(" | ".join(pedidos_manuais))
-else:
-    st.sidebar.warning("Nenhum pedido manual")
-    
+lista_pedidos = sorted(
+    df_base["Pedido"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+pedidos_manuais = st.sidebar.multiselect(
+    "Pedidos manuais",
+    lista_pedidos,
+    default=pedidos_manuais
+)
 # ===================================
 # SIDEBAR - ROTAS MANUAIS
 # ===================================
-
 st.sidebar.markdown("---")
-st.sidebar.subheader("🚚 Rotas manuais")
+st.sidebar.subheader("🚚 Rotas Manuais")
 
-if rotas_manuais:
-    st.sidebar.info(" | ".join(rotas_manuais))
-else:
-    st.sidebar.warning("Nenhuma rota manual")
+lista_rotas = sorted(
+    df_base["Rota"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+rotas_manuais = st.sidebar.multiselect(
+    "Rotas manuais",
+    lista_rotas,
+    default=rotas_manuais
+)
 # ===================================
 # SEM DADOS
 # ===================================
