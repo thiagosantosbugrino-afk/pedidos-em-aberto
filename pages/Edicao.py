@@ -518,14 +518,31 @@ pedidos_manuais = st.multiselect(
 # SALVA
 filtros["pedidos_manuais"] = pedidos_manuais
 
-# MOSTRA
+# MOSTRA 
 if pedidos_manuais:
 
     st.success(
         f"✅ {len(pedidos_manuais)} pedido(s) manual(is) selecionado(s)"
     )
 
-    st.write(pedidos_manuais)
+    st.markdown("### 📌 Pedidos selecionados")
+
+    for p in pedidos_manuais:
+        st.markdown(
+            f"""
+            <div style="
+                background-color:#f4f6f8;
+                padding:6px 10px;
+                border-radius:6px;
+                margin-bottom:5px;
+                font-size:14px;
+                border-left:4px solid #4CAF50;
+            ">
+                🧾 Pedido <b>{p}</b>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
     
 # =========================================
 # SALVAR FILTROS
