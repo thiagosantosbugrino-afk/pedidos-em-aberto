@@ -300,31 +300,21 @@ if "PC" in df.columns:
 # PEDIDOS MANUAIS
 # ===================================
 
-pedidos_manuais = filtros.get(
-    "pedidos_manuais",
-    []
-)
+pedidos_manuais = filtros.get("pedidos_manuais", [])
 
-if pedidos_manuais and "Pedido" in df.columns:
+# Sempre exibe lista limpa
+pedidos_manuais = [str(p).strip() for p in pedidos_manuais if p]
 
-    pedidos_manuais = [
-        str(p).strip()
-        for p in pedidos_manuais
-    ]
+df_pedidos_manuais = pd.DataFrame()
 
-    # REABRE BASE COMPLETA
-    df_pedidos_manuais = pd.read_excel(
-        "dados.xlsx"
-    )
+if pedidos_manuais:
 
-    # LIMPA COLUNAS
+    df_pedidos_manuais = pd.read_excel("dados.xlsx")
+
     df_pedidos_manuais.columns = (
-        df_pedidos_manuais.columns
-        .astype(str)
-        .str.strip()
+        df_pedidos_manuais.columns.astype(str).str.strip()
     )
 
-    # AJUSTA PEDIDO
     if "Pedido" in df_pedidos_manuais.columns:
 
         df_pedidos_manuais["Pedido"] = (
@@ -334,31 +324,26 @@ if pedidos_manuais and "Pedido" in df.columns:
             .str.strip()
         )
 
-        # FILTRA PEDIDOS MANUAIS
+        # garante mesma padronização
+        pedidos_manuais = [str(p).replace(".0", "").strip() for p in pedidos_manuais]
+
         df_extra = df_pedidos_manuais[
-            df_pedidos_manuais["Pedido"]
-            .isin(pedidos_manuais)
+            df_pedidos_manuais["Pedido"].isin(pedidos_manuais)
         ]
 
-        # ADICIONA
-        df = pd.concat(
-            [df, df_extra],
-            ignore_index=True
-        )
+        df = pd.concat([df, df_extra], ignore_index=True).drop_duplicates()
 
-        # REMOVE DUPLICADOS
-        df = df.drop_duplicates()
+# =========================
+# EXIBIÇÃO (FORA DA LÓGICA)
+# =========================
 
-    # MOSTRAR PEDIDOS MANUAIS
+st.markdown("---")
+st.subheader("📌 Pedidos adicionados manualmente")
 
-    st.markdown("---")
-
-    st.subheader("📌 Pedidos adicionados manualmente")
-
-    st.info(
-        ", ".join(pedidos_manuais)
-    )
-
+if pedidos_manuais:
+    st.info(" | ".join(pedidos_manuais))
+else:
+    st.warning("Nenhum pedido manual adicionado.")
 # ===================================
 # SEM DADOS
 # ===================================
