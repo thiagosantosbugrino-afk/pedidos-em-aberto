@@ -511,18 +511,19 @@ if mostrar_rota:
         df_rota["Previsão"]
         .dt.strftime("%d/%m/%Y")
     )
-   ordem_datas = sorted(
-    pd.to_datetime(
-        df_rota["Previsão"],
-        format="%d/%m/%Y",
-        errors="coerce"
-    ).dropna().unique()
-)
 
-ordem_datas = [
-    pd.to_datetime(d).strftime("%d/%m/%Y")
-    for d in ordem_datas
-]
+    ordem_datas = sorted(
+        pd.to_datetime(
+            df_rota["Previsão"],
+            format="%d/%m/%Y",
+            errors="coerce"
+        ).dropna().unique()
+    )
+
+    ordem_datas = [
+        pd.to_datetime(d).strftime("%d/%m/%Y")
+        for d in ordem_datas
+    ]
 
     tabela_rota = pd.pivot_table(
         df_rota,
@@ -596,18 +597,18 @@ if mostrar_produto:
         .dt.strftime("%d/%m/%Y")
     )
 
-   ordem_datas = sorted(
-    pd.to_datetime(
-        df_produto["Previsão"],
-        format="%d/%m/%Y",
-        errors="coerce"
-    ).dropna().unique()
-)
+    ordem_datas = sorted(
+        pd.to_datetime(
+            df_produto["Previsão"],
+            format="%d/%m/%Y",
+            errors="coerce"
+        ).dropna().unique()
+    )
 
-ordem_datas = [
-    pd.to_datetime(d).strftime("%d/%m/%Y")
-    for d in ordem_datas
-]
+    ordem_datas = [
+        pd.to_datetime(d).strftime("%d/%m/%Y")
+        for d in ordem_datas
+    ]
 
     tabela_produto = pd.pivot_table(
         df_produto,
