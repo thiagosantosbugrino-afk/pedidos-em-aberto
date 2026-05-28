@@ -296,28 +296,40 @@ if "PC" in df.columns:
         ]
 
 # ===================================
-# PEDIDOS MANUAIS
-# ===================================
-# ===================================
 # SIDEBAR - PEDIDOS MANUAIS
 # ===================================
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📌 Pedidos Manuais")
 
+# LISTA PEDIDOS
 lista_pedidos = sorted(
     df_base["Pedido"]
     .dropna()
     .astype(str)
+    .str.replace(".0", "", regex=False)
+    .str.strip()
     .unique()
 )
 
-# GARANTE QUE EXISTEM
+# PEDIDOS SALVOS
+pedidos_manuais = filtros.get(
+    "pedidos_manuais",
+    []
+)
+
+pedidos_manuais = [
+    str(p).replace(".0", "").strip()
+    for p in pedidos_manuais
+]
+
+# GARANTE EXISTÊNCIA
 pedidos_default = [
     p for p in pedidos_manuais
     if p in lista_pedidos
 ]
 
+# MULTISELECT
 pedidos_manuais = st.sidebar.multiselect(
     "Pedidos manuais",
     lista_pedidos,
@@ -331,6 +343,18 @@ pedidos_manuais = st.sidebar.multiselect(
 st.sidebar.markdown("---")
 st.sidebar.subheader("🚚 Rotas Manuais")
 
+# TRATA ROTA VAZIA
+df_base["Rota"] = (
+    df_base["Rota"]
+    .astype(str)
+    .str.strip()
+    .replace(
+        ["", "nan", "None"],
+        "RETIRA"
+    )
+)
+
+# LISTA ROTAS
 lista_rotas = sorted(
     df_base["Rota"]
     .dropna()
@@ -338,176 +362,70 @@ lista_rotas = sorted(
     .unique()
 )
 
-rotas_manuais = filtros.get("rotas_manuais", [])
+# ROTAS SALVAS
+rotas_manuais = filtros.get(
+    "rotas_manuais",
+    []
+)
 
 rotas_manuais = [
     str(r).strip()
     for r in rotas_manuais
 ]
 
-# GARANTE QUE EXISTEM
+# GARANTE EXISTÊNCIA
 rotas_default = [
     r for r in rotas_manuais
     if r in lista_rotas
 ]
 
+# MULTISELECT
 rotas_manuais = st.sidebar.multiselect(
     "Rotas manuais",
     lista_rotas,
     default=rotas_default
 )
 
-pedidos_manuais = filtros.get("pedidos_manuais", [])
-
-# Sempre exibe lista limpa
-pedidos_manuais = [str(p).strip() for p in pedidos_manuais if p]
-
-df_pedidos_manuais = pd.DataFrame()
+# ===================================
+# ADICIONA PEDIDOS MANUAIS
+# ===================================
 
 if pedidos_manuais:
 
-    df_pedidos_manuais = pd.read_excel("dados.xlsx")
+    df_extra_pedidos = df_base[
+        df_base["Pedido"]
+        .astype(str)
+        .str.replace(".0", "", regex=False)
+        .str.strip()
+        .isin(pedidos_manuais)
+    ]
 
-    df_pedidos_manuais.columns = (
-        df_pedidos_manuais.columns.astype(str).str.strip()
-    )
+    df = pd.concat(
+        [df, df_extra_pedidos],
+        ignore_index=True
+    ).drop_duplicates()
 
-    if "Pedido" in df_pedidos_manuais.columns:
-
-        df_pedidos_manuais["Pedido"] = (
-            df_pedidos_manuais["Pedido"]
-            .astype(str)
-            .str.replace(".0", "", regex=False)
-            .str.strip()
-        )
-
-        pedidos_manuais = [
-            str(p).replace(".0", "").strip()
-            for p in pedidos_manuais
-        ]
-
-        df_extra = df_pedidos_manuais[
-            df_pedidos_manuais["Pedido"].isin(pedidos_manuais)
-        ]
-
-        df = pd.concat(
-            [df, df_extra],
-            ignore_index=True
-        ).drop_duplicates()
 # ===================================
-# ROTAS MANUAIS
+# ADICIONA ROTAS MANUAIS
 # ===================================
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("🚚 Rotas Manuais")
-
-lista_rotas = sorted(
-    df_base["Rota"]
-    .dropna()
-    .astype(str)
-    .unique()
-)
-
-rotas_manuais = filtros.get("rotas_manuais", [])
-
-rotas_manuais = [
-    str(r).strip()
-    for r in rotas_manuais
-]
-
-# GARANTE QUE EXISTEM
-rotas_default = [
-    r for r in rotas_manuais
-    if r in lista_rotas
-]
-
-rotas_manuais = st.sidebar.multiselect(
-    "Rotas manuais",
-    lista_rotas,
-    default=rotas_default
-)
-
-rotas_manuais = filtros.get("rotas_manuais", [])
-
-# limpa valores
-rotas_manuais = [
-    str(r).strip()
-    for r in rotas_manuais
-    if r
-]
-
-df_rotas_manuais = pd.DataFrame()
 
 if rotas_manuais:
 
-    df_rotas_manuais = pd.read_excel("dados.xlsx")
-
-    df_rotas_manuais.columns = (
-        df_rotas_manuais.columns.astype(str).str.strip()
-    )
-
-    # trata rota vazia como RETIRA
-    if "Rota" in df_rotas_manuais.columns:
-
-        df_rotas_manuais["Rota"] = (
-            df_rotas_manuais["Rota"]
-            .astype(str)
-            .str.strip()
-            .replace(
-                ["", "nan", "None"],
-                "RETIRA"
-            )
+    df_extra_rotas = df_base[
+        df_base["Rota"]
+        .astype(str)
+        .str.strip()
+        .replace(
+            ["", "nan", "None"],
+            "RETIRA"
         )
+        .isin(rotas_manuais)
+    ]
 
-        rotas_manuais = [
-            str(r).strip()
-            for r in rotas_manuais
-        ]
-
-        df_extra_rotas = df_rotas_manuais[
-            df_rotas_manuais["Rota"].isin(rotas_manuais)
-        ]
-
-        df = pd.concat(
-            [df, df_extra_rotas],
-            ignore_index=True
-        ).drop_duplicates()
-# ===================================
-# SIDEBAR - PEDIDOS MANUAIS (NOVO LOCAL)
-# ===================================
-st.sidebar.markdown("---")
-st.sidebar.subheader("📌 Pedidos Manuais")
-
-lista_pedidos = sorted(
-    df_base["Pedido"]
-    .dropna()
-    .astype(str)
-    .unique()
-)
-
-pedidos_manuais = st.sidebar.multiselect(
-    "Pedidos manuais",
-    lista_pedidos,
-    default=pedidos_manuais
-)
-# ===================================
-# SIDEBAR - ROTAS MANUAIS
-# ===================================
-st.sidebar.markdown("---")
-st.sidebar.subheader("🚚 Rotas Manuais")
-
-lista_rotas = sorted(
-    df_base["Rota"]
-    .dropna()
-    .astype(str)
-    .unique()
-)
-
-rotas_manuais = st.sidebar.multiselect(
-    "Rotas manuais",
-    lista_rotas,
-    default=rotas_manuais
-)
+    df = pd.concat(
+        [df, df_extra_rotas],
+        ignore_index=True
+    ).drop_duplicates()
 # ===================================
 # SEM DADOS
 # ===================================
