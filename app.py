@@ -71,7 +71,18 @@ except Exception as e:
 
     st.error(f"Erro ao abrir planilha: {e}")
     st.stop()
+# ===================================
+# TRATAR ROTA EM BRANCO (RETIRA)
+# ===================================
 
+if "Rota" in df.columns:
+
+    df["Rota"] = (
+        df["Rota"]
+        .astype(str)
+        .str.strip()
+        .replace(["", "nan", "None"], "RETIRA")
+    )
 # ===================================
 # LIMPEZA
 # ===================================
