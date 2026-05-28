@@ -51,55 +51,101 @@ tbody tr:last-child {
 # ===================================
 
 try:
-    df = pd.read_excel("dados.xlsx", sheet_name=0)
+    df_original = pd.read_excel("dados.xlsx", sheet_name=0)
+
 except FileNotFoundError:
+
     st.error("⚠️ Nenhum arquivo carregado.")
     st.stop()
+
 except Exception as e:
+
     st.error(f"Erro ao abrir planilha: {e}")
     st.stop()
-
-# ===================================
-# TRATAR ROTA EM BRANCO (RETIRA)
-# ===================================
-
-if "Rota" in df.columns:
-    df["Rota"] = (
-        df["Rota"]
-        .astype(str)
-        .str.strip()
-        .replace(["", "nan", "None"], "RETIRA")
-    )
 
 # ===================================
 # LIMPEZA
 # ===================================
 
-df.columns = df.columns.astype(str).str.strip()
+df_original.columns = (
+    df_original.columns
+    .astype(str)
+    .str.strip()
+)
 
-if "Pedido" in df.columns:
-    df["Pedido"] = df["Pedido"].astype(str).str.replace(".0", "", regex=False)
+# PEDIDO
 
-if "PC" in df.columns:
-    df["PC"] = df["PC"].astype(str).str.replace(".0", "", regex=False)
+if "Pedido" in df_original.columns:
 
-if "Previsão" in df.columns:
-    df["Previsão"] = pd.to_datetime(df["Previsão"], errors="coerce", dayfirst=True)
+    df_original["Pedido"] = (
+        df_original["Pedido"]
+        .astype(str)
+        .str.replace(".0", "", regex=False)
+        .str.strip()
+    )
+
+# PC
+
+if "PC" in df_original.columns:
+
+    df_original["PC"] = (
+        df_original["PC"]
+        .astype(str)
+        .str.replace(".0", "", regex=False)
+        .str.strip()
+    )
+
+# ROTA
+
+if "Rota" in df_original.columns:
+
+    df_original["Rota"] = (
+        df_original["Rota"]
+        .astype(str)
+        .str.strip()
+        .replace(
+            ["", "nan", "None"],
+            "RETIRA"
+        )
+    )
+
+# DATA
+
+if "Previsão" in df_original.columns:
+
+    df_original["Previsão"] = pd.to_datetime(
+        df_original["Previsão"],
+        errors="coerce",
+        dayfirst=True
+    )
 
 # ===================================
 # ÚLTIMA ATUALIZAÇÃO
 # ===================================
 
 try:
+
     with open("ultima_atualizacao.json", "r") as f:
+
         dados_update = json.load(f)
 
-    data_update = datetime.strptime(dados_update["ultima_atualizacao"], "%Y-%m-%d %H:%M:%S")
-    data_update = data_update - timedelta(hours=3)
-    data_formatada = data_update.strftime("%d/%m/%Y %H:%M:%S")
+    data_update = datetime.strptime(
+        dados_update["ultima_atualizacao"],
+        "%Y-%m-%d %H:%M:%S"
+    )
 
-    st.info(f"🕒 Última atualização: {data_formatada}")
+    data_update = data_update - timedelta(hours=3)
+
+    data_formatada = data_update.strftime(
+        "%d/%m/%Y %H:%M:%S"
+    )
+
+    st.info(
+        f"🕒 Última atualização: {data_formatada}"
+    )
+
 except:
+
     pass
 
 # ===================================
@@ -107,9 +153,13 @@ except:
 # ===================================
 
 try:
+
     with open("filtros.json", "r") as f:
+
         filtros = json.load(f)[0]
+
 except:
+
     filtros = {}
 
 # ===================================
@@ -118,68 +168,188 @@ except:
 
 st.sidebar.title("Filtros")
 
+df = df_original.copy()
+
 # ===================================
 # DATA
 # ===================================
 
 if "Previsão" in df.columns:
+
     min_data = df["Previsão"].min().date()
     max_data = df["Previsão"].max().date()
 
-    start_default = pd.to_datetime(filtros.get("start_date", min_data)).date()
-    end_default = pd.to_datetime(filtros.get("end_date", max_data)).date()
+    start_default = pd.to_datetime(
+        filtros.get("start_date", min_data)
+    ).date()
 
-    start_date = st.sidebar.date_input("Data inicial", value=start_default, format="DD/MM/YYYY")
-    end_date = st.sidebar.date_input("Data final", value=end_default, format="DD/MM/YYYY")
+    end_default = pd.to_datetime(
+        filtros.get("end_date", max_data)
+    ).date()
 
-    df = df[(df["Previsão"].dt.date >= start_date) & (df["Previsão"].dt.date <= end_date)]
+    start_date = st.sidebar.date_input(
+        "Data inicial",
+        value=start_default,
+        format="DD/MM/YYYY"
+    )
 
-# ===================================
-# ROTA
-# ===================================
+    end_date = st.sidebar.date_input(
+        "Data final",
+        value=end_default,
+        format="DD/MM/YYYY"
+    )
 
-if "Rota" in df.columns:
-    rotas = sorted(df["Rota"].dropna().astype(str).unique())
-    rotas_default = [r for r in filtros.get("rotas", []) if r in rotas]
-
-    rotas_sel = st.sidebar.multiselect("Rotas", rotas, default=rotas_default)
-
-    if rotas_sel:
-        df = df[df["Rota"].astype(str).isin(rotas_sel)]
-
-# ===================================
-# PRODUTO
-# ===================================
-
-if "Produto" in df.columns:
-    produtos = sorted(df["Produto"].dropna().astype(str).unique())
-    produtos_default = [p for p in filtros.get("produtos", []) if p in produtos]
-
-    produtos_sel = st.sidebar.multiselect("Produtos", produtos, default=produtos_default)
-
-    if produtos_sel:
-        df = df[df["Produto"].astype(str).isin(produtos_sel)]
+    df = df[
+        (
+            df["Previsão"].dt.date >= start_date
+        )
+        &
+        (
+            df["Previsão"].dt.date <= end_date
+        )
+    ]
 
 # ===================================
-# PC
+# FILTROS
 # ===================================
 
-if "PC" in df.columns:
-    pcs = sorted(df["PC"].dropna().astype(str).unique())
-    pcs_default = [p for p in filtros.get("pcs", []) if p in pcs]
+rotas_sel = filtros.get("rotas", [])
+produtos_sel = filtros.get("produtos", [])
+pcs_sel = filtros.get("pcs", [])
+rotas_manuais = filtros.get("rotas_manuais", [])
+pedidos_manuais = filtros.get("pedidos_manuais", [])
 
-    pcs_sel = st.sidebar.multiselect("Programação de carga", pcs, default=pcs_default)
+# ===================================
+# MOSTRAR FILTROS SALVOS
+# ===================================
 
-    if pcs_sel:
-        df = df[df["PC"].astype(str).isin(pcs_sel)]
+with st.sidebar.expander("📌 Filtros salvos", expanded=True):
+
+    st.write("🚚 Rotas:", rotas_sel if rotas_sel else "Todos")
+    st.write("🪟 Produtos:", produtos_sel if produtos_sel else "Todos")
+    st.write("📦 PCs:", pcs_sel if pcs_sel else "Todos")
+    st.write("🚛 Rotas manuais:", rotas_manuais if rotas_manuais else "Nenhuma")
+    st.write("🧾 Pedidos manuais:", pedidos_manuais if pedidos_manuais else "Nenhum")
+
+# ===================================
+# FILTRO COMBINADO
+# ===================================
+
+dfs_filtrados = []
+
+# PCs
+
+if pcs_sel and "PC" in df.columns:
+
+    df_pc = df[
+        df["PC"]
+        .astype(str)
+        .isin(pcs_sel)
+    ]
+
+    dfs_filtrados.append(df_pc)
+
+# ROTAS
+
+if rotas_sel and "Rota" in df.columns:
+
+    df_rota = df[
+        df["Rota"]
+        .astype(str)
+        .isin(rotas_sel)
+    ]
+
+    dfs_filtrados.append(df_rota)
+
+# PRODUTOS
+
+if produtos_sel and "Produto" in df.columns:
+
+    df_produto = df[
+        df["Produto"]
+        .astype(str)
+        .isin(produtos_sel)
+    ]
+
+    dfs_filtrados.append(df_produto)
+
+# ROTAS MANUAIS
+
+if rotas_manuais and "Rota" in df.columns:
+
+    df_rota_manual = df[
+        df["Rota"]
+        .astype(str)
+        .isin(rotas_manuais)
+    ]
+
+    dfs_filtrados.append(df_rota_manual)
+
+# PEDIDOS MANUAIS
+
+if pedidos_manuais and "Pedido" in df.columns:
+
+    pedidos_manuais = [
+        str(p).strip()
+        for p in pedidos_manuais
+    ]
+
+    df_manual = df[
+        df["Pedido"]
+        .astype(str)
+        .isin(pedidos_manuais)
+    ]
+
+    dfs_filtrados.append(df_manual)
+
+# ===================================
+# UNIR TODOS FILTROS
+# ===================================
+
+if dfs_filtrados:
+
+    df = pd.concat(
+        dfs_filtrados,
+        ignore_index=True
+    )
+
+    df = df.drop_duplicates()
 
 # ===================================
 # SEM DADOS
 # ===================================
 
 if df.empty:
+
     st.warning("⚠️ Nenhum dado encontrado.")
     st.stop()
+
+# ===================================
+# PEDIDOS MANUAIS VISUAL
+# ===================================
+
+if pedidos_manuais:
+
+    st.markdown("---")
+
+    st.subheader("📌 Pedidos adicionados manualmente")
+
+    for pedido in pedidos_manuais:
+
+        st.markdown(
+            f"""
+            <div style="
+                background-color:#f4f6f8;
+                padding:8px;
+                border-radius:6px;
+                margin-bottom:5px;
+                border-left:4px solid #4CAF50;
+            ">
+                🧾 Pedido <b>{pedido}</b>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 # ===================================
 # INDICADORES
@@ -218,8 +388,6 @@ total_rotas = (
     if "Rota" in df.columns
     else 0
 )
-
-# ATRASADOS
 
 pedidos_atrasados = 0
 m2_atrasados = 0
@@ -308,21 +476,7 @@ if mostrar_rota:
 
     tabela_rota = tabela_rota.round(2)
 
-    tabela_rota = tabela_rota.loc[
-        (tabela_rota != 0).any(axis=1)
-    ]
-
-    tabela_rota = tabela_rota.loc[
-        :,
-        (tabela_rota != 0).any(axis=0)
-    ]
-
-    tabela_rota = tabela_rota.replace(
-        0,
-        ""
-    )
-
-    tabela_rota = tabela_rota.astype(str)
+    tabela_rota = tabela_rota.replace(0, "")
 
     html_rota = tabela_rota.to_html(
         classes="tabela-centralizada",
@@ -389,21 +543,7 @@ if mostrar_produto:
 
     tabela_produto = tabela_produto.round(2)
 
-    tabela_produto = tabela_produto.loc[
-        (tabela_produto != 0).any(axis=1)
-    ]
-
-    tabela_produto = tabela_produto.loc[
-        :,
-        (tabela_produto != 0).any(axis=0)
-    ]
-
-    tabela_produto = tabela_produto.replace(
-        0,
-        ""
-    )
-
-    tabela_produto = tabela_produto.astype(str)
+    tabela_produto = tabela_produto.replace(0, "")
 
     html_produto = tabela_produto.to_html(
         classes="tabela-centralizada",
@@ -413,228 +553,6 @@ if mostrar_produto:
     st.markdown(
         html_produto,
         unsafe_allow_html=True
-    )
-# ===================================
-# TABELA ROTA X PRODUTO
-# ===================================
-
-st.markdown("---")
-
-mostrar_rota_produto = st.checkbox(
-    "📊 Mostrar Rota X Produto",
-    value=False
-)
-
-if mostrar_rota_produto:
-
-    st.subheader("📊 Rota X Produto")
-
-    if (
-        "Rota" in df.columns
-        and
-        "Produto" in df.columns
-        and
-        "M2 Vendido" in df.columns
-    ):
-
-        df_rota_produto = df.copy()
-
-        tabela_rota_produto = pd.pivot_table(
-            df_rota_produto,
-            values="M2 Vendido",
-            index="Rota",
-            columns="Produto",
-            aggfunc="sum",
-            fill_value=0,
-            margins=True,
-            margins_name="TOTAL GERAL"
-        )
-
-        # ARREDONDAR
-        tabela_rota_produto = tabela_rota_produto.round(2)
-
-        # REMOVER LINHAS SEM VALORES
-        tabela_rota_produto = tabela_rota_produto.loc[
-            (tabela_rota_produto != 0).any(axis=1)
-        ]
-
-        # REMOVER COLUNAS SEM VALORES
-        tabela_rota_produto = tabela_rota_produto.loc[
-            :,
-            (tabela_rota_produto != 0).any(axis=0)
-        ]
-
-        # SUBSTITUIR ZERO POR VAZIO
-        tabela_rota_produto = tabela_rota_produto.replace(
-            0,
-            ""
-        )
-
-        # FORMATAR NÚMEROS
-        tabela_rota_produto = tabela_rota_produto.astype(object)
-
-        for coluna in tabela_rota_produto.columns:
-
-            tabela_rota_produto[coluna] = tabela_rota_produto[coluna].apply(
-                lambda x:
-                f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                if isinstance(x, (int, float))
-                else x
-            )
-
-        # CONVERTER PARA HTML
-        html_rota_produto = tabela_rota_produto.to_html(
-            classes="tabela-centralizada",
-            border=0
-        )
-
-        # MOSTRAR
-        st.markdown(
-            html_rota_produto,
-            unsafe_allow_html=True
-        )
-# ===================================
-# GRÁFICO ROTA
-# ===================================
-
-st.subheader("📈 Produção por Rota")
-
-grafico_rota = (
-    df.groupby("Rota")["M2 Vendido"]
-    .sum()
-    .reset_index()
-)
-
-fig_rota = px.bar(
-    grafico_rota,
-    x="M2 Vendido",
-    y="Rota",
-    orientation="h",
-    text="M2 Vendido"
-)
-
-fig_rota.update_traces(
-    texttemplate='%{text:.2f}',
-    textposition='outside'
-)
-
-st.plotly_chart(
-    fig_rota,
-    use_container_width=True
-)
-
-# ===================================
-# GRÁFICO PRODUTO
-# ===================================
-
-st.subheader("🪟 Produção por Produto")
-
-grafico_produto = (
-    df.groupby("Produto")["M2 Vendido"]
-    .sum()
-    .reset_index()
-)
-
-fig_produto = px.bar(
-    grafico_produto,
-    x="M2 Vendido",
-    y="Produto",
-    orientation="h",
-    text="M2 Vendido"
-)
-
-fig_produto.update_traces(
-    texttemplate='%{text:.2f}',
-    textposition='outside'
-)
-
-st.plotly_chart(
-    fig_produto,
-    use_container_width=True
-)
-
-# ===================================
-# DETALHAMENTO
-# ===================================
-
-st.markdown("---")
-
-mostrar_detalhamento = st.checkbox(
-    "🔎 Mostrar Detalhamento",
-    value=False
-)
-
-if mostrar_detalhamento:
-
-    st.subheader("🔎 Detalhamento")
-
-    df_detalhe = df.copy()
-
-    min_det = df_detalhe["Previsão"].min().date()
-    max_det = df_detalhe["Previsão"].max().date()
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        detalhe_inicio = st.date_input(
-            "Detalhamento - Data Inicial",
-            value=min_det,
-            key="det_inicio",
-            format="DD/MM/YYYY"
-        )
-
-    with col2:
-
-        detalhe_fim = st.date_input(
-            "Detalhamento - Data Final",
-            value=max_det,
-            key="det_fim",
-            format="DD/MM/YYYY"
-        )
-
-    df_detalhe = df_detalhe[
-        (
-            df_detalhe["Previsão"].dt.date >= detalhe_inicio
-        )
-        &
-        (
-            df_detalhe["Previsão"].dt.date <= detalhe_fim
-        )
-    ]
-
-    if "Previsão" in df_detalhe.columns:
-
-        df_detalhe["Previsão"] = (
-            df_detalhe["Previsão"]
-            .dt.strftime("%d/%m/%Y")
-        )
-
-    st.dataframe(
-        df_detalhe,
-        use_container_width=True,
-        height=500
-    )
-
-# ===================================
-# BASE COMPLETA
-# ===================================
-
-st.markdown("---")
-
-mostrar_base = st.checkbox(
-    "📋 Mostrar Base Completa",
-    value=False
-)
-
-if mostrar_base:
-
-    st.subheader("📋 Base Completa")
-
-    st.dataframe(
-        df,
-        use_container_width=True,
-        height=500
     )
 
 # ===================================
