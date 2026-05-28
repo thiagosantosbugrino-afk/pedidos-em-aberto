@@ -455,6 +455,31 @@ if "PC" in df.columns:
     ]
 
 # =========================================
+# PEDIDOS MANUAIS
+# =========================================
+
+st.markdown("---")
+
+pedidos_manuais_salvos = filtros_salvos.get(
+    "pedidos_manuais",
+    []
+)
+
+pedidos_manuais_texto = st.text_area(
+    "Pedidos manuais (um por linha):",
+    value="\n".join(pedidos_manuais_salvos),
+    height=120
+)
+
+pedidos_manuais = [
+    p.strip()
+    for p in pedidos_manuais_texto.splitlines()
+    if p.strip()
+]
+
+filtros["pedidos_manuais"] = pedidos_manuais
+
+# =========================================
 # SALVAR FILTROS
 # =========================================
 
