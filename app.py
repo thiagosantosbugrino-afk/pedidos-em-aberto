@@ -343,7 +343,7 @@ if pedidos_manuais:
 # ===================================
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("📌 Pedidos manuais")
+st.sidebar.subheader("📌 Pedidos Inseridos manualmente")
 
 if pedidos_manuais:
     st.sidebar.info(" | ".join(pedidos_manuais))
