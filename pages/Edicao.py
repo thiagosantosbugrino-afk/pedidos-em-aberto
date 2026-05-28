@@ -453,7 +453,48 @@ if "PC" in df.columns:
         str(p).replace(".0", "").strip()
         for p in pcs_selecionados
     ]
+# =========================================
+# FILTRO ROTA MANUAL (NOVO)
+# =========================================
 
+if "Rota" in df.columns:
+
+    # garante padrão
+    df["Rota"] = (
+        df["Rota"]
+        .astype(str)
+        .str.strip()
+    )
+
+    rotas = sorted(
+        df["Rota"]
+        .dropna()
+        .unique()
+    )
+
+    # carrega salvos
+    rotas_salvas = filtros_salvos.get("rotas_manuais", [])
+
+    rotas_salvas = [
+        str(r).strip()
+        for r in rotas_salvas
+    ]
+
+    rotas_padrao = [
+        r for r in rotas_salvas
+        if r in rotas
+    ]
+
+    rotas_manuais = st.multiselect(
+        "🚚 Rotas manuais (independente da PC):",
+        rotas,
+        default=rotas_padrao
+    )
+
+    filtros["rotas_manuais"] = [
+        str(r).strip()
+        for r in rotas_manuais
+    ]
 # =========================================
 # PEDIDOS MANUAIS
 # =========================================
