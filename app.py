@@ -298,55 +298,17 @@ if "PC" in df.columns:
 # ===================================
 # PEDIDOS MANUAIS
 # ===================================
+# MOSTRAR PEDIDOS MANUAIS NA TELA
 
-pedidos_manuais = filtros.get(
-    "pedidos_manuais",
-    []
-)
+if pedidos_manuais:
 
-if pedidos_manuais and "Pedido" in df.columns:
+    st.markdown("---")
 
-    pedidos_manuais = [
-        str(p).strip()
-        for p in pedidos_manuais
-    ]
+    st.subheader("📌 Pedidos adicionados manualmente")
 
-    # REABRE BASE COMPLETA
-    df_pedidos_manuais = pd.read_excel(
-        "dados.xlsx"
+    st.info(
+        ", ".join(pedidos_manuais)
     )
-
-    # LIMPA COLUNAS
-    df_pedidos_manuais.columns = (
-        df_pedidos_manuais.columns
-        .astype(str)
-        .str.strip()
-    )
-
-    # AJUSTA PEDIDO
-    if "Pedido" in df_pedidos_manuais.columns:
-
-        df_pedidos_manuais["Pedido"] = (
-            df_pedidos_manuais["Pedido"]
-            .astype(str)
-            .str.replace(".0", "", regex=False)
-            .str.strip()
-        )
-
-        # FILTRA PEDIDOS MANUAIS
-        df_extra = df_pedidos_manuais[
-            df_pedidos_manuais["Pedido"]
-            .isin(pedidos_manuais)
-        ]
-
-        # ADICIONA
-        df = pd.concat(
-            [df, df_extra],
-            ignore_index=True
-        )
-
-        # REMOVE DUPLICADOS
-        df = df.drop_duplicates()
 
 # ===================================
 # SEM DADOS
