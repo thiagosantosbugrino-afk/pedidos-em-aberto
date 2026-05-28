@@ -26,12 +26,10 @@ senha = st.text_input(
 )
 
 if senha == "":
-
     st.info("🔒 Digite a senha para acessar.")
     st.stop()
 
 if senha != "Thiago2026!":
-
     st.error("❌ Senha incorreta.")
     st.stop()
 
@@ -46,176 +44,68 @@ st.success("✅ Acesso liberado.")
 # =========================================
 
 def encontrar_base_excel(arquivo):
-
     excel = pd.ExcelFile(arquivo)
-
-    palavras_chave = [
-        "pedido",
-        "rota",
-        "previs",
-        "produto",
-        "cliente",
-        "pc"
-    ]
+    palavras_chave = ["pedido","rota","previs","produto","cliente","pc"]
 
     for aba in excel.sheet_names:
-
         try:
-
             for linha in range(10):
-
-                teste = pd.read_excel(
-                    arquivo,
-                    sheet_name=aba,
-                    header=linha
-                )
-
-                teste.columns = (
-                    teste.columns
-                    .astype(str)
-                    .str.strip()
-                )
-
-                nomes = " ".join(
-                    teste.columns.astype(str).str.lower()
-                )
-
-                encontrou = any(
-                    palavra in nomes
-                    for palavra in palavras_chave
-                )
-
+                teste = pd.read_excel(arquivo, sheet_name=aba, header=linha)
+                teste.columns = teste.columns.astype(str).str.strip()
+                nomes = " ".join(teste.columns.astype(str).str.lower())
+                encontrou = any(palavra in nomes for palavra in palavras_chave)
                 if encontrou:
-
                     return teste, aba, linha
-
         except:
-
             pass
-
     return None, None, None
 
 # =========================================
 # UPLOAD
 # =========================================
 
-arquivo = st.file_uploader(
-    "Importar planilha",
-    type=["xlsx", "xlsm"]
-)
+arquivo = st.file_uploader("Importar planilha", type=["xlsx", "xlsm"])
 
 # =========================================
 # SE ENVIAR NOVA PLANILHA
 # =========================================
 
 if arquivo is not None:
-
     try:
-
         df, aba_encontrada, linha_encontrada = encontrar_base_excel(arquivo)
 
         if df is None:
-
-            st.error(
-                "❌ Não foi possível encontrar automaticamente a base."
-            )
-
+            st.error("❌ Não foi possível encontrar automaticamente a base.")
             st.stop()
 
-        # =========================================
         # LIMPEZA
-        # =========================================
+        df.columns = df.columns.astype(str).str.strip()
+        df = df.loc[:, ~df.columns.str.contains("^Unnamed", case=False)]
+        df = df.dropna(how="all")
 
-        df.columns = (
-            df.columns
-            .astype(str)
-            .str.strip()
-        )
-
-        df = df.loc[
-            :,
-            ~df.columns.str.contains(
-                "^Unnamed",
-                case=False
-            )
-        ]
-
-        df = df.dropna(
-            how="all"
-        )
-
-        # =========================================
         # AJUSTE PEDIDO
-        # =========================================
-
         if "Pedido" in df.columns:
+            df["Pedido"] = df["Pedido"].astype(str).str.replace(".0", "", regex=False).str.strip()
 
-            df["Pedido"] = (
-                df["Pedido"]
-                .astype(str)
-                .str.replace(".0", "", regex=False)
-                .str.strip()
-            )
-
-        # =========================================
         # AJUSTE PC
-        # =========================================
-
         if "PC" in df.columns:
+            df["PC"] = df["PC"].astype(str).str.replace(".0", "", regex=False).str.strip()
 
-            df["PC"] = (
-                df["PC"]
-                .astype(str)
-                .str.replace(".0", "", regex=False)
-                .str.strip()
-            )
-# =========================================
-# TRATAR ROTA EM BRANCO (RETIRA)
-# =========================================
+        # TRATAR ROTA EM BRANCO (RETIRA)
+        if "Rota" in df.columns:
+            df["Rota"] = df["Rota"].astype(str).str.strip().replace(["", "nan", "None"], "RETIRA")
 
-if "Rota" in df.columns:
-
-    df["Rota"] = (
-        df["Rota"]
-        .astype(str)
-        .str.strip()
-        .replace(["", "nan", "None"], "RETIRA")
-    )
-
-        # =========================================
         # SALVAR BASE
-        # =========================================
-     
-        df.to_excel(
-            "dados.xlsx",
-            index=False,
-            engine="openpyxl"
-        )
+        df.to_excel("dados.xlsx", index=False, engine="openpyxl")
 
-        # =========================================
         # SALVAR DATA UPDATE
-        # =========================================
-
         with open("ultima_atualizacao.json", "w") as f:
+            json.dump({"ultima_atualizacao": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, f)
 
-            json.dump(
-                {
-                    "ultima_atualizacao":
-                    datetime.now().strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    )
-                },
-                f
-            )
-
-        st.success(
-            f"✅ Base encontrada automaticamente | Aba: {aba_encontrada} | Cabeçalho linha: {linha_encontrada + 1}"
-        )
-
+        st.success(f"✅ Base encontrada automaticamente | Aba: {aba_encontrada} | Cabeçalho linha: {linha_encontrada + 1}")
         st.success("✅ Planilha carregada e salva!")
 
     except Exception as e:
-
         st.error(f"Erro ao ler planilha: {e}")
 
 # =========================================
@@ -223,49 +113,17 @@ if "Rota" in df.columns:
 # =========================================
 
 try:
-
-    df = pd.read_excel(
-        "dados.xlsx"
-    )
-
-    df.columns = (
-        df.columns
-        .astype(str)
-        .str.strip()
-    )
-
-    # =========================================
-    # AJUSTE PEDIDO
-    # =========================================
+    df = pd.read_excel("dados.xlsx")
+    df.columns = df.columns.astype(str).str.strip()
 
     if "Pedido" in df.columns:
-
-        df["Pedido"] = (
-            df["Pedido"]
-            .astype(str)
-            .str.replace(".0", "", regex=False)
-            .str.strip()
-        )
-
-    # =========================================
-    # AJUSTE PC
-    # =========================================
+        df["Pedido"] = df["Pedido"].astype(str).str.replace(".0", "", regex=False).str.strip()
 
     if "PC" in df.columns:
-
-        df["PC"] = (
-            df["PC"]
-            .astype(str)
-            .str.replace(".0", "", regex=False)
-            .str.strip()
-        )
+        df["PC"] = df["PC"].astype(str).str.replace(".0", "", regex=False).str.strip()
 
 except:
-
-    st.warning(
-        "⚠️ Nenhuma base carregada ainda."
-    )
-
+    st.warning("⚠️ Nenhuma base carregada ainda.")
     st.stop()
 
 # =========================================
@@ -273,25 +131,16 @@ except:
 # =========================================
 
 if "Previsão" in df.columns:
-
-    df["Previsão"] = pd.to_datetime(
-        df["Previsão"],
-        errors="coerce",
-        dayfirst=True
-    )
+    df["Previsão"] = pd.to_datetime(df["Previsão"], errors="coerce", dayfirst=True)
 
 # =========================================
 # CARREGAR FILTROS SALVOS
 # =========================================
 
 try:
-
     with open("filtros.json", "r", encoding="utf-8") as f:
-
         filtros_salvos = json.load(f)[0]
-
 except:
-
     filtros_salvos = {}
 
 # =========================================
@@ -299,9 +148,11 @@ except:
 # =========================================
 
 filtros = {}
-
 st.markdown("---")
 st.subheader("🎯 Configuração de Filtros")
+
+# (segue com filtros de rota, produto, data, PC, pedidos manuais, salvar filtros, mostrar base e exportar...)
+
 
 # =========================================
 # FILTRO ROTA
