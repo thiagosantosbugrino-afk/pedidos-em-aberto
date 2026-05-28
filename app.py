@@ -23,31 +23,26 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 
 st.markdown("""
 <style>
-
 table {
     width: 100% !important;
     border-collapse: collapse !important;
     text-align: center !important;
     font-size: 14px !important;
 }
-
 thead tr th {
     text-align: center !important;
     font-weight: bold !important;
     background-color: #f0f2f6 !important;
     padding: 8px !important;
 }
-
 tbody tr td {
     text-align: center !important;
     padding: 6px !important;
 }
-
 tbody tr:last-child {
     font-weight: bold !important;
     background-color: #f8f9fa !important;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -56,100 +51,55 @@ tbody tr:last-child {
 # ===================================
 
 try:
-
-    df = pd.read_excel(
-        "dados.xlsx",
-        sheet_name=0
-    )
-
+    df = pd.read_excel("dados.xlsx", sheet_name=0)
 except FileNotFoundError:
-
     st.error("⚠️ Nenhum arquivo carregado.")
     st.stop()
-
 except Exception as e:
-
     st.error(f"Erro ao abrir planilha: {e}")
     st.stop()
+
 # ===================================
 # TRATAR ROTA EM BRANCO (RETIRA)
 # ===================================
 
 if "Rota" in df.columns:
-
     df["Rota"] = (
         df["Rota"]
         .astype(str)
         .str.strip()
         .replace(["", "nan", "None"], "RETIRA")
     )
+
 # ===================================
 # LIMPEZA
 # ===================================
 
-df.columns = (
-    df.columns
-    .astype(str)
-    .str.strip()
-)
-
-# PEDIDO
+df.columns = df.columns.astype(str).str.strip()
 
 if "Pedido" in df.columns:
-
-    df["Pedido"] = (
-        df["Pedido"]
-        .astype(str)
-        .str.replace(".0", "", regex=False)
-    )
-
-# PC
+    df["Pedido"] = df["Pedido"].astype(str).str.replace(".0", "", regex=False)
 
 if "PC" in df.columns:
-
-    df["PC"] = (
-        df["PC"]
-        .astype(str)
-        .str.replace(".0", "", regex=False)
-    )
-
-# DATA
+    df["PC"] = df["PC"].astype(str).str.replace(".0", "", regex=False)
 
 if "Previsão" in df.columns:
-
-    df["Previsão"] = pd.to_datetime(
-        df["Previsão"],
-        errors="coerce",
-        dayfirst=True
-    )
+    df["Previsão"] = pd.to_datetime(df["Previsão"], errors="coerce", dayfirst=True)
 
 # ===================================
 # ÚLTIMA ATUALIZAÇÃO
 # ===================================
 
 try:
-
     with open("ultima_atualizacao.json", "r") as f:
-
         dados_update = json.load(f)
 
-    data_update = datetime.strptime(
-        dados_update["ultima_atualizacao"],
-        "%Y-%m-%d %H:%M:%S"
-    )
-
+    data_update = datetime.strptime(dados_update["ultima_atualizacao"], "%Y-%m-%d %H:%M:%S")
     data_update = data_update - timedelta(hours=3)
+    data_formatada = data_update.strftime("%d/%m/%Y %H:%M:%S")
 
-    data_formatada = data_update.strftime(
-        "%d/%m/%Y %H:%M:%S"
-    )
-
-    st.info(
-        f"🕒 Última atualização: {data_formatada}"
-    )
-
+    st.info(f"🕒 Última atualização: {data_formatada}")
 except:
-
     pass
 
 # ===================================
@@ -157,13 +107,9 @@ except:
 # ===================================
 
 try:
-
     with open("filtros.json", "r") as f:
-
         filtros = json.load(f)[0]
-
 except:
-
     filtros = {}
 
 # ===================================
@@ -177,180 +123,61 @@ st.sidebar.title("Filtros")
 # ===================================
 
 if "Previsão" in df.columns:
-
     min_data = df["Previsão"].min().date()
     max_data = df["Previsão"].max().date()
 
-    start_default = pd.to_datetime(
-        filtros.get("start_date", min_data)
-    ).date()
+    start_default = pd.to_datetime(filtros.get("start_date", min_data)).date()
+    end_default = pd.to_datetime(filtros.get("end_date", max_data)).date()
 
-    end_default = pd.to_datetime(
-        filtros.get("end_date", max_data)
-    ).date()
+    start_date = st.sidebar.date_input("Data inicial", value=start_default, format="DD/MM/YYYY")
+    end_date = st.sidebar.date_input("Data final", value=end_default, format="DD/MM/YYYY")
 
-    start_date = st.sidebar.date_input(
-        "Data inicial",
-        value=start_default,
-        format="DD/MM/YYYY"
-    )
-
-    end_date = st.sidebar.date_input(
-        "Data final",
-        value=end_default,
-        format="DD/MM/YYYY"
-    )
-
-    df = df[
-        (
-            df["Previsão"].dt.date >= start_date
-        )
-        &
-        (
-            df["Previsão"].dt.date <= end_date
-        )
-    ]
+    df = df[(df["Previsão"].dt.date >= start_date) & (df["Previsão"].dt.date <= end_date)]
 
 # ===================================
 # ROTA
 # ===================================
 
 if "Rota" in df.columns:
+    rotas = sorted(df["Rota"].dropna().astype(str).unique())
+    rotas_default = [r for r in filtros.get("rotas", []) if r in rotas]
 
-    rotas = sorted(
-        df["Rota"]
-        .dropna()
-        .astype(str)
-        .unique()
-    )
-
-    rotas_default = [
-        r for r in filtros.get("rotas", [])
-        if r in rotas
-    ]
-
-    rotas_sel = st.sidebar.multiselect(
-        "Rotas",
-        rotas,
-        default=rotas_default
-    )
+    rotas_sel = st.sidebar.multiselect("Rotas", rotas, default=rotas_default)
 
     if rotas_sel:
-
-        df = df[
-            df["Rota"]
-            .astype(str)
-            .isin(rotas_sel)
-        ]
+        df = df[df["Rota"].astype(str).isin(rotas_sel)]
 
 # ===================================
 # PRODUTO
 # ===================================
 
 if "Produto" in df.columns:
+    produtos = sorted(df["Produto"].dropna().astype(str).unique())
+    produtos_default = [p for p in filtros.get("produtos", []) if p in produtos]
 
-    produtos = sorted(
-        df["Produto"]
-        .dropna()
-        .astype(str)
-        .unique()
-    )
-
-    produtos_default = [
-        p for p in filtros.get("produtos", [])
-        if p in produtos
-    ]
-
-    produtos_sel = st.sidebar.multiselect(
-        "Produtos",
-        produtos,
-        default=produtos_default
-    )
+    produtos_sel = st.sidebar.multiselect("Produtos", produtos, default=produtos_default)
 
     if produtos_sel:
-
-        df = df[
-            df["Produto"]
-            .astype(str)
-            .isin(produtos_sel)
-        ]
+        df = df[df["Produto"].astype(str).isin(produtos_sel)]
 
 # ===================================
 # PC
 # ===================================
 
-df_pc = pd.DataFrame()
+if "PC" in df.columns:
+    pcs = sorted(df["PC"].dropna().astype(str).unique())
+    pcs_default = [p for p in filtros.get("pcs", []) if p in pcs]
 
-if "PC" in df_base.columns and pcs_sel:
-    df_pc = df_base[df_base["PC"].astype(str).isin(pcs_sel)]
+    pcs_sel = st.sidebar.multiselect("Programação de carga", pcs, default=pcs_default)
 
-# ===================================
-# PEDIDOS MANUAIS
-# ===================================
+    if pcs_sel:
+        df = df[df["PC"].astype(str).isin(pcs_sel)]
 
-df_pedidos = pd.DataFrame()
-
-if "Pedido" in df_base.columns and pedidos_manuais:
-    df_pedidos = df_base[df_base["Pedido"].astype(str).isin(pedidos_manuais)]
-
-# ===================================
-# ROTAS MANUAIS
-# ===================================
-
-df_rotas = pd.DataFrame()
-
-if "Rota" in df_base.columns and rotas_manuais:
-    df_rotas = df_base[df_base["Rota"].astype(str).isin(rotas_manuais)]
-
-# ===================================
-# CONSOLIDAÇÃO FINAL (CORRETA)
-# ===================================
-
-dfs = []
-
-# se não selecionou nada em nenhum filtro → usa base inteira
-if (
-    not pcs_sel and
-    not pedidos_manuais and
-    not rotas_manuais
-):
-    df_final = df_base.copy()
-
-else:
-    if not df_pc.empty:
-        dfs.append(df_pc)
-
-    if not df_pedidos.empty:
-        dfs.append(df_pedidos)
-
-    if not df_rotas.empty:
-        dfs.append(df_rotas)
-
-    df_final = pd.concat(dfs, ignore_index=True).drop_duplicates()
-
-# garante fallback de segurança
-if df_final.empty:
-    df_final = df_base.copy()
-
-# substitui df principal
-df = df_final
-# ===================================
-# SIDEBAR - PEDIDOS MANUAIS (NOVO LOCAL)
-# ===================================
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("📌 Pedidos manuais")
-
-if pedidos_manuais:
-    st.sidebar.info(" | ".join(pedidos_manuais))
-else:
-    st.sidebar.warning("Nenhum pedido manual")
 # ===================================
 # SEM DADOS
 # ===================================
 
 if df.empty:
-
     st.warning("⚠️ Nenhum dado encontrado.")
     st.stop()
 
