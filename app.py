@@ -279,79 +279,61 @@ if "Produto" in df.columns:
 # PC
 # ===================================
 
-# ===================================
-# BASE ORIGINAL (NÃO MEXER NELA)
-# ===================================
-
-df_base = df.copy()
-
-dfs = []
-
-# ===================================
-# PC (FILTRO)
-# ===================================
-
 df_pc = pd.DataFrame()
 
-if "PC" in df_base.columns:
-
-    pcs = sorted(df_base["PC"].dropna().astype(str).unique())
-
-    pcs_sel = st.sidebar.multiselect(
-        "Programação de carga",
-        pcs,
-        default=[p for p in filtros.get("pcs", []) if p in pcs]
-    )
-
-    if pcs_sel:
-        df_pc = df_base[df_base["PC"].astype(str).isin(pcs_sel)]
+if "PC" in df_base.columns and pcs_sel:
+    df_pc = df_base[df_base["PC"].astype(str).isin(pcs_sel)]
 
 # ===================================
 # PEDIDOS MANUAIS
 # ===================================
 
-pedidos_manuais = filtros.get("pedidos_manuais", [])
-pedidos_manuais = [str(p).strip().replace(".0", "") for p in pedidos_manuais]
-
 df_pedidos = pd.DataFrame()
 
-if pedidos_manuais and "Pedido" in df_base.columns:
+if "Pedido" in df_base.columns and pedidos_manuais:
     df_pedidos = df_base[df_base["Pedido"].astype(str).isin(pedidos_manuais)]
 
 # ===================================
 # ROTAS MANUAIS
 # ===================================
 
-rotas_manuais = filtros.get("rotas_manuais", [])
-rotas_manuais = [str(r).strip() for r in rotas_manuais]
-
 df_rotas = pd.DataFrame()
 
-if rotas_manuais and "Rota" in df_base.columns:
+if "Rota" in df_base.columns and rotas_manuais:
     df_rotas = df_base[df_base["Rota"].astype(str).isin(rotas_manuais)]
 
 # ===================================
-# CONSOLIDAÇÃO CORRETA (UNION REAL)
+# CONSOLIDAÇÃO FINAL (CORRETA)
 # ===================================
 
 dfs = []
 
-if not df_pc.empty:
-    dfs.append(df_pc)
-
-if not df_pedidos.empty:
-    dfs.append(df_pedidos)
-
-if not df_rotas.empty:
-    dfs.append(df_rotas)
-
-# 🔥 REGRA PRINCIPAL:
-# se não selecionou NADA → usa base inteira
-if len(dfs) == 0:
-    df = df_base.copy()
+# se não selecionou nada em nenhum filtro → usa base inteira
+if (
+    not pcs_sel and
+    not pedidos_manuais and
+    not rotas_manuais
+):
+    df_final = df_base.copy()
 
 else:
-    df = pd.concat(dfs, ignore_index=True).drop_duplicates()
+    if not df_pc.empty:
+        dfs.append(df_pc)
+
+    if not df_pedidos.empty:
+        dfs.append(df_pedidos)
+
+    if not df_rotas.empty:
+        dfs.append(df_rotas)
+
+    df_final = pd.concat(dfs, ignore_index=True).drop_duplicates()
+
+# garante fallback de segurança
+if df_final.empty:
+    df_final = df_base.copy()
+
+# substitui df principal
+df = df_final
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS (NOVO LOCAL)
 # ===================================
