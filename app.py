@@ -106,10 +106,10 @@ if "PC" in df_original.columns:
 
 # ROTA VAZIA = RETIRA
 
-if "Rota" in df_original.columns:
+if "Rota" in df.columns:
 
-    df_original["Rota"] = (
-        df_original["Rota"]
+    df["Rota"] = (
+        df["Rota"]
         .astype(str)
         .str.strip()
         .replace(
@@ -297,30 +297,6 @@ if "PC" in df.columns:
     )
 
 # ===================================
-# PEDIDOS MANUAIS
-# ===================================
-
-pedidos_manuais = filtros.get(
-    "pedidos_manuais",
-    []
-)
-
-pedidos_manuais = [
-    str(p).strip()
-    for p in pedidos_manuais
-    if p
-]
-
-df_extra = pd.DataFrame()
-
-if pedidos_manuais:
-
-    df_extra = df_original[
-        df_original["Pedido"]
-        .isin(pedidos_manuais)
-    ]
-
-# ===================================
 # ROTAS MANUAIS
 # ===================================
 
@@ -336,13 +312,27 @@ rotas_manuais = [
 ]
 
 # ===================================
-# FILTRO COMBINADO
+# PEDIDOS MANUAIS
 # ===================================
 
-dfs_filtros = []
+pedidos_manuais = filtros.get(
+    "pedidos_manuais",
+    []
+)
+
+pedidos_manuais = [
+    str(p).strip()
+    for p in pedidos_manuais
+    if p
+]
+
+# ===================================
+# FILTROS COMBINADOS
+# ===================================
+
+lista_dfs = []
 
 # PCS
-
 if pcs_sel:
 
     df_pc = df[
@@ -351,59 +341,69 @@ if pcs_sel:
         .isin(pcs_sel)
     ]
 
-    dfs_filtros.append(df_pc)
-
-# ROTAS
-
-if rotas_sel:
-
-    df_rota = df[
-        df["Rota"]
-        .astype(str)
-        .isin(rotas_sel)
-    ]
-
-    dfs_filtros.append(df_rota)
-
-# PRODUTOS
-
-if produtos_sel:
-
-    df_produto = df[
-        df["Produto"]
-        .astype(str)
-        .isin(produtos_sel)
-    ]
-
-    dfs_filtros.append(df_produto)
+    lista_dfs.append(df_pc)
 
 # ROTAS MANUAIS
-
 if rotas_manuais:
 
-    df_rota_manual = df[
+    df_rotas_manuais = df[
         df["Rota"]
         .astype(str)
         .isin(rotas_manuais)
     ]
 
-    dfs_filtros.append(df_rota_manual)
+    lista_dfs.append(df_rotas_manuais)
 
 # PEDIDOS MANUAIS
+if pedidos_manuais:
 
-if not df_extra.empty:
+    df_pedidos_manuais = df[
+        df["Pedido"]
+        .astype(str)
+        .isin(pedidos_manuais)
+    ]
 
-    dfs_filtros.append(df_extra)
+    lista_dfs.append(df_pedidos_manuais)
 
-# JUNTA TUDO
+# SELEÇÃO FINAL
 
-if dfs_filtros:
+if lista_dfs:
 
     df = pd.concat(
-        dfs_filtros,
+        lista_dfs,
         ignore_index=True
     ).drop_duplicates()
 
+# ===================================
+# SIDEBAR FILTROS SALVOS
+# ===================================
+
+st.sidebar.markdown("---")
+
+with st.sidebar.expander(
+    "📌 Filtros salvos",
+    expanded=True
+):
+
+    st.markdown(
+        f"🚚 Rotas: {rotas_sel if rotas_sel else 'Todas'}"
+    )
+
+    st.markdown(
+        f"📦 Produtos: {produtos_sel if produtos_sel else 'Todos'}"
+    )
+
+    st.markdown(
+        f"📋 PCs: {pcs_sel if pcs_sel else 'Todas'}"
+    )
+
+    st.markdown(
+        f"🚛 Rotas manuais: {rotas_manuais if rotas_manuais else 'Nenhuma'}"
+    )
+
+    st.markdown(
+        f"🧾 Pedidos manuais: {pedidos_manuais if pedidos_manuais else 'Nenhum'}"
+    )
 # ===================================
 # FILTROS SALVOS
 # ===================================
