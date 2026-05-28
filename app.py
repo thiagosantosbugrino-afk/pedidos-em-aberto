@@ -324,26 +324,31 @@ if pedidos_manuais:
             .str.strip()
         )
 
-        # garante mesma padronização
-        pedidos_manuais = [str(p).replace(".0", "").strip() for p in pedidos_manuais]
+        pedidos_manuais = [
+            str(p).replace(".0", "").strip()
+            for p in pedidos_manuais
+        ]
 
         df_extra = df_pedidos_manuais[
             df_pedidos_manuais["Pedido"].isin(pedidos_manuais)
         ]
 
-        df = pd.concat([df, df_extra], ignore_index=True).drop_duplicates()
+        df = pd.concat(
+            [df, df_extra],
+            ignore_index=True
+        ).drop_duplicates()
 
-# =========================
-# EXIBIÇÃO (FORA DA LÓGICA)
-# =========================
+# ===================================
+# SIDEBAR - PEDIDOS MANUAIS (NOVO LOCAL)
+# ===================================
 
-st.markdown("---")
-st.subheader("📌 Pedidos adicionados manualmente")
+st.sidebar.markdown("---")
+st.sidebar.subheader("📌 Pedidos manuais")
 
 if pedidos_manuais:
-    st.info(" | ".join(pedidos_manuais))
+    st.sidebar.info(" | ".join(pedidos_manuais))
 else:
-    st.warning("Nenhum pedido manual adicionado.")
+    st.sidebar.warning("Nenhum pedido manual")
 # ===================================
 # SEM DADOS
 # ===================================
