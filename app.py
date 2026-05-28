@@ -298,6 +298,64 @@ if "PC" in df.columns:
 # ===================================
 # PEDIDOS MANUAIS
 # ===================================
+# ===================================
+# SIDEBAR - PEDIDOS MANUAIS
+# ===================================
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("📌 Pedidos Manuais")
+
+lista_pedidos = sorted(
+    df_base["Pedido"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+# GARANTE QUE EXISTEM
+pedidos_default = [
+    p for p in pedidos_manuais
+    if p in lista_pedidos
+]
+
+pedidos_manuais = st.sidebar.multiselect(
+    "Pedidos manuais",
+    lista_pedidos,
+    default=pedidos_default
+)
+
+# ===================================
+# SIDEBAR - ROTAS MANUAIS
+# ===================================
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("🚚 Rotas Manuais")
+
+lista_rotas = sorted(
+    df_base["Rota"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+rotas_manuais = filtros.get("rotas_manuais", [])
+
+rotas_manuais = [
+    str(r).strip()
+    for r in rotas_manuais
+]
+
+# GARANTE QUE EXISTEM
+rotas_default = [
+    r for r in rotas_manuais
+    if r in lista_rotas
+]
+
+rotas_manuais = st.sidebar.multiselect(
+    "Rotas manuais",
+    lista_rotas,
+    default=rotas_default
+)
 
 pedidos_manuais = filtros.get("pedidos_manuais", [])
 
@@ -339,6 +397,35 @@ if pedidos_manuais:
 # ===================================
 # ROTAS MANUAIS
 # ===================================
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("🚚 Rotas Manuais")
+
+lista_rotas = sorted(
+    df_base["Rota"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+rotas_manuais = filtros.get("rotas_manuais", [])
+
+rotas_manuais = [
+    str(r).strip()
+    for r in rotas_manuais
+]
+
+# GARANTE QUE EXISTEM
+rotas_default = [
+    r for r in rotas_manuais
+    if r in lista_rotas
+]
+
+rotas_manuais = st.sidebar.multiselect(
+    "Rotas manuais",
+    lista_rotas,
+    default=rotas_default
+)
 
 rotas_manuais = filtros.get("rotas_manuais", [])
 
