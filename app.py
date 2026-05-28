@@ -51,16 +51,15 @@ tbody tr:last-child {
 </style>
 """, unsafe_allow_html=True)
 
-# ===================================
-# LEITURA PLANILHA
-# ===================================
-
 try:
 
     df = pd.read_excel(
         "dados.xlsx",
         sheet_name=0
     )
+
+    # BASE ORIGINAL
+    df_base = df.copy()
 
 except FileNotFoundError:
 
