@@ -337,7 +337,55 @@ if pedidos_manuais:
             [df, df_extra],
             ignore_index=True
         ).drop_duplicates()
+# ===================================
+# ROTAS MANUAIS
+# ===================================
 
+rotas_manuais = filtros.get("rotas_manuais", [])
+
+# limpa valores
+rotas_manuais = [
+    str(r).strip()
+    for r in rotas_manuais
+    if r
+]
+
+df_rotas_manuais = pd.DataFrame()
+
+if rotas_manuais:
+
+    df_rotas_manuais = pd.read_excel("dados.xlsx")
+
+    df_rotas_manuais.columns = (
+        df_rotas_manuais.columns.astype(str).str.strip()
+    )
+
+    # trata rota vazia como RETIRA
+    if "Rota" in df_rotas_manuais.columns:
+
+        df_rotas_manuais["Rota"] = (
+            df_rotas_manuais["Rota"]
+            .astype(str)
+            .str.strip()
+            .replace(
+                ["", "nan", "None"],
+                "RETIRA"
+            )
+        )
+
+        rotas_manuais = [
+            str(r).strip()
+            for r in rotas_manuais
+        ]
+
+        df_extra_rotas = df_rotas_manuais[
+            df_rotas_manuais["Rota"].isin(rotas_manuais)
+        ]
+
+        df = pd.concat(
+            [df, df_extra_rotas],
+            ignore_index=True
+        ).drop_duplicates()
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS (NOVO LOCAL)
 # ===================================
@@ -349,6 +397,18 @@ if pedidos_manuais:
     st.sidebar.info(" | ".join(pedidos_manuais))
 else:
     st.sidebar.warning("Nenhum pedido manual")
+    
+# ===================================
+# SIDEBAR - ROTAS MANUAIS
+# ===================================
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("🚚 Rotas manuais")
+
+if rotas_manuais:
+    st.sidebar.info(" | ".join(rotas_manuais))
+else:
+    st.sidebar.warning("Nenhuma rota manual")
 # ===================================
 # SEM DADOS
 # ===================================
