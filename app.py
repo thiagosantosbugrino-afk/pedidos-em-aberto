@@ -23,26 +23,31 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 
 st.markdown("""
 <style>
+
 table {
     width: 100% !important;
     border-collapse: collapse !important;
     text-align: center !important;
     font-size: 14px !important;
 }
+
 thead tr th {
     text-align: center !important;
     font-weight: bold !important;
     background-color: #f0f2f6 !important;
     padding: 8px !important;
 }
+
 tbody tr td {
     text-align: center !important;
     padding: 6px !important;
 }
+
 tbody tr:last-child {
     font-weight: bold !important;
     background-color: #f8f9fa !important;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -51,7 +56,11 @@ tbody tr:last-child {
 # ===================================
 
 try:
-    df_original = pd.read_excel("dados.xlsx", sheet_name=0)
+
+    df_original = pd.read_excel(
+        "dados.xlsx",
+        sheet_name=0
+    )
 
 except FileNotFoundError:
 
@@ -95,7 +104,7 @@ if "PC" in df_original.columns:
         .str.strip()
     )
 
-# ROTA
+# ROTA VAZIA = RETIRA
 
 if "Rota" in df_original.columns:
 
@@ -210,36 +219,131 @@ if "Previsão" in df.columns:
     ]
 
 # ===================================
-# FILTROS
+# ROTA
 # ===================================
 
-rotas_sel = filtros.get("rotas", [])
-produtos_sel = filtros.get("produtos", [])
-pcs_sel = filtros.get("pcs", [])
-rotas_manuais = filtros.get("rotas_manuais", [])
-pedidos_manuais = filtros.get("pedidos_manuais", [])
+rotas_sel = []
+
+if "Rota" in df.columns:
+
+    rotas = sorted(
+        df["Rota"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    rotas_default = [
+        r for r in filtros.get("rotas", [])
+        if r in rotas
+    ]
+
+    rotas_sel = st.sidebar.multiselect(
+        "Rotas",
+        rotas,
+        default=rotas_default
+    )
 
 # ===================================
-# MOSTRAR FILTROS SALVOS
+# PRODUTO
 # ===================================
 
-with st.sidebar.expander("📌 Filtros salvos", expanded=True):
+produtos_sel = []
 
-    st.write("🚚 Rotas:", rotas_sel if rotas_sel else "Todos")
-    st.write("🪟 Produtos:", produtos_sel if produtos_sel else "Todos")
-    st.write("📦 PCs:", pcs_sel if pcs_sel else "Todos")
-    st.write("🚛 Rotas manuais:", rotas_manuais if rotas_manuais else "Nenhuma")
-    st.write("🧾 Pedidos manuais:", pedidos_manuais if pedidos_manuais else "Nenhum")
+if "Produto" in df.columns:
+
+    produtos = sorted(
+        df["Produto"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    produtos_default = [
+        p for p in filtros.get("produtos", [])
+        if p in produtos
+    ]
+
+    produtos_sel = st.sidebar.multiselect(
+        "Produtos",
+        produtos,
+        default=produtos_default
+    )
+
+# ===================================
+# PC
+# ===================================
+
+pcs_sel = []
+
+if "PC" in df.columns:
+
+    pcs = sorted(
+        df["PC"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    pcs_default = [
+        p for p in filtros.get("pcs", [])
+        if p in pcs
+    ]
+
+    pcs_sel = st.sidebar.multiselect(
+        "Programação de carga",
+        pcs,
+        default=pcs_default
+    )
+
+# ===================================
+# PEDIDOS MANUAIS
+# ===================================
+
+pedidos_manuais = filtros.get(
+    "pedidos_manuais",
+    []
+)
+
+pedidos_manuais = [
+    str(p).strip()
+    for p in pedidos_manuais
+    if p
+]
+
+df_extra = pd.DataFrame()
+
+if pedidos_manuais:
+
+    df_extra = df_original[
+        df_original["Pedido"]
+        .isin(pedidos_manuais)
+    ]
+
+# ===================================
+# ROTAS MANUAIS
+# ===================================
+
+rotas_manuais = filtros.get(
+    "rotas_manuais",
+    []
+)
+
+rotas_manuais = [
+    str(r).strip()
+    for r in rotas_manuais
+    if r
+]
 
 # ===================================
 # FILTRO COMBINADO
 # ===================================
 
-dfs_filtrados = []
+dfs_filtros = []
 
-# PCs
+# PCS
 
-if pcs_sel and "PC" in df.columns:
+if pcs_sel:
 
     df_pc = df[
         df["PC"]
@@ -247,11 +351,11 @@ if pcs_sel and "PC" in df.columns:
         .isin(pcs_sel)
     ]
 
-    dfs_filtrados.append(df_pc)
+    dfs_filtros.append(df_pc)
 
 # ROTAS
 
-if rotas_sel and "Rota" in df.columns:
+if rotas_sel:
 
     df_rota = df[
         df["Rota"]
@@ -259,11 +363,11 @@ if rotas_sel and "Rota" in df.columns:
         .isin(rotas_sel)
     ]
 
-    dfs_filtrados.append(df_rota)
+    dfs_filtros.append(df_rota)
 
 # PRODUTOS
 
-if produtos_sel and "Produto" in df.columns:
+if produtos_sel:
 
     df_produto = df[
         df["Produto"]
@@ -271,11 +375,11 @@ if produtos_sel and "Produto" in df.columns:
         .isin(produtos_sel)
     ]
 
-    dfs_filtrados.append(df_produto)
+    dfs_filtros.append(df_produto)
 
 # ROTAS MANUAIS
 
-if rotas_manuais and "Rota" in df.columns:
+if rotas_manuais:
 
     df_rota_manual = df[
         df["Rota"]
@@ -283,37 +387,51 @@ if rotas_manuais and "Rota" in df.columns:
         .isin(rotas_manuais)
     ]
 
-    dfs_filtrados.append(df_rota_manual)
+    dfs_filtros.append(df_rota_manual)
 
 # PEDIDOS MANUAIS
 
-if pedidos_manuais and "Pedido" in df.columns:
+if not df_extra.empty:
 
-    pedidos_manuais = [
-        str(p).strip()
-        for p in pedidos_manuais
-    ]
+    dfs_filtros.append(df_extra)
 
-    df_manual = df[
-        df["Pedido"]
-        .astype(str)
-        .isin(pedidos_manuais)
-    ]
+# JUNTA TUDO
 
-    dfs_filtrados.append(df_manual)
-
-# ===================================
-# UNIR TODOS FILTROS
-# ===================================
-
-if dfs_filtrados:
+if dfs_filtros:
 
     df = pd.concat(
-        dfs_filtrados,
+        dfs_filtros,
         ignore_index=True
+    ).drop_duplicates()
+
+# ===================================
+# FILTROS SALVOS
+# ===================================
+
+with st.sidebar.expander(
+    "📌 Filtros salvos",
+    expanded=True
+):
+
+    st.markdown(
+        f"🚚 Rotas: {rotas_sel if rotas_sel else 'Todas'}"
     )
 
-    df = df.drop_duplicates()
+    st.markdown(
+        f"📦 Produtos: {produtos_sel if produtos_sel else 'Todos'}"
+    )
+
+    st.markdown(
+        f"📋 PCs: {pcs_sel if pcs_sel else 'Todas'}"
+    )
+
+    st.markdown(
+        f"🚛 Rotas manuais: {rotas_manuais if rotas_manuais else 'Nenhuma'}"
+    )
+
+    st.markdown(
+        f"🧾 Pedidos manuais: {pedidos_manuais if pedidos_manuais else 'Nenhum'}"
+    )
 
 # ===================================
 # SEM DADOS
@@ -323,33 +441,6 @@ if df.empty:
 
     st.warning("⚠️ Nenhum dado encontrado.")
     st.stop()
-
-# ===================================
-# PEDIDOS MANUAIS VISUAL
-# ===================================
-
-if pedidos_manuais:
-
-    st.markdown("---")
-
-    st.subheader("📌 Pedidos adicionados manualmente")
-
-    for pedido in pedidos_manuais:
-
-        st.markdown(
-            f"""
-            <div style="
-                background-color:#f4f6f8;
-                padding:8px;
-                border-radius:6px;
-                margin-bottom:5px;
-                border-left:4px solid #4CAF50;
-            ">
-                🧾 Pedido <b>{pedido}</b>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
 
 # ===================================
 # INDICADORES
@@ -388,6 +479,233 @@ total_rotas = (
     if "Rota" in df.columns
     else 0
 )
+
+pedidos_atrasados = 0
+m2_atrasados = 0
+
+if "Previsão" in df.columns:
+
+    limite = (
+        datetime.now() + timedelta(days=2)
+    ).date()
+
+    df_atrasados = df[
+        df["Previsão"].dt.date < limite
+    ]
+
+    pedidos_atrasados = len(df_atrasados)
+
+    if "M2 Vendido" in df_atrasados.columns:
+
+        m2_atrasados = pd.to_numeric(
+            df_atrasados["M2 Vendido"],
+            errors="coerce"
+        ).sum()
+
+c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
+
+c1.metric("Pedidos", total_pedidos)
+c2.metric("Peças", total_pecas)
+c3.metric("Total M²", round(total_m2, 2))
+c4.metric("Peso Total", round(total_peso, 2))
+c5.metric("Rotas", total_rotas)
+c6.metric("⚠️ Peças Atrasadas", pedidos_atrasados)
+c7.metric("⚠️ M² Atrasado", round(m2_atrasados, 2))
+# ===================================
+# FILTRO PC
+# ===================================
+
+if "PC" in df.columns:
+
+    pcs = sorted(
+        df["PC"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    pcs_default = [
+        p for p in filtros.get("pcs", [])
+        if p in pcs
+    ]
+
+    pcs_sel = st.sidebar.multiselect(
+        "Programação de carga",
+        pcs,
+        default=pcs_default
+    )
+
+# ===================================
+# ROTAS MANUAIS
+# ===================================
+
+rotas_manuais = filtros.get(
+    "rotas_manuais",
+    []
+)
+
+rotas_manuais = [
+    str(r).strip()
+    for r in rotas_manuais
+    if r
+]
+
+# ===================================
+# PEDIDOS MANUAIS
+# ===================================
+
+pedidos_manuais = filtros.get(
+    "pedidos_manuais",
+    []
+)
+
+pedidos_manuais = [
+    str(p).strip()
+    for p in pedidos_manuais
+    if p
+]
+
+# ===================================
+# APLICA FILTROS COMBINADOS
+# ===================================
+
+df_base = df.copy()
+
+lista_filtros = []
+
+# PC
+if pcs_sel:
+
+    df_pc = df_base[
+        df_base["PC"]
+        .astype(str)
+        .isin(pcs_sel)
+    ]
+
+    lista_filtros.append(df_pc)
+
+# ROTA MANUAL
+if rotas_manuais:
+
+    df_rota_manual = df_base[
+        df_base["Rota"]
+        .astype(str)
+        .isin(rotas_manuais)
+    ]
+
+    lista_filtros.append(df_rota_manual)
+
+# PEDIDOS MANUAIS
+if pedidos_manuais:
+
+    df_pedido_manual = df_base[
+        df_base["Pedido"]
+        .astype(str)
+        .isin(pedidos_manuais)
+    ]
+
+    lista_filtros.append(df_pedido_manual)
+
+# SE TIVER ALGUM FILTRO ESPECIAL
+if lista_filtros:
+
+    df = pd.concat(
+        lista_filtros,
+        ignore_index=True
+    ).drop_duplicates()
+
+else:
+
+    df = df_base.copy()
+
+# ===================================
+# SIDEBAR - FILTROS MANUAIS
+# ===================================
+
+st.sidebar.markdown("---")
+
+st.sidebar.subheader("📌 Filtros manuais")
+
+# ROTAS
+if rotas_manuais:
+
+    st.sidebar.success(
+        "🚚 Rotas Manuais"
+    )
+
+    st.sidebar.info(
+        " | ".join(rotas_manuais)
+    )
+
+# PEDIDOS
+if pedidos_manuais:
+
+    st.sidebar.success(
+        "🧾 Pedidos Manuais"
+    )
+
+    st.sidebar.info(
+        " | ".join(pedidos_manuais)
+    )
+
+if (
+    not rotas_manuais
+    and
+    not pedidos_manuais
+):
+
+    st.sidebar.warning(
+        "Nenhum filtro manual"
+    )
+
+# ===================================
+# SEM DADOS
+# ===================================
+
+if df.empty:
+
+    st.warning("⚠️ Nenhum dado encontrado.")
+    st.stop()
+
+# ===================================
+# INDICADORES
+# ===================================
+
+st.subheader("Indicadores")
+
+total_pedidos = (
+    df["Pedido"].nunique()
+    if "Pedido" in df.columns
+    else 0
+)
+
+total_pecas = len(df)
+
+total_m2 = (
+    pd.to_numeric(
+        df["M2 Vendido"],
+        errors="coerce"
+    ).sum()
+    if "M2 Vendido" in df.columns
+    else 0
+)
+
+total_peso = (
+    pd.to_numeric(
+        df["Peso"],
+        errors="coerce"
+    ).sum()
+    if "Peso" in df.columns
+    else 0
+)
+
+total_rotas = (
+    df["Rota"].nunique()
+    if "Rota" in df.columns
+    else 0
+)
+
+# ATRASADOS
 
 pedidos_atrasados = 0
 m2_atrasados = 0
@@ -476,7 +794,21 @@ if mostrar_rota:
 
     tabela_rota = tabela_rota.round(2)
 
-    tabela_rota = tabela_rota.replace(0, "")
+    tabela_rota = tabela_rota.loc[
+        (tabela_rota != 0).any(axis=1)
+    ]
+
+    tabela_rota = tabela_rota.loc[
+        :,
+        (tabela_rota != 0).any(axis=0)
+    ]
+
+    tabela_rota = tabela_rota.replace(
+        0,
+        ""
+    )
+
+    tabela_rota = tabela_rota.astype(str)
 
     html_rota = tabela_rota.to_html(
         classes="tabela-centralizada",
@@ -487,102 +819,3 @@ if mostrar_rota:
         html_rota,
         unsafe_allow_html=True
     )
-
-# ===================================
-# TABELA PRODUTO
-# ===================================
-
-st.markdown("---")
-
-mostrar_produto = st.checkbox(
-    "🪟 Mostrar Tabela por Produto",
-    value=True
-)
-
-if mostrar_produto:
-
-    st.subheader("🪟 Tabela por Produto")
-
-    df_produto = df.copy()
-
-    df_produto["Previsão"] = (
-        df_produto["Previsão"]
-        .dt.strftime("%d/%m/%Y")
-    )
-
-    ordem_datas = sorted(
-        df_produto["Previsão"].dropna().unique()
-    )
-
-    ordem_datas = [
-        pd.to_datetime(d).strftime("%d/%m/%Y")
-        for d in ordem_datas
-    ]
-
-    tabela_produto = pd.pivot_table(
-        df_produto,
-        values="M2 Vendido",
-        index="Produto",
-        columns="Previsão",
-        aggfunc="sum",
-        fill_value=0,
-        margins=True,
-        margins_name="TOTAL GERAL"
-    )
-
-    colunas = [
-        c for c in ordem_datas
-        if c in tabela_produto.columns
-    ]
-
-    if "TOTAL GERAL" in tabela_produto.columns:
-
-        colunas.append("TOTAL GERAL")
-
-    tabela_produto = tabela_produto[colunas]
-
-    tabela_produto = tabela_produto.round(2)
-
-    tabela_produto = tabela_produto.replace(0, "")
-
-    html_produto = tabela_produto.to_html(
-        classes="tabela-centralizada",
-        border=0
-    )
-
-    st.markdown(
-        html_produto,
-        unsafe_allow_html=True
-    )
-
-# ===================================
-# DOWNLOAD
-# ===================================
-
-st.subheader("📥 Exportar dados filtrados")
-
-def to_excel(df):
-
-    output = BytesIO()
-
-    with pd.ExcelWriter(
-        output,
-        engine="openpyxl"
-    ) as writer:
-
-        df.to_excel(
-            writer,
-            index=False,
-            sheet_name="Base Filtrada"
-        )
-
-    return output.getvalue()
-
-excel_file = to_excel(df)
-
-st.download_button(
-    label="Baixar planilha filtrada (Excel)",
-    data=excel_file,
-    file_name="dados_filtrados.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
