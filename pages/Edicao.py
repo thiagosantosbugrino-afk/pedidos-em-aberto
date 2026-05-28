@@ -173,6 +173,16 @@ if arquivo is not None:
         # =========================================
         # SALVAR BASE
         # =========================================
+        # ===================================
+
+if "Rota" in df.columns:
+
+    df["Rota"] = (
+        df["Rota"]
+        .astype(str)
+        .str.strip()
+        .replace(["", "nan", "None"], "RETIRA")
+    )
 
         df.to_excel(
             "dados.xlsx",
