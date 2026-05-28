@@ -460,25 +460,73 @@ if "PC" in df.columns:
 
 st.markdown("---")
 
-pedidos_manuais_salvos = filtros_salvos.get(
+st.subheader("🔎 Pedidos manuais")
+
+# GARANTE FORMATO
+df["Pedido"] = (
+    df["Pedido"]
+    .astype(str)
+    .str.replace(".0", "", regex=False)
+    .str.strip()
+)
+
+# LISTA PEDIDOS
+lista_pedidos = sorted(
+    df["Pedido"]
+    .dropna()
+    .unique()
+)
+
+# PEDIDOS SALVOS
+pedidos_salvos = filtros_salvos.get(
     "pedidos_manuais",
     []
 )
 
-pedidos_manuais_texto = st.text_area(
-    "Pedidos manuais (um por linha):",
-    value="\n".join(pedidos_manuais_salvos),
-    height=120
-)
-
-pedidos_manuais = [
-    p.strip()
-    for p in pedidos_manuais_texto.splitlines()
-    if p.strip()
+pedidos_salvos = [
+    str(p).strip()
+    for p in pedidos_salvos
 ]
 
+# BUSCA
+busca_pedido = st.text_input(
+    "🔍 Buscar pedido"
+)
+
+# FILTRA BUSCA
+if busca_pedido:
+
+    pedidos_filtrados = [
+        p for p in lista_pedidos
+        if busca_pedido.lower() in p.lower()
+    ]
+
+else:
+
+    pedidos_filtrados = lista_pedidos
+
+# SELECT
+pedidos_manuais = st.multiselect(
+    "Selecionar pedidos manuais:",
+    pedidos_filtrados,
+    default=[
+        p for p in pedidos_salvos
+        if p in pedidos_filtrados
+    ]
+)
+
+# SALVA
 filtros["pedidos_manuais"] = pedidos_manuais
 
+# MOSTRA
+if pedidos_manuais:
+
+    st.success(
+        f"✅ {len(pedidos_manuais)} pedido(s) manual(is) selecionado(s)"
+    )
+
+    st.write(pedidos_manuais)
+    
 # =========================================
 # SALVAR FILTROS
 # =========================================
