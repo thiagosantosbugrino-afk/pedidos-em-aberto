@@ -268,11 +268,23 @@ if "Produto" in df.columns:
 # PC
 # ===================================
 
+# ===================================
+# BASE ORIGINAL (NÃO MEXER NELA)
+# ===================================
+
+df_base = df.copy()
+
+dfs = []
+
+# ===================================
+# PC (FILTRO)
+# ===================================
+
 df_pc = pd.DataFrame()
 
-if "PC" in df.columns:
+if "PC" in df_base.columns:
 
-    pcs = sorted(df["PC"].dropna().astype(str).unique())
+    pcs = sorted(df_base["PC"].dropna().astype(str).unique())
 
     pcs_sel = st.sidebar.multiselect(
         "Programação de carga",
@@ -281,7 +293,7 @@ if "PC" in df.columns:
     )
 
     if pcs_sel:
-        df_pc = df[df["PC"].astype(str).isin(pcs_sel)]
+        df_pc = df_base[df_base["PC"].astype(str).isin(pcs_sel)]
 
 # ===================================
 # PEDIDOS MANUAIS
@@ -292,11 +304,11 @@ pedidos_manuais = [str(p).strip().replace(".0", "") for p in pedidos_manuais]
 
 df_pedidos = pd.DataFrame()
 
-if pedidos_manuais and "Pedido" in df.columns:
-    df_pedidos = df[df["Pedido"].astype(str).isin(pedidos_manuais)]
+if pedidos_manuais and "Pedido" in df_base.columns:
+    df_pedidos = df_base[df_base["Pedido"].astype(str).isin(pedidos_manuais)]
 
 # ===================================
-# ROTAS MANUAIS (NOVO)
+# ROTAS MANUAIS
 # ===================================
 
 rotas_manuais = filtros.get("rotas_manuais", [])
@@ -304,34 +316,31 @@ rotas_manuais = [str(r).strip() for r in rotas_manuais]
 
 df_rotas = pd.DataFrame()
 
-if rotas_manuais and "Rota" in df.columns:
-    df_rotas = df[df["Rota"].astype(str).isin(rotas_manuais)]
+if rotas_manuais and "Rota" in df_base.columns:
+    df_rotas = df_base[df_base["Rota"].astype(str).isin(rotas_manuais)]
 
 # ===================================
-# CONSOLIDAÇÃO FINAL (CORRIGIDA)
+# CONSOLIDAÇÃO CORRETA (UNION REAL)
 # ===================================
 
 dfs = []
 
-# PC
 if not df_pc.empty:
     dfs.append(df_pc)
 
-# Pedidos manuais
 if not df_pedidos.empty:
     dfs.append(df_pedidos)
 
-# Rotas manuais
 if not df_rotas.empty:
     dfs.append(df_rotas)
 
-# Se nada foi selecionado → usa base completa
+# 🔥 REGRA PRINCIPAL:
+# se não selecionou NADA → usa base inteira
 if len(dfs) == 0:
-    df = df.copy()
+    df = df_base.copy()
 
 else:
     df = pd.concat(dfs, ignore_index=True).drop_duplicates()
-
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS (NOVO LOCAL)
 # ===================================
