@@ -844,3 +844,4 @@ st.download_button(
     data=excel_file,
     file_name="dados_filtrados.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
