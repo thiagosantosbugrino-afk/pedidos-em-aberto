@@ -295,6 +295,58 @@ if "PC" in df.columns:
             .astype(str)
             .isin(pcs_sel)
         ]
+# ===================================
+# PEDIDOS MANUAIS
+# ===================================
+
+pedidos_manuais = filtros.get(
+    "pedidos_manuais",
+    []
+)
+
+if pedidos_manuais and "Pedido" in df.columns:
+
+    pedidos_manuais = [
+        str(p).strip()
+        for p in pedidos_manuais
+    ]
+
+    # REABRE BASE COMPLETA
+    df_pedidos_manuais = pd.read_excel(
+        "dados.xlsx"
+    )
+
+    # LIMPA COLUNAS
+    df_pedidos_manuais.columns = (
+        df_pedidos_manuais.columns
+        .astype(str)
+        .str.strip()
+    )
+
+    # AJUSTA PEDIDO
+    if "Pedido" in df_pedidos_manuais.columns:
+
+        df_pedidos_manuais["Pedido"] = (
+            df_pedidos_manuais["Pedido"]
+            .astype(str)
+            .str.replace(".0", "", regex=False)
+            .str.strip()
+        )
+
+        # FILTRA PEDIDOS MANUAIS
+        df_extra = df_pedidos_manuais[
+            df_pedidos_manuais["Pedido"]
+            .isin(pedidos_manuais)
+        ]
+
+        # ADICIONA
+        df = pd.concat(
+            [df, df_extra],
+            ignore_index=True
+        )
+
+        # REMOVE DUPLICADOS
+        df = df.drop_duplicates()
 
 # ===================================
 # SEM DADOS
@@ -792,4 +844,3 @@ st.download_button(
     file_name="dados_filtrados.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
-
