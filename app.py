@@ -106,10 +106,10 @@ if "PC" in df_original.columns:
 
 # ROTA VAZIA = RETIRA
 
-if "Rota" in df.columns:
+if "Rota" in df_original.columns:
 
-    df["Rota"] = (
-        df["Rota"]
+    df_original["Rota"] = (
+        df_original["Rota"]
         .astype(str)
         .str.strip()
         .replace(
