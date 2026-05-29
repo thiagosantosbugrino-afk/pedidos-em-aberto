@@ -387,8 +387,22 @@ rotas_manuais = st.sidebar.multiselect(
 )
 
 # ===================================
-# APLICA PEDIDOS MANUAIS
+# FILTRO FINAL INTELIGENTE
 # ===================================
+
+df_final = pd.DataFrame()
+
+# -----------------------------------
+# FILTROS NORMAIS
+# -----------------------------------
+
+df_filtros = df.copy()
+
+# -----------------------------------
+# PEDIDOS MANUAIS
+# -----------------------------------
+
+df_pedidos = pd.DataFrame()
 
 if pedidos_manuais:
 
@@ -400,24 +414,11 @@ if pedidos_manuais:
         .isin(pedidos_manuais)
     ]
 
-else:
+# -----------------------------------
+# ROTAS MANUAIS
+# -----------------------------------
 
-    df_pedidos = pd.DataFrame()
-
-# SOMA AO DF FINAL
-if not df_pedidos.empty:
-
-    df = pd.concat(
-        [df, df_pedidos],
-        ignore_index=True
-    )
-
-# REMOVE DUPLICADOS REAIS
-df = df.drop_duplicates()
-
-# ===================================
-# APLICA ROTAS MANUAIS
-# ===================================
+df_rotas = pd.DataFrame()
 
 if rotas_manuais:
 
@@ -432,20 +433,59 @@ if rotas_manuais:
         .isin(rotas_manuais)
     ]
 
-else:
+# -----------------------------------
+# MONTA RESULTADO FINAL
+# -----------------------------------
 
-    df_rotas = pd.DataFrame()
+tem_filtros_normais = (
+    bool(rotas_sel)
+    or bool(produtos_sel)
+    or bool(pcs_sel)
+)
 
-# SOMA AO DF FINAL
-if not df_rotas.empty:
+tem_manuis = (
+    bool(pedidos_manuais)
+    or bool(rotas_manuais)
+)
 
-    df = pd.concat(
-        [df, df_rotas],
+# CASO 1:
+# NÃO TEM NADA SELECIONADO
+# MOSTRA TUDO
+
+if not tem_filtros_normais and not tem_manuis:
+
+    df_final = df_base.copy()
+
+# CASO 2:
+# TEM FILTROS NORMAIS
+
+elif tem_filtros_normais:
+
+    df_final = df_filtros.copy()
+
+# CASO 3:
+# SOMA PEDIDOS MANUAIS
+
+if not df_pedidos.empty:
+
+    df_final = pd.concat(
+        [df_final, df_pedidos],
         ignore_index=True
     )
 
-# REMOVE DUPLICADOS REAIS
-df = df.drop_duplicates()
+# CASO 4:
+# SOMA ROTAS MANUAIS
+
+if not df_rotas.empty:
+
+    df_final = pd.concat(
+        [df_final, df_rotas],
+        ignore_index=True
+    )
+
+# REMOVE DUPLICADOS
+
+df = df_final.drop_duplicates()
 # ===================================
 # SEM DADOS
 # ===================================
