@@ -685,8 +685,8 @@ fig_produto.update_traces(
     texttemplate='%{text:.2f}',
     textposition='outside'
 )
+st.plotly_chart(fig_produto, use_container_width=True)
 
-st.plotly_chart(fig_produto, use_cont
 # ===================================
 # DETALHAMENTO
 # ===================================
