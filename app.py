@@ -318,14 +318,15 @@ if not pcs_sel:
     df_final = pd.DataFrame()  # começa vazio
 
     if pedidos_manuais and "Pedido" in df_base.columns:
-        df_final = pd.concat([df_final, df_base[df_base["Pedido"].isin(pedidos_manuais)]],
-                             ignore_index=True).drop_duplicates()
+        df_final = pd.concat(
+            [df_final, df_base[df_base["Pedido"].isin(pedidos_manuais)]],
+            ignore_index=True
+        ).drop_duplicates()
 else:
     # Se houver programação de carga, acrescenta os manuais ao filtrado
     if pedidos_manuais and "Pedido" in df_base.columns:
         df_extra = df_base[df_base["Pedido"].isin(pedidos_manuais)]
         df_final = pd.concat([df_final, df_extra], ignore_index=True).drop_duplicates()
-
 
 # ===================================
 # ROTAS MANUAIS
@@ -333,8 +334,10 @@ else:
 
 if not pcs_sel:
     if rotas_manuais and "Rota" in df_base.columns:
-        df_final = pd.concat([df_final, df_base[df_base["Rota"].isin(rotas_manuais)]],
-                             ignore_index=True).drop_duplicates()
+        df_final = pd.concat(
+            [df_final, df_base[df_base["Rota"].isin(rotas_manuais)]],
+            ignore_index=True
+        ).drop_duplicates()
 else:
     if rotas_manuais and "Rota" in df_base.columns:
         df_extra_rotas = df_base[df_base["Rota"].isin(rotas_manuais)]
