@@ -245,14 +245,6 @@ if "Rota" in df.columns:
         default=rotas_default
     )
 
-    if rotas_sel:
-
-        df = df[
-            df["Rota"]
-            .astype(str)
-            .isin(rotas_sel)
-        ]
-
 # ===================================
 # PRODUTO
 # ===================================
@@ -277,14 +269,6 @@ if "Produto" in df.columns:
         default=produtos_default
     )
 
-    if produtos_sel:
-
-        df = df[
-            df["Produto"]
-            .astype(str)
-            .isin(produtos_sel)
-        ]
-
 # ===================================
 # PC
 # ===================================
@@ -308,14 +292,6 @@ if "PC" in df.columns:
         pcs,
         default=pcs_default
     )
-
-    if pcs_sel:
-
-        df = df[
-            df["PC"]
-            .astype(str)
-            .isin(pcs_sel)
-        ]
 
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS
@@ -572,6 +548,8 @@ if not df_rotas.empty:
 # -----------------------------------
 
 df = df_final.drop_duplicates()
+
+st.write("Qtd linhas final:", len(df))
 # ===================================
 # SEM DADOS
 # ===================================
