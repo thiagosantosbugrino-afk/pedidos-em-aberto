@@ -297,19 +297,27 @@ if "PC" in df.columns:
         ]
 
 # ===================================
-# PEDIDOS MANUAIS
+# BASE COMPLETA
 # ===================================
 
-# usa a base completa para permitir buscar fora dos filtros
 df_base = pd.read_excel("dados.xlsx")
 df_base.columns = df_base.columns.astype(str).str.strip()
+
+# aplica filtros normais em df_filtrado
+df_filtrado = df.copy()
+
+# ===================================
+# PEDIDOS MANUAIS
+# ===================================
 
 pedidos_manuais = filtros.get("pedidos_manuais", [])
 pedidos_manuais = [str(p).strip() for p in pedidos_manuais if p]
 
+df_final = df_filtrado.copy()
+
 if pedidos_manuais and "Pedido" in df_base.columns:
     df_extra = df_base[df_base["Pedido"].isin(pedidos_manuais)]
-    df = pd.concat([df, df_extra], ignore_index=True).drop_duplicates()
+    df_final = pd.concat([df_final, df_extra], ignore_index=True).drop_duplicates()
 
 # ===================================
 # ROTAS MANUAIS
@@ -320,7 +328,8 @@ rotas_manuais = [str(r).strip() for r in rotas_manuais if r]
 
 if rotas_manuais and "Rota" in df_base.columns:
     df_extra_rotas = df_base[df_base["Rota"].isin(rotas_manuais)]
-    df = pd.concat([df, df_extra_rotas], ignore_index=True).drop_duplicates()
+    df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True).drop_duplicates()
+
 
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS
@@ -372,34 +381,34 @@ if rotas_manuais:
 st.subheader("Indicadores")
 
 total_pedidos = (
-    df["Pedido"].nunique()
-    if "Pedido" in df.columns
+    df_final["Pedido"].nunique()
+    if "Pedido" in df_final.columns
     else 0
 )
 
-total_pecas = len(df)
+total_pecas = len(df_final)
 
 total_m2 = (
     pd.to_numeric(
-        df["M2 Vendido"],
+        df_final["M2 Vendido"],
         errors="coerce"
     ).sum()
-    if "M2 Vendido" in df.columns
+    if "M2 Vendido" in df_final.columns
     else 0
 )
 
 total_peso = (
     pd.to_numeric(
-        df["Peso"],
+        df_final["Peso"],
         errors="coerce"
     ).sum()
-    if "Peso" in df.columns
+    if "Peso" in df_final.columns
     else 0
 )
 
 total_rotas = (
-    df["Rota"].nunique()
-    if "Rota" in df.columns
+    df_final["Rota"].nunique()
+    if "Rota" in df_final.columns
     else 0
 )
 
@@ -408,20 +417,19 @@ total_rotas = (
 pedidos_atrasados = 0
 m2_atrasados = 0
 
-if "Previsão" in df.columns:
+if "Previsão" in df_final.columns:
 
     limite = (
         datetime.now() + timedelta(days=2)
     ).date()
 
-    df_atrasados = df[
-        df["Previsão"].dt.date < limite
+    df_atrasados = df_final[
+        df_final["Previsão"].dt.date < limite
     ]
 
     pedidos_atrasados = len(df_atrasados)
 
     if "M2 Vendido" in df_atrasados.columns:
-
         m2_atrasados = pd.to_numeric(
             df_atrasados["M2 Vendido"],
             errors="coerce"
@@ -452,7 +460,7 @@ if mostrar_rota:
 
     st.subheader("📊 Tabela por Rota")
 
-    df_rota = df.copy()
+    df_rota = df_final.copy()
 
     df_rota["Previsão"] = (
         df_rota["Previsão"]
@@ -489,27 +497,13 @@ if mostrar_rota:
     ]
 
     if "TOTAL GERAL" in tabela_rota.columns:
-
         colunas.append("TOTAL GERAL")
 
     tabela_rota = tabela_rota[colunas]
-
     tabela_rota = tabela_rota.round(2)
-
-    tabela_rota = tabela_rota.loc[
-        (tabela_rota != 0).any(axis=1)
-    ]
-
-    tabela_rota = tabela_rota.loc[
-        :,
-        (tabela_rota != 0).any(axis=0)
-    ]
-
-    tabela_rota = tabela_rota.replace(
-        0,
-        ""
-    )
-
+    tabela_rota = tabela_rota.loc[(tabela_rota != 0).any(axis=1)]
+    tabela_rota = tabela_rota.loc[:, (tabela_rota != 0).any(axis=0)]
+    tabela_rota = tabela_rota.replace(0, "")
     tabela_rota = tabela_rota.astype(str)
 
     html_rota = tabela_rota.to_html(
@@ -517,10 +511,7 @@ if mostrar_rota:
         border=0
     )
 
-    st.markdown(
-        html_rota,
-        unsafe_allow_html=True
-    )
+    st.markdown(html_rota, unsafe_allow_html=True)
 
 # ===================================
 # TABELA PRODUTO
@@ -537,7 +528,7 @@ if mostrar_produto:
 
     st.subheader("🪟 Tabela por Produto")
 
-    df_produto = df.copy()
+    df_produto = df_final.copy()
 
     df_produto["Previsão"] = (
         df_produto["Previsão"]
@@ -574,27 +565,13 @@ if mostrar_produto:
     ]
 
     if "TOTAL GERAL" in tabela_produto.columns:
-
         colunas.append("TOTAL GERAL")
 
     tabela_produto = tabela_produto[colunas]
-
     tabela_produto = tabela_produto.round(2)
-
-    tabela_produto = tabela_produto.loc[
-        (tabela_produto != 0).any(axis=1)
-    ]
-
-    tabela_produto = tabela_produto.loc[
-        :,
-        (tabela_produto != 0).any(axis=0)
-    ]
-
-    tabela_produto = tabela_produto.replace(
-        0,
-        ""
-    )
-
+    tabela_produto = tabela_produto.loc[(tabela_produto != 0).any(axis=1)]
+    tabela_produto = tabela_produto.loc[:, (tabela_produto != 0).any(axis=0)]
+    tabela_produto = tabela_produto.replace(0, "")
     tabela_produto = tabela_produto.astype(str)
 
     html_produto = tabela_produto.to_html(
@@ -602,10 +579,8 @@ if mostrar_produto:
         border=0
     )
 
-    st.markdown(
-        html_produto,
-        unsafe_allow_html=True
-    )
+    st.markdown(html_produto, unsafe_allow_html=True)
+
 # ===================================
 # TABELA ROTA X PRODUTO
 # ===================================
@@ -622,14 +597,12 @@ if mostrar_rota_produto:
     st.subheader("📊 Rota X Produto")
 
     if (
-        "Rota" in df.columns
-        and
-        "Produto" in df.columns
-        and
-        "M2 Vendido" in df.columns
+        "Rota" in df_final.columns
+        and "Produto" in df_final.columns
+        and "M2 Vendido" in df_final.columns
     ):
 
-        df_rota_produto = df.copy()
+        df_rota_produto = df_final.copy()
 
         tabela_rota_produto = pd.pivot_table(
             df_rota_produto,
@@ -642,49 +615,25 @@ if mostrar_rota_produto:
             margins_name="TOTAL GERAL"
         )
 
-        # ARREDONDAR
         tabela_rota_produto = tabela_rota_produto.round(2)
-
-        # REMOVER LINHAS SEM VALORES
-        tabela_rota_produto = tabela_rota_produto.loc[
-            (tabela_rota_produto != 0).any(axis=1)
-        ]
-
-        # REMOVER COLUNAS SEM VALORES
-        tabela_rota_produto = tabela_rota_produto.loc[
-            :,
-            (tabela_rota_produto != 0).any(axis=0)
-        ]
-
-        # SUBSTITUIR ZERO POR VAZIO
-        tabela_rota_produto = tabela_rota_produto.replace(
-            0,
-            ""
-        )
-
-        # FORMATAR NÚMEROS
+        tabela_rota_produto = tabela_rota_produto.loc[(tabela_rota_produto != 0).any(axis=1)]
+        tabela_rota_produto = tabela_rota_produto.loc[:, (tabela_rota_produto != 0).any(axis=0)]
+        tabela_rota_produto = tabela_rota_produto.replace(0, "")
         tabela_rota_produto = tabela_rota_produto.astype(object)
 
         for coluna in tabela_rota_produto.columns:
-
             tabela_rota_produto[coluna] = tabela_rota_produto[coluna].apply(
-                lambda x:
-                f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                if isinstance(x, (int, float))
-                else x
+                lambda x: f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                if isinstance(x, (int, float)) else x
             )
 
-        # CONVERTER PARA HTML
         html_rota_produto = tabela_rota_produto.to_html(
             classes="tabela-centralizada",
             border=0
         )
 
-        # MOSTRAR
-        st.markdown(
-            html_rota_produto,
-            unsafe_allow_html=True
-        )
+        st.markdown(html_rota_produto, unsafe_allow_html=True)
+
 # ===================================
 # GRÁFICO ROTA
 # ===================================
@@ -692,7 +641,7 @@ if mostrar_rota_produto:
 st.subheader("📈 Produção por Rota")
 
 grafico_rota = (
-    df.groupby("Rota")["M2 Vendido"]
+    df_final.groupby("Rota")["M2 Vendido"]
     .sum()
     .reset_index()
 )
@@ -710,10 +659,7 @@ fig_rota.update_traces(
     textposition='outside'
 )
 
-st.plotly_chart(
-    fig_rota,
-    use_container_width=True
-)
+st.plotly_chart(fig_rota, use_container_width=True)
 
 # ===================================
 # GRÁFICO PRODUTO
@@ -722,7 +668,7 @@ st.plotly_chart(
 st.subheader("🪟 Produção por Produto")
 
 grafico_produto = (
-    df.groupby("Produto")["M2 Vendido"]
+    df_final.groupby("Produto")["M2 Vendido"]
     .sum()
     .reset_index()
 )
@@ -740,11 +686,7 @@ fig_produto.update_traces(
     textposition='outside'
 )
 
-st.plotly_chart(
-    fig_produto,
-    use_container_width=True
-)
-
+st.plotly_chart(fig_produto, use_cont
 # ===================================
 # DETALHAMENTO
 # ===================================
@@ -760,7 +702,7 @@ if mostrar_detalhamento:
 
     st.subheader("🔎 Detalhamento")
 
-    df_detalhe = df.copy()
+    df_detalhe = df_final.copy()
 
     min_det = df_detalhe["Previsão"].min().date()
     max_det = df_detalhe["Previsão"].max().date()
@@ -768,7 +710,6 @@ if mostrar_detalhamento:
     col1, col2 = st.columns(2)
 
     with col1:
-
         detalhe_inicio = st.date_input(
             "Detalhamento - Data Inicial",
             value=min_det,
@@ -777,7 +718,6 @@ if mostrar_detalhamento:
         )
 
     with col2:
-
         detalhe_fim = st.date_input(
             "Detalhamento - Data Final",
             value=max_det,
@@ -786,20 +726,14 @@ if mostrar_detalhamento:
         )
 
     df_detalhe = df_detalhe[
-        (
-            df_detalhe["Previsão"].dt.date >= detalhe_inicio
-        )
+        (df_detalhe["Previsão"].dt.date >= detalhe_inicio)
         &
-        (
-            df_detalhe["Previsão"].dt.date <= detalhe_fim
-        )
+        (df_detalhe["Previsão"].dt.date <= detalhe_fim)
     ]
 
     if "Previsão" in df_detalhe.columns:
-
         df_detalhe["Previsão"] = (
-            df_detalhe["Previsão"]
-            .dt.strftime("%d/%m/%Y")
+            df_detalhe["Previsão"].dt.strftime("%d/%m/%Y")
         )
 
     st.dataframe(
@@ -820,11 +754,9 @@ mostrar_base = st.checkbox(
 )
 
 if mostrar_base:
-
     st.subheader("📋 Base Completa")
-
     st.dataframe(
-        df,
+        df_final,
         use_container_width=True,
         height=500
     )
@@ -835,7 +767,7 @@ if mostrar_base:
 
 st.subheader("📥 Exportar dados filtrados")
 
-def to_excel(df):
+def to_excel(df_final):
 
     output = BytesIO()
 
@@ -844,7 +776,7 @@ def to_excel(df):
         engine="openpyxl"
     ) as writer:
 
-        df.to_excel(
+        df_final.to_excel(
             writer,
             index=False,
             sheet_name="Base Filtrada"
@@ -852,7 +784,7 @@ def to_excel(df):
 
     return output.getvalue()
 
-excel_file = to_excel(df)
+excel_file = to_excel(df_final)
 
 st.download_button(
     label="Baixar planilha filtrada (Excel)",
