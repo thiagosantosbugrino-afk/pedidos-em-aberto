@@ -51,15 +51,16 @@ tbody tr:last-child {
 </style>
 """, unsafe_allow_html=True)
 
+# ===================================
+# LEITURA PLANILHA
+# ===================================
+
 try:
 
     df = pd.read_excel(
         "dados.xlsx",
         sheet_name=0
     )
-
-    # BASE ORIGINAL
-    df_base = df.copy()
 
 except FileNotFoundError:
 
@@ -110,15 +111,7 @@ if "Previsão" in df.columns:
         errors="coerce",
         dayfirst=True
     )
-# GARANTE MESMO TRATAMENTO NA BASE ORIGINAL
 
-if "Previsão" in df_base.columns:
-
-    df_base["Previsão"] = pd.to_datetime(
-        df_base["Previsão"],
-        errors="coerce",
-        dayfirst=True
-    )
 # ===================================
 # ÚLTIMA ATUALIZAÇÃO
 # ===================================
@@ -174,37 +167,17 @@ st.sidebar.title("Filtros")
 
 if "Previsão" in df.columns:
 
-    # REMOVE DATAS INVÁLIDAS
-    df = df[df["Previsão"].notna()]
-    df_base = df_base[df_base["Previsão"].notna()]
-
     min_data = df["Previsão"].min().date()
     max_data = df["Previsão"].max().date()
 
-    # TENTA PEGAR FILTRO SALVO
-    try:
+    start_default = pd.to_datetime(
+        filtros.get("start_date", min_data)
+    ).date()
 
-        start_default = pd.to_datetime(
-            filtros.get("start_date")
-        ).date()
+    end_default = pd.to_datetime(
+        filtros.get("end_date", max_data)
+    ).date()
 
-        end_default = pd.to_datetime(
-            filtros.get("end_date")
-        ).date()
-
-    except:
-
-        start_default = min_data
-        end_default = max_data
-
-    # VALIDA LIMITES
-    if start_default < min_data or start_default > max_data:
-        start_default = min_data
-
-    if end_default < min_data or end_default > max_data:
-        end_default = max_data
-
-    # SIDEBAR
     start_date = st.sidebar.date_input(
         "Data inicial",
         value=start_default,
@@ -217,10 +190,16 @@ if "Previsão" in df.columns:
         format="DD/MM/YYYY"
     )
 
-else:
+    df = df[
+        (
+            df["Previsão"].dt.date >= start_date
+        )
+        &
+        (
+            df["Previsão"].dt.date <= end_date
+        )
+    ]
 
-    start_date = datetime.now().date()
-    end_date = datetime.now().date()
 # ===================================
 # ROTA
 # ===================================
@@ -244,6 +223,14 @@ if "Rota" in df.columns:
         rotas,
         default=rotas_default
     )
+
+    if rotas_sel:
+
+        df = df[
+            df["Rota"]
+            .astype(str)
+            .isin(rotas_sel)
+        ]
 
 # ===================================
 # PRODUTO
@@ -269,6 +256,14 @@ if "Produto" in df.columns:
         default=produtos_default
     )
 
+    if produtos_sel:
+
+        df = df[
+            df["Produto"]
+            .astype(str)
+            .isin(produtos_sel)
+        ]
+
 # ===================================
 # PC
 # ===================================
@@ -293,263 +288,127 @@ if "PC" in df.columns:
         default=pcs_default
     )
 
+    if pcs_sel:
+
+        df = df[
+            df["PC"]
+            .astype(str)
+            .isin(pcs_sel)
+        ]
+
 # ===================================
-# SIDEBAR - PEDIDOS MANUAIS
+# PEDIDOS MANUAIS
+# ===================================
+
+pedidos_manuais = filtros.get("pedidos_manuais", [])
+
+# Sempre exibe lista limpa
+pedidos_manuais = [str(p).strip() for p in pedidos_manuais if p]
+
+df_pedidos_manuais = pd.DataFrame()
+
+if pedidos_manuais:
+
+    df_pedidos_manuais = pd.read_excel("dados.xlsx")
+
+    df_pedidos_manuais.columns = (
+        df_pedidos_manuais.columns.astype(str).str.strip()
+    )
+
+    if "Pedido" in df_pedidos_manuais.columns:
+
+        df_pedidos_manuais["Pedido"] = (
+            df_pedidos_manuais["Pedido"]
+            .astype(str)
+            .str.replace(".0", "", regex=False)
+            .str.strip()
+        )
+
+        pedidos_manuais = [
+            str(p).replace(".0", "").strip()
+            for p in pedidos_manuais
+        ]
+
+        df_extra = df_pedidos_manuais[
+            df_pedidos_manuais["Pedido"].isin(pedidos_manuais)
+        ]
+
+        df = pd.concat(
+            [df, df_extra],
+            ignore_index=True
+        ).drop_duplicates()
+# ===================================
+# ROTAS MANUAIS
+# ===================================
+
+rotas_manuais = filtros.get("rotas_manuais", [])
+
+# limpa valores
+rotas_manuais = [
+    str(r).strip()
+    for r in rotas_manuais
+    if r
+]
+
+df_rotas_manuais = pd.DataFrame()
+
+if rotas_manuais:
+
+    df_rotas_manuais = pd.read_excel("dados.xlsx")
+
+    df_rotas_manuais.columns = (
+        df_rotas_manuais.columns.astype(str).str.strip()
+    )
+
+    # trata rota vazia como RETIRA
+    if "Rota" in df_rotas_manuais.columns:
+
+        df_rotas_manuais["Rota"] = (
+            df_rotas_manuais["Rota"]
+            .astype(str)
+            .str.strip()
+            .replace(
+                ["", "nan", "None"],
+                "RETIRA"
+            )
+        )
+
+        rotas_manuais = [
+            str(r).strip()
+            for r in rotas_manuais
+        ]
+
+        df_extra_rotas = df_rotas_manuais[
+            df_rotas_manuais["Rota"].isin(rotas_manuais)
+        ]
+
+        df = pd.concat(
+            [df, df_extra_rotas],
+            ignore_index=True
+        ).drop_duplicates()
+# ===================================
+# SIDEBAR - PEDIDOS MANUAIS (NOVO LOCAL)
 # ===================================
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("📌 Pedidos Manuais")
+st.sidebar.subheader("📌 Pedidos manuais")
 
-# LISTA PEDIDOS
-lista_pedidos = sorted(
-    df_base["Pedido"]
-    .dropna()
-    .astype(str)
-    .str.replace(".0", "", regex=False)
-    .str.strip()
-    .unique()
-)
-
-# PEDIDOS SALVOS
-pedidos_manuais = filtros.get(
-    "pedidos_manuais",
-    []
-)
-
-pedidos_manuais = [
-    str(p).replace(".0", "").strip()
-    for p in pedidos_manuais
-]
-
-# GARANTE EXISTÊNCIA
-pedidos_default = [
-    p for p in pedidos_manuais
-    if p in lista_pedidos
-]
-
-# MULTISELECT
-pedidos_manuais = st.sidebar.multiselect(
-    "Pedidos manuais",
-    lista_pedidos,
-    default=pedidos_default
-)
-
+if pedidos_manuais:
+    st.sidebar.info(" | ".join(pedidos_manuais))
+else:
+    st.sidebar.warning("Nenhum pedido manual")
+    
 # ===================================
 # SIDEBAR - ROTAS MANUAIS
 # ===================================
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("🚚 Rotas Manuais")
-
-# TRATA ROTA VAZIA
-df_base["Rota"] = (
-    df_base["Rota"]
-    .astype(str)
-    .str.strip()
-    .replace(
-        ["", "nan", "None"],
-        "RETIRA"
-    )
-)
-
-# LISTA ROTAS
-lista_rotas = sorted(
-    df_base["Rota"]
-    .dropna()
-    .astype(str)
-    .unique()
-)
-
-# ROTAS SALVAS
-rotas_manuais = filtros.get(
-    "rotas_manuais",
-    []
-)
-
-rotas_manuais = [
-    str(r).strip()
-    for r in rotas_manuais
-]
-
-# GARANTE EXISTÊNCIA
-rotas_default = [
-    r for r in rotas_manuais
-    if r in lista_rotas
-]
-
-# MULTISELECT
-rotas_manuais = st.sidebar.multiselect(
-    "Rotas manuais",
-    lista_rotas,
-    default=rotas_default
-)
-
-# ===================================
-# FILTRO FINAL INTELIGENTE
-# ===================================
-
-df_final = pd.DataFrame()
-
-# ===================================
-# BASE FILTRADA POR DATA
-# ===================================
-
-df_data = df_base.copy()
-
-if "Previsão" in df_data.columns:
-
-    df_data = df_data[
-        (
-            df_data["Previsão"].dt.date >= start_date
-        )
-        &
-        (
-            df_data["Previsão"].dt.date <= end_date
-        )
-    ]
-
-# ===================================
-# APLICA FILTROS NORMAIS
-# ===================================
-
-df_filtros = df_data.copy()
-
-# ROTA
-if rotas_sel:
-
-    df_filtros = df_filtros[
-        df_filtros["Rota"]
-        .astype(str)
-        .isin(rotas_sel)
-    ]
-
-# PRODUTO
-if produtos_sel:
-
-    df_filtros = df_filtros[
-        df_filtros["Produto"]
-        .astype(str)
-        .isin(produtos_sel)
-    ]
-
-# PC
-if pcs_sel:
-
-    df_filtros = df_filtros[
-        df_filtros["PC"]
-        .astype(str)
-        .isin(pcs_sel)
-    ]
-
-# ===================================
-# PEDIDOS MANUAIS
-# ===================================
-
-df_pedidos = pd.DataFrame()
-
-if pedidos_manuais:
-
-    df_pedidos = df_data[
-        df_data["Pedido"]
-        .astype(str)
-        .str.replace(".0", "", regex=False)
-        .str.strip()
-        .isin(pedidos_manuais)
-    ]
-
-# ===================================
-# ROTAS MANUAIS
-# ===================================
-
-df_rotas = pd.DataFrame()
+st.sidebar.subheader("🚚 Rotas manuais")
 
 if rotas_manuais:
-
-    df_rotas = df_data[
-        df_data["Rota"]
-        .astype(str)
-        .str.strip()
-        .replace(
-            ["", "nan", "None"],
-            "RETIRA"
-        )
-        .isin(rotas_manuais)
-    ]
-
-# ===================================
-# IDENTIFICA FILTROS
-# ===================================
-
-tem_filtros_normais = (
-    bool(rotas_sel)
-    or bool(produtos_sel)
-    or bool(pcs_sel)
-    or (
-        start_date != min_data
-        or end_date != max_data
-    )
-)
-
-tem_manuais = (
-    bool(pedidos_manuais)
-    or bool(rotas_manuais)
-)
-
-# ===================================
-# MONTA DF FINAL
-# ===================================
-
-# COMEÇA VAZIO
-df_final = pd.DataFrame()
-
-# -----------------------------------
-# SEM FILTRO
-# -----------------------------------
-
-if not tem_filtros_normais and not tem_manuais:
-
-    df_final = df_data.copy()
-
-# -----------------------------------
-# FILTROS NORMAIS
-# -----------------------------------
-
-if tem_filtros_normais:
-
-    df_final = pd.concat(
-        [df_final, df_filtros],
-        ignore_index=True
-    )
-
-# -----------------------------------
-# PEDIDOS MANUAIS
-# -----------------------------------
-
-if not df_pedidos.empty:
-
-    df_final = pd.concat(
-        [df_final, df_pedidos],
-        ignore_index=True
-    )
-
-# -----------------------------------
-# ROTAS MANUAIS
-# -----------------------------------
-
-if not df_rotas.empty:
-
-    df_final = pd.concat(
-        [df_final, df_rotas],
-        ignore_index=True
-    )
-
-# -----------------------------------
-# REMOVE DUPLICADOS
-# -----------------------------------
-
-df = df_final.drop_duplicates()
-
-st.write("Qtd linhas final:", len(df))
+    st.sidebar.info(" | ".join(rotas_manuais))
+else:
+    st.sidebar.warning("Nenhuma rota manual")
 # ===================================
 # SEM DADOS
 # ===================================
