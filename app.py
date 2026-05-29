@@ -152,15 +152,7 @@ except:
 # FILTROS SALVOS
 # ===================================
 
-try:
-
-    with open("filtros.json", "r") as f:
-
-        filtros = json.load(f)[0]
-
-except:
-
-    filtros = {}
+filtros = {}
 
 # ===================================
 # SIDEBAR
