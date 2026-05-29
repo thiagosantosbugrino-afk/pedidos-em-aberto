@@ -509,17 +509,32 @@ tem_manuais = (
 # MONTA DF FINAL
 # ===================================
 
-# SEM FILTROS = MOSTRA TUDO
+# COMEÇA VAZIO
+df_final = pd.DataFrame()
+
+# -----------------------------------
+# SEM FILTRO
+# -----------------------------------
+
 if not tem_filtros_normais and not tem_manuais:
 
     df_final = df_data.copy()
 
-# COM FILTROS NORMAIS
-elif tem_filtros_normais:
+# -----------------------------------
+# FILTROS NORMAIS
+# -----------------------------------
 
-    df_final = df_filtros.copy()
+if tem_filtros_normais:
 
-# SOMA PEDIDOS MANUAIS
+    df_final = pd.concat(
+        [df_final, df_filtros],
+        ignore_index=True
+    )
+
+# -----------------------------------
+# PEDIDOS MANUAIS
+# -----------------------------------
+
 if not df_pedidos.empty:
 
     df_final = pd.concat(
@@ -527,7 +542,10 @@ if not df_pedidos.empty:
         ignore_index=True
     )
 
-# SOMA ROTAS MANUAIS
+# -----------------------------------
+# ROTAS MANUAIS
+# -----------------------------------
+
 if not df_rotas.empty:
 
     df_final = pd.concat(
@@ -535,9 +553,11 @@ if not df_rotas.empty:
         ignore_index=True
     )
 
+# -----------------------------------
 # REMOVE DUPLICADOS
-df = df_final.drop_duplicates()
+# -----------------------------------
 
+df = df_final.drop_duplicates()
 # ===================================
 # SEM DADOS
 # ===================================
