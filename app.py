@@ -306,6 +306,19 @@ df_base.columns = df_base.columns.astype(str).str.strip()
 # aplica filtros normais em df_filtrado
 df_filtrado = df.copy()
 
+# aplica filtros normais em df_filtrado
+df_filtrado = df.copy()
+
+# ===================================
+# PREPARA LISTAS DE MANUAIS
+# ===================================
+
+pedidos_manuais = filtros.get("pedidos_manuais", [])
+pedidos_manuais = [str(p).strip() for p in pedidos_manuais if p]
+
+rotas_manuais = filtros.get("rotas_manuais", [])
+rotas_manuais = [str(r).strip() for r in rotas_manuais if r]
+
 # ===================================
 # PEDIDOS MANUAIS
 # ===================================
