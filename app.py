@@ -152,7 +152,15 @@ except:
 # FILTROS SALVOS
 # ===================================
 
-filtros = {}
+try:
+
+    with open("filtros.json", "r") as f:
+
+        filtros = json.load(f)[0]
+
+except:
+
+    filtros = {}
 
 # ===================================
 # SIDEBAR
@@ -169,14 +177,30 @@ if "Previsão" in df.columns:
     min_data = df["Previsão"].min().date()
     max_data = df["Previsão"].max().date()
 
-    start_default = pd.to_datetime(
-        filtros.get("start_date", min_data)
-    ).date()
+    # TENTA PEGAR FILTRO SALVO
+    try:
 
-    end_default = pd.to_datetime(
-        filtros.get("end_date", max_data)
-    ).date()
+        start_default = pd.to_datetime(
+            filtros.get("start_date")
+        ).date()
 
+        end_default = pd.to_datetime(
+            filtros.get("end_date")
+        ).date()
+
+        # VALIDA LIMITES
+        if start_default < min_data or start_default > max_data:
+            start_default = min_data
+
+        if end_default < min_data or end_default > max_data:
+            end_default = max_data
+
+    except:
+
+        start_default = min_data
+        end_default = max_data
+
+    # SIDEBAR
     start_date = st.sidebar.date_input(
         "Data inicial",
         value=start_default,
@@ -189,6 +213,7 @@ if "Previsão" in df.columns:
         format="DD/MM/YYYY"
     )
 
+    # FILTRO
     df = df[
         (
             df["Previsão"].dt.date >= start_date
@@ -198,7 +223,6 @@ if "Previsão" in df.columns:
             df["Previsão"].dt.date <= end_date
         )
     ]
-
 # ===================================
 # ROTA
 # ===================================
