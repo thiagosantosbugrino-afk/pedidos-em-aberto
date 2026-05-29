@@ -301,91 +301,23 @@ if "PC" in df.columns:
 # ===================================
 
 pedidos_manuais = filtros.get("pedidos_manuais", [])
-
-# Sempre exibe lista limpa
 pedidos_manuais = [str(p).strip() for p in pedidos_manuais if p]
 
-df_pedidos_manuais = pd.DataFrame()
+if pedidos_manuais and "Pedido" in df.columns:
+    df_extra = df[df["Pedido"].isin(pedidos_manuais)]
+    df = pd.concat([df_extra], ignore_index=True).drop_duplicates()
 
-if pedidos_manuais:
-
-    df_pedidos_manuais = pd.read_excel("dados.xlsx")
-
-    df_pedidos_manuais.columns = (
-        df_pedidos_manuais.columns.astype(str).str.strip()
-    )
-
-    if "Pedido" in df_pedidos_manuais.columns:
-
-        df_pedidos_manuais["Pedido"] = (
-            df_pedidos_manuais["Pedido"]
-            .astype(str)
-            .str.replace(".0", "", regex=False)
-            .str.strip()
-        )
-
-        pedidos_manuais = [
-            str(p).replace(".0", "").strip()
-            for p in pedidos_manuais
-        ]
-
-        df_extra = df_pedidos_manuais[
-            df_pedidos_manuais["Pedido"].isin(pedidos_manuais)
-        ]
-
-        df = pd.concat(
-            [df, df_extra],
-            ignore_index=True
-        ).drop_duplicates()
 # ===================================
 # ROTAS MANUAIS
 # ===================================
 
 rotas_manuais = filtros.get("rotas_manuais", [])
+rotas_manuais = [str(r).strip() for r in rotas_manuais if r]
 
-# limpa valores
-rotas_manuais = [
-    str(r).strip()
-    for r in rotas_manuais
-    if r
-]
+if rotas_manuais and "Rota" in df.columns:
+    df_extra_rotas = df[df["Rota"].isin(rotas_manuais)]
+    df = pd.concat([df_extra_rotas], ignore_index=True).drop_duplicates()
 
-df_rotas_manuais = pd.DataFrame()
-
-if rotas_manuais:
-
-    df_rotas_manuais = pd.read_excel("dados.xlsx")
-
-    df_rotas_manuais.columns = (
-        df_rotas_manuais.columns.astype(str).str.strip()
-    )
-
-    # trata rota vazia como RETIRA
-    if "Rota" in df_rotas_manuais.columns:
-
-        df_rotas_manuais["Rota"] = (
-            df_rotas_manuais["Rota"]
-            .astype(str)
-            .str.strip()
-            .replace(
-                ["", "nan", "None"],
-                "RETIRA"
-            )
-        )
-
-        rotas_manuais = [
-            str(r).strip()
-            for r in rotas_manuais
-        ]
-
-        df_extra_rotas = df_rotas_manuais[
-            df_rotas_manuais["Rota"].isin(rotas_manuais)
-        ]
-
-        df = pd.concat(
-            [df, df_extra_rotas],
-            ignore_index=True
-        ).drop_duplicates()
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS
 # ===================================
@@ -394,18 +326,18 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("📌 Pedidos manuais")
 
 lista_pedidos = sorted(
-    df_pedidos_manuais["Pedido"]
-    .dropna()
-    .astype(str)
-    .unique()
-) if not df_pedidos_manuais.empty else []
+    df["Pedido"].dropna().astype(str).unique()
+) if "Pedido" in df.columns else []
 
 pedidos_manuais = st.sidebar.multiselect(
     "Selecionar pedidos manuais",
     lista_pedidos,
     default=pedidos_manuais
 )
-    
+
+if pedidos_manuais:
+    df = df[df["Pedido"].isin(pedidos_manuais)]
+
 # ===================================
 # SIDEBAR - ROTAS MANUAIS
 # ===================================
@@ -414,17 +346,18 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("🚚 Rotas manuais")
 
 lista_rotas = sorted(
-    df_rotas_manuais["Rota"]
-    .dropna()
-    .astype(str)
-    .unique()
-) if not df_rotas_manuais.empty else []
+    df["Rota"].dropna().astype(str).unique()
+) if "Rota" in df.columns else []
 
 rotas_manuais = st.sidebar.multiselect(
     "Selecionar rotas manuais",
     lista_rotas,
     default=rotas_manuais
 )
+
+if rotas_manuais:
+    df = df[df["Rota"].isin(rotas_manuais)]
+
 # ===================================
 # SEM DADOS
 # ===================================
