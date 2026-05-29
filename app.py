@@ -110,7 +110,15 @@ if "Previsão" in df.columns:
         errors="coerce",
         dayfirst=True
     )
+# GARANTE MESMO TRATAMENTO NA BASE ORIGINAL
 
+if "Previsão" in df_base.columns:
+
+    df_base["Previsão"] = pd.to_datetime(
+        df_base["Previsão"],
+        errors="coerce",
+        dayfirst=True
+    )
 # ===================================
 # ÚLTIMA ATUALIZAÇÃO
 # ===================================
@@ -392,38 +400,83 @@ rotas_manuais = st.sidebar.multiselect(
 
 df_final = pd.DataFrame()
 
-# -----------------------------------
-# FILTROS NORMAIS
-# -----------------------------------
+# ===================================
+# BASE FILTRADA POR DATA
+# ===================================
 
-df_filtros = df.copy()
+df_data = df_base.copy()
 
-# -----------------------------------
+if "Previsão" in df_data.columns:
+
+    df_data = df_data[
+        (
+            df_data["Previsão"].dt.date >= start_date
+        )
+        &
+        (
+            df_data["Previsão"].dt.date <= end_date
+        )
+    ]
+
+# ===================================
+# APLICA FILTROS NORMAIS
+# ===================================
+
+df_filtros = df_data.copy()
+
+# ROTA
+if rotas_sel:
+
+    df_filtros = df_filtros[
+        df_filtros["Rota"]
+        .astype(str)
+        .isin(rotas_sel)
+    ]
+
+# PRODUTO
+if produtos_sel:
+
+    df_filtros = df_filtros[
+        df_filtros["Produto"]
+        .astype(str)
+        .isin(produtos_sel)
+    ]
+
+# PC
+if pcs_sel:
+
+    df_filtros = df_filtros[
+        df_filtros["PC"]
+        .astype(str)
+        .isin(pcs_sel)
+    ]
+
+# ===================================
 # PEDIDOS MANUAIS
-# -----------------------------------
+# ===================================
 
 df_pedidos = pd.DataFrame()
 
 if pedidos_manuais:
 
-    df_pedidos = df_base[
-        df_base["Pedido"]
+    df_pedidos = df_data[
+        df_data["Pedido"]
         .astype(str)
         .str.replace(".0", "", regex=False)
         .str.strip()
         .isin(pedidos_manuais)
     ]
 
-# -----------------------------------
+# ===================================
 # ROTAS MANUAIS
-# -----------------------------------
+# ===================================
 
 df_rotas = pd.DataFrame()
 
 if rotas_manuais:
 
-    df_rotas = df_base[
-        df_base["Rota"]
+    df_rotas = df_data[
+        df_data["Rota"]
         .astype(str)
         .str.strip()
         .replace(
@@ -433,9 +486,9 @@ if rotas_manuais:
         .isin(rotas_manuais)
     ]
 
-# -----------------------------------
-# MONTA RESULTADO FINAL
-# -----------------------------------
+# ===================================
+# IDENTIFICA FILTROS
+# ===================================
 
 tem_filtros_normais = (
     bool(rotas_sel)
@@ -447,29 +500,26 @@ tem_filtros_normais = (
     )
 )
 
-tem_manuis = (
+tem_manuais = (
     bool(pedidos_manuais)
     or bool(rotas_manuais)
 )
 
-# CASO 1:
-# NÃO TEM NADA SELECIONADO
-# MOSTRA TUDO
+# ===================================
+# MONTA DF FINAL
+# ===================================
 
-if not tem_filtros_normais and not tem_manuis:
+# SEM FILTROS = MOSTRA TUDO
+if not tem_filtros_normais and not tem_manuais:
 
-   df_final = df.copy()
+    df_final = df_data.copy()
 
-# CASO 2:
-# TEM FILTROS NORMAIS
-
+# COM FILTROS NORMAIS
 elif tem_filtros_normais:
 
     df_final = df_filtros.copy()
 
-# CASO 3:
 # SOMA PEDIDOS MANUAIS
-
 if not df_pedidos.empty:
 
     df_final = pd.concat(
@@ -477,9 +527,7 @@ if not df_pedidos.empty:
         ignore_index=True
     )
 
-# CASO 4:
 # SOMA ROTAS MANUAIS
-
 if not df_rotas.empty:
 
     df_final = pd.concat(
@@ -488,8 +536,8 @@ if not df_rotas.empty:
     )
 
 # REMOVE DUPLICADOS
-
 df = df_final.drop_duplicates()
+
 # ===================================
 # SEM DADOS
 # ===================================
