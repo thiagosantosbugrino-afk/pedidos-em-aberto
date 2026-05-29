@@ -303,49 +303,8 @@ if "PC" in df.columns:
 df_base = pd.read_excel("dados.xlsx")
 df_base.columns = df_base.columns.astype(str).str.strip()
 
-# aplica filtros normais em df_filtrado
 df_filtrado = df.copy()
-
-# aplica filtros normais em df_filtrado
-df_filtrado = df.copy()
-
-# ===================================
-# PREPARA LISTAS DE MANUAIS
-# ===================================
-
-pedidos_manuais = st.sidebar.multiselect(
-    "Selecionar pedidos manuais",
-    sorted(df_base["Pedido"].dropna().astype(str).unique()) if "Pedido" in df_base.columns else [],
-    default=filtros.get("pedidos_manuais", [])
-)
-
-rotas_manuais = st.sidebar.multiselect(
-    "Selecionar rotas manuais",
-    sorted(df_base["Rota"].dropna().astype(str).unique()) if "Rota" in df_base.columns else [],
-    default=filtros.get("rotas_manuais", [])
-)
-
-# ===================================
-# PEDIDOS MANUAIS
-# ===================================
-
 df_final = df_filtrado.copy()
-
-if not pcs_sel:
-    df_final = pd.DataFrame()  # começa vazio
-
-if pedidos_manuais and "Pedido" in df_base.columns:
-    df_extra = df_base[df_base["Pedido"].isin(pedidos_manuais)]
-    df_final = pd.concat([df_final, df_extra], ignore_index=True).drop_duplicates()
-
-# ===================================
-# ROTAS MANUAIS
-# ===================================
-
-if rotas_manuais and "Rota" in df_base.columns:
-    df_extra_rotas = df_base[df_base["Rota"].isin(rotas_manuais)]
-    df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True).drop_duplicates()
-
 
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS
@@ -492,11 +451,8 @@ if mostrar_rota:
             pd.to_datetime(d).strftime("%d/%m/%Y")
             for d in ordem_datas
         ]
-
-    ordem_datas = [
-        pd.to_datetime(d).strftime("%d/%m/%Y")
-        for d in ordem_datas
-    ]
+    else:
+        ordem_datas = []
 
     tabela_rota = pd.pivot_table(
         df_rota,
@@ -548,23 +504,23 @@ if mostrar_produto:
 
     df_produto = df_final.copy()
 
-    df_produto["Previsão"] = (
-        df_produto["Previsão"]
-        .dt.strftime("%d/%m/%Y")
-    )
+    if "Previsão" in df_produto.columns:
+        df_produto["Previsão"] = df_produto["Previsão"].dt.strftime("%d/%m/%Y")
 
-    ordem_datas = sorted(
-        pd.to_datetime(
-            df_produto["Previsão"],
-            format="%d/%m/%Y",
-            errors="coerce"
-        ).dropna().unique()
-    )
+        ordem_datas = sorted(
+            pd.to_datetime(
+                df_produto["Previsão"],
+                format="%d/%m/%Y",
+                errors="coerce"
+            ).dropna().unique()
+        )
 
-    ordem_datas = [
-        pd.to_datetime(d).strftime("%d/%m/%Y")
-        for d in ordem_datas
-    ]
+        ordem_datas = [
+            pd.to_datetime(d).strftime("%d/%m/%Y")
+            for d in ordem_datas
+        ]
+    else:
+        ordem_datas = []
 
     tabela_produto = pd.pivot_table(
         df_produto,
@@ -722,43 +678,44 @@ if mostrar_detalhamento:
 
     df_detalhe = df_final.copy()
 
-    min_det = df_detalhe["Previsão"].min().date()
-    max_det = df_detalhe["Previsão"].max().date()
+    if "Previsão" in df_detalhe.columns and not df_detalhe.empty:
+        min_det = df_detalhe["Previsão"].min().date()
+        max_det = df_detalhe["Previsão"].max().date()
 
-    col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2)
 
-    with col1:
-        detalhe_inicio = st.date_input(
-            "Detalhamento - Data Inicial",
-            value=min_det,
-            key="det_inicio",
-            format="DD/MM/YYYY"
+        with col1:
+            detalhe_inicio = st.date_input(
+                "Detalhamento - Data Inicial",
+                value=min_det,
+                key="det_inicio",
+                format="DD/MM/YYYY"
+            )
+
+        with col2:
+            detalhe_fim = st.date_input(
+                "Detalhamento - Data Final",
+                value=max_det,
+                key="det_fim",
+                format="DD/MM/YYYY"
+            )
+
+        df_detalhe = df_detalhe[
+            (df_detalhe["Previsão"].dt.date >= detalhe_inicio)
+            &
+            (df_detalhe["Previsão"].dt.date <= detalhe_fim)
+        ]
+
+        df_detalhe["Previsão"] = df_detalhe["Previsão"].dt.strftime("%d/%m/%Y")
+
+        st.dataframe(
+            df_detalhe,
+            use_container_width=True,
+            height=500
         )
+    else:
+        st.warning("Nenhuma coluna 'Previsão' disponível para detalhamento.")
 
-    with col2:
-        detalhe_fim = st.date_input(
-            "Detalhamento - Data Final",
-            value=max_det,
-            key="det_fim",
-            format="DD/MM/YYYY"
-        )
-
-    df_detalhe = df_detalhe[
-        (df_detalhe["Previsão"].dt.date >= detalhe_inicio)
-        &
-        (df_detalhe["Previsão"].dt.date <= detalhe_fim)
-    ]
-
-    if "Previsão" in df_detalhe.columns:
-        df_detalhe["Previsão"] = (
-            df_detalhe["Previsão"].dt.strftime("%d/%m/%Y")
-        )
-
-    st.dataframe(
-        df_detalhe,
-        use_container_width=True,
-        height=500
-    )
 
 # ===================================
 # BASE COMPLETA
