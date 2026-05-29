@@ -313,11 +313,17 @@ df_filtrado = df.copy()
 # PREPARA LISTAS DE MANUAIS
 # ===================================
 
-pedidos_manuais = filtros.get("pedidos_manuais", [])
-pedidos_manuais = [str(p).strip() for p in pedidos_manuais if p]
+pedidos_manuais = st.sidebar.multiselect(
+    "Selecionar pedidos manuais",
+    sorted(df_base["Pedido"].dropna().astype(str).unique()) if "Pedido" in df_base.columns else [],
+    default=filtros.get("pedidos_manuais", [])
+)
 
-rotas_manuais = filtros.get("rotas_manuais", [])
-rotas_manuais = [str(r).strip() for r in rotas_manuais if r]
+rotas_manuais = st.sidebar.multiselect(
+    "Selecionar rotas manuais",
+    sorted(df_base["Rota"].dropna().astype(str).unique()) if "Rota" in df_base.columns else [],
+    default=filtros.get("rotas_manuais", [])
+)
 
 # ===================================
 # PEDIDOS MANUAIS
@@ -325,36 +331,21 @@ rotas_manuais = [str(r).strip() for r in rotas_manuais if r]
 
 df_final = df_filtrado.copy()
 
-# Se NÃO houver programação de carga selecionada,
-# restringe apenas aos pedidos/rotas manuais escolhidos
 if not pcs_sel:
     df_final = pd.DataFrame()  # começa vazio
 
-    if pedidos_manuais and "Pedido" in df_base.columns:
-        df_final = pd.concat(
-            [df_final, df_base[df_base["Pedido"].isin(pedidos_manuais)]],
-            ignore_index=True
-        ).drop_duplicates()
-else:
-    # Se houver programação de carga, acrescenta os manuais ao filtrado
-    if pedidos_manuais and "Pedido" in df_base.columns:
-        df_extra = df_base[df_base["Pedido"].isin(pedidos_manuais)]
-        df_final = pd.concat([df_final, df_extra], ignore_index=True).drop_duplicates()
+if pedidos_manuais and "Pedido" in df_base.columns:
+    df_extra = df_base[df_base["Pedido"].isin(pedidos_manuais)]
+    df_final = pd.concat([df_final, df_extra], ignore_index=True).drop_duplicates()
 
 # ===================================
 # ROTAS MANUAIS
 # ===================================
 
-if not pcs_sel:
-    if rotas_manuais and "Rota" in df_base.columns:
-        df_final = pd.concat(
-            [df_final, df_base[df_base["Rota"].isin(rotas_manuais)]],
-            ignore_index=True
-        ).drop_duplicates()
-else:
-    if rotas_manuais and "Rota" in df_base.columns:
-        df_extra_rotas = df_base[df_base["Rota"].isin(rotas_manuais)]
-        df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True).drop_duplicates()
+if rotas_manuais and "Rota" in df_base.columns:
+    df_extra_rotas = df_base[df_base["Rota"].isin(rotas_manuais)]
+    df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True).drop_duplicates()
+
 
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS
@@ -486,10 +477,9 @@ if mostrar_rota:
 
     df_rota = df_final.copy()
 
-    df_rota["Previsão"] = (
-        df_rota["Previsão"]
-        .dt.strftime("%d/%m/%Y")
-    )
+   if "Previsão" in df_rota.columns:
+    df_rota["Previsão"] = df_rota["Previsão"].dt.strftime("%d/%m/%Y")
+
 
     ordem_datas = sorted(
         pd.to_datetime(
