@@ -307,46 +307,62 @@ df_filtrado = df.copy()
 df_final = df_filtrado.copy()
 
 # ===================================
-# SIDEBAR - PEDIDOS MANUAIS
+# PEDIDOS MANUAIS
 # ===================================
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📌 Pedidos manuais")
 
-lista_pedidos = sorted(
-    df_base["Pedido"].dropna().astype(str).unique()
-) if "Pedido" in df_base.columns else []
+lista_pedidos = (
+    sorted(df_base["Pedido"].dropna().astype(str).unique())
+    if "Pedido" in df_base.columns else []
+)
 
 pedidos_manuais = st.sidebar.multiselect(
     "Selecionar pedidos manuais",
     lista_pedidos,
-    default=filtros.get("pedidos_manuais", [])
+    default=[
+        p for p in filtros.get("pedidos_manuais", [])
+        if p in lista_pedidos
+    ]
 )
 
-if pedidos_manuais:
-    df_extra = df_base[df_base["Pedido"].isin(pedidos_manuais)]
-    df_final = pd.concat([df_final, df_extra], ignore_index=True).drop_duplicates()
-
 # ===================================
-# SIDEBAR - ROTAS MANUAIS
+# ROTAS MANUAIS
 # ===================================
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("🚚 Rotas manuais")
 
-lista_rotas = sorted(
-    df_base["Rota"].dropna().astype(str).unique()
-) if "Rota" in df_base.columns else []
+lista_rotas = (
+    sorted(df_base["Rota"].dropna().astype(str).unique())
+    if "Rota" in df_base.columns else []
+)
 
 rotas_manuais = st.sidebar.multiselect(
     "Selecionar rotas manuais",
     lista_rotas,
-    default=filtros.get("rotas_manuais", [])
+    default=[
+        r for r in filtros.get("rotas_manuais", [])
+        if r in lista_rotas
+    ]
 )
 
-if rotas_manuais:
-    df_extra_rotas = df_base[df_base["Rota"].isin(rotas_manuais)]
-    df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True).drop_duplicates()
+# ===================================
+# APLICAÇÃO DOS MANUAIS
+# ===================================
+
+df_final = df_filtrado.copy()
+
+if pedidos_manuais and "Pedido" in df_base.columns:
+    df_extra = df_base[df_base["Pedido"].astype(str).isin(pedidos_manuais)]
+    df_final = pd.concat([df_final, df_extra], ignore_index=True)
+
+if rotas_manuais and "Rota" in df_base.columns:
+    df_extra_rotas = df_base[df_base["Rota"].astype(str).isin(rotas_manuais)]
+    df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True)
+
+df_final = df_final.drop_duplicates()
 
 # ===================================
 # INDICADORES
