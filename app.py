@@ -213,16 +213,17 @@ if "Previsão" in df.columns:
         format="DD/MM/YYYY"
     )
 
-    # FILTRO
-    df = df[
-        (
-            df["Previsão"].dt.date >= start_date
-        )
-        &
-        (
-            df["Previsão"].dt.date <= end_date
-        )
-    ]
+   start_date = st.sidebar.date_input(
+    "Data inicial",
+    value=start_default,
+    format="DD/MM/YYYY"
+)
+
+end_date = st.sidebar.date_input(
+    "Data final",
+    value=end_default,
+    format="DD/MM/YYYY"
+)
 # ===================================
 # ROTA
 # ===================================
