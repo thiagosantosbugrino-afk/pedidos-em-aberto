@@ -200,20 +200,8 @@ if "Previsão" in df.columns:
         start_default = min_data
         end_default = max_data
 
-    # SIDEBAR
-    start_date = st.sidebar.date_input(
-        "Data inicial",
-        value=start_default,
-        format="DD/MM/YYYY"
-    )
-
-    end_date = st.sidebar.date_input(
-        "Data final",
-        value=end_default,
-        format="DD/MM/YYYY"
-    )
-
-   start_date = st.sidebar.date_input(
+   # SIDEBAR
+start_date = st.sidebar.date_input(
     "Data inicial",
     value=start_default,
     format="DD/MM/YYYY"
