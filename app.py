@@ -441,6 +441,10 @@ tem_filtros_normais = (
     bool(rotas_sel)
     or bool(produtos_sel)
     or bool(pcs_sel)
+    or (
+        start_date != min_data
+        or end_date != max_data
+    )
 )
 
 tem_manuis = (
@@ -454,7 +458,7 @@ tem_manuis = (
 
 if not tem_filtros_normais and not tem_manuis:
 
-    df_final = df_base.copy()
+   df_final = df.copy()
 
 # CASO 2:
 # TEM FILTROS NORMAIS
