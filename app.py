@@ -300,12 +300,16 @@ if "PC" in df.columns:
 # PEDIDOS MANUAIS
 # ===================================
 
+# usa a base completa para permitir buscar fora dos filtros
+df_base = pd.read_excel("dados.xlsx")
+df_base.columns = df_base.columns.astype(str).str.strip()
+
 pedidos_manuais = filtros.get("pedidos_manuais", [])
 pedidos_manuais = [str(p).strip() for p in pedidos_manuais if p]
 
-if pedidos_manuais and "Pedido" in df.columns:
-    df_extra = df[df["Pedido"].isin(pedidos_manuais)]
-    df = pd.concat([df_extra], ignore_index=True).drop_duplicates()
+if pedidos_manuais and "Pedido" in df_base.columns:
+    df_extra = df_base[df_base["Pedido"].isin(pedidos_manuais)]
+    df = pd.concat([df, df_extra], ignore_index=True).drop_duplicates()
 
 # ===================================
 # ROTAS MANUAIS
@@ -314,9 +318,9 @@ if pedidos_manuais and "Pedido" in df.columns:
 rotas_manuais = filtros.get("rotas_manuais", [])
 rotas_manuais = [str(r).strip() for r in rotas_manuais if r]
 
-if rotas_manuais and "Rota" in df.columns:
-    df_extra_rotas = df[df["Rota"].isin(rotas_manuais)]
-    df = pd.concat([df_extra_rotas], ignore_index=True).drop_duplicates()
+if rotas_manuais and "Rota" in df_base.columns:
+    df_extra_rotas = df_base[df_base["Rota"].isin(rotas_manuais)]
+    df = pd.concat([df, df_extra_rotas], ignore_index=True).drop_duplicates()
 
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS
