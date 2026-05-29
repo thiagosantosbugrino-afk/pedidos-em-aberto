@@ -174,6 +174,10 @@ st.sidebar.title("Filtros")
 
 if "Previsão" in df.columns:
 
+    # REMOVE DATAS INVÁLIDAS
+    df = df[df["Previsão"].notna()]
+    df_base = df_base[df_base["Previsão"].notna()]
+
     min_data = df["Previsão"].min().date()
     max_data = df["Previsão"].max().date()
 
@@ -188,30 +192,35 @@ if "Previsão" in df.columns:
             filtros.get("end_date")
         ).date()
 
-        # VALIDA LIMITES
-        if start_default < min_data or start_default > max_data:
-            start_default = min_data
-
-        if end_default < min_data or end_default > max_data:
-            end_default = max_data
-
     except:
 
         start_default = min_data
         end_default = max_data
 
-   # SIDEBAR
-start_date = st.sidebar.date_input(
-    "Data inicial",
-    value=start_default,
-    format="DD/MM/YYYY"
-)
+    # VALIDA LIMITES
+    if start_default < min_data or start_default > max_data:
+        start_default = min_data
 
-end_date = st.sidebar.date_input(
-    "Data final",
-    value=end_default,
-    format="DD/MM/YYYY"
-)
+    if end_default < min_data or end_default > max_data:
+        end_default = max_data
+
+    # SIDEBAR
+    start_date = st.sidebar.date_input(
+        "Data inicial",
+        value=start_default,
+        format="DD/MM/YYYY"
+    )
+
+    end_date = st.sidebar.date_input(
+        "Data final",
+        value=end_default,
+        format="DD/MM/YYYY"
+    )
+
+else:
+
+    start_date = datetime.now().date()
+    end_date = datetime.now().date()
 # ===================================
 # ROTA
 # ===================================
