@@ -55,22 +55,25 @@ tbody tr:last-child {
 # LEITURA PLANILHA
 # ===================================
 
-try:
+df = pd.read_excel(
+    "dados.xlsx",
+    sheet_name=0
+)
 
-    df = pd.read_excel(
-        "dados.xlsx",
-        sheet_name=0
-    )
+df_base = pd.read_excel("dados.xlsx")
+df_base.columns = df_base.columns.astype(str).str.strip()
 
-except FileNotFoundError:
+# ===================================
+# CORREÇÃO GLOBAL (IMPORTANTE)
+# ===================================
 
-    st.error("⚠️ Nenhum arquivo carregado.")
-    st.stop()
-
-except Exception as e:
-
-    st.error(f"Erro ao abrir planilha: {e}")
-    st.stop()
+for base in [df, df_base]:
+    if "Pedido" in base.columns:
+        base["Pedido"] = (
+            pd.to_numeric(base["Pedido"], errors="coerce")
+            .astype("Int64")
+            .astype(str)
+        )
 
 # ===================================
 # LIMPEZA
@@ -82,25 +85,14 @@ df.columns = (
     .str.strip()
 )
 
-# PEDIDO (CORREÇÃO PROFISSIONAL)
-
-if "Pedido" in df.columns:
-    df["Pedido"] = (
-        pd.to_numeric(df["Pedido"], errors="coerce")
-        .astype("Int64")
-        .astype(str)
-    )
-
 # PC
 
 if "PC" in df.columns:
-
     df["PC"] = (
         df["PC"]
         .astype(str)
         .str.replace(".0", "", regex=False)
     )
-
 # DATA
 
 if "Previsão" in df.columns:
