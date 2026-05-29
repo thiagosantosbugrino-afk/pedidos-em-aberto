@@ -330,17 +330,18 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("📌 Pedidos manuais")
 
 lista_pedidos = sorted(
-    df["Pedido"].dropna().astype(str).unique()
-) if "Pedido" in df.columns else []
+    df_base["Pedido"].dropna().astype(str).unique()
+) if "Pedido" in df_base.columns else []
 
 pedidos_manuais = st.sidebar.multiselect(
     "Selecionar pedidos manuais",
     lista_pedidos,
-    default=pedidos_manuais
+    default=filtros.get("pedidos_manuais", [])
 )
 
 if pedidos_manuais:
-    df = df[df["Pedido"].isin(pedidos_manuais)]
+    df_extra = df_base[df_base["Pedido"].isin(pedidos_manuais)]
+    df = pd.concat([df, df_extra], ignore_index=True).drop_duplicates()
 
 # ===================================
 # SIDEBAR - ROTAS MANUAIS
@@ -350,26 +351,19 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("🚚 Rotas manuais")
 
 lista_rotas = sorted(
-    df["Rota"].dropna().astype(str).unique()
-) if "Rota" in df.columns else []
+    df_base["Rota"].dropna().astype(str).unique()
+) if "Rota" in df_base.columns else []
 
 rotas_manuais = st.sidebar.multiselect(
     "Selecionar rotas manuais",
     lista_rotas,
-    default=rotas_manuais
+    default=filtros.get("rotas_manuais", [])
 )
 
 if rotas_manuais:
-    df = df[df["Rota"].isin(rotas_manuais)]
+    df_extra_rotas = df_base[df_base["Rota"].isin(rotas_manuais)]
+    df = pd.concat([df, df_extra_rotas], ignore_index=True).drop_duplicates()
 
-# ===================================
-# SEM DADOS
-# ===================================
-
-if df.empty:
-
-    st.warning("⚠️ Nenhum dado encontrado.")
-    st.stop()
 
 # ===================================
 # INDICADORES
