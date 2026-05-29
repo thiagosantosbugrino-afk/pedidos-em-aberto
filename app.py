@@ -82,14 +82,13 @@ df.columns = (
     .str.strip()
 )
 
-# PEDIDO
+# PEDIDO (CORREÇÃO PROFISSIONAL)
 
 if "Pedido" in df.columns:
-
     df["Pedido"] = (
-        df["Pedido"]
+        pd.to_numeric(df["Pedido"], errors="coerce")
+        .astype("Int64")
         .astype(str)
-        .str.replace(".0", "", regex=False)
     )
 
 # PC
