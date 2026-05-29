@@ -330,7 +330,6 @@ if rotas_manuais and "Rota" in df_base.columns:
     df_extra_rotas = df_base[df_base["Rota"].isin(rotas_manuais)]
     df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True).drop_duplicates()
 
-
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS
 # ===================================
@@ -350,7 +349,7 @@ pedidos_manuais = st.sidebar.multiselect(
 
 if pedidos_manuais:
     df_extra = df_base[df_base["Pedido"].isin(pedidos_manuais)]
-    df = pd.concat([df, df_extra], ignore_index=True).drop_duplicates()
+    df_final = pd.concat([df_final, df_extra], ignore_index=True).drop_duplicates()
 
 # ===================================
 # SIDEBAR - ROTAS MANUAIS
@@ -371,8 +370,7 @@ rotas_manuais = st.sidebar.multiselect(
 
 if rotas_manuais:
     df_extra_rotas = df_base[df_base["Rota"].isin(rotas_manuais)]
-    df = pd.concat([df, df_extra_rotas], ignore_index=True).drop_duplicates()
-
+    df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True).drop_duplicates()
 
 # ===================================
 # INDICADORES
