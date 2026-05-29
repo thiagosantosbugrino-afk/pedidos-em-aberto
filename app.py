@@ -387,12 +387,12 @@ rotas_manuais = st.sidebar.multiselect(
 )
 
 # ===================================
-# ADICIONA PEDIDOS MANUAIS
+# APLICA PEDIDOS MANUAIS
 # ===================================
 
 if pedidos_manuais:
 
-    df_extra_pedidos = df_base[
+    df_pedidos = df_base[
         df_base["Pedido"]
         .astype(str)
         .str.replace(".0", "", regex=False)
@@ -400,18 +400,28 @@ if pedidos_manuais:
         .isin(pedidos_manuais)
     ]
 
+else:
+
+    df_pedidos = pd.DataFrame()
+
+# SOMA AO DF FINAL
+if not df_pedidos.empty:
+
     df = pd.concat(
-        [df, df_extra_pedidos],
+        [df, df_pedidos],
         ignore_index=True
-    ).drop_duplicates()
+    )
+
+# REMOVE DUPLICADOS REAIS
+df = df.drop_duplicates()
 
 # ===================================
-# ADICIONA ROTAS MANUAIS
+# APLICA ROTAS MANUAIS
 # ===================================
 
 if rotas_manuais:
 
-    df_extra_rotas = df_base[
+    df_rotas = df_base[
         df_base["Rota"]
         .astype(str)
         .str.strip()
@@ -422,10 +432,20 @@ if rotas_manuais:
         .isin(rotas_manuais)
     ]
 
+else:
+
+    df_rotas = pd.DataFrame()
+
+# SOMA AO DF FINAL
+if not df_rotas.empty:
+
     df = pd.concat(
-        [df, df_extra_rotas],
+        [df, df_rotas],
         ignore_index=True
-    ).drop_duplicates()
+    )
+
+# REMOVE DUPLICADOS REAIS
+df = df.drop_duplicates()
 # ===================================
 # SEM DADOS
 # ===================================
