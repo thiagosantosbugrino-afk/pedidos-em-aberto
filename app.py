@@ -310,25 +310,35 @@ df_filtrado = df.copy()
 # PEDIDOS MANUAIS
 # ===================================
 
-pedidos_manuais = filtros.get("pedidos_manuais", [])
-pedidos_manuais = [str(p).strip() for p in pedidos_manuais if p]
-
 df_final = df_filtrado.copy()
 
-if pedidos_manuais and "Pedido" in df_base.columns:
-    df_extra = df_base[df_base["Pedido"].isin(pedidos_manuais)]
-    df_final = pd.concat([df_final, df_extra], ignore_index=True).drop_duplicates()
+# Se NÃO houver programação de carga selecionada,
+# restringe apenas aos pedidos/rotas manuais escolhidos
+if not pcs_sel:
+    df_final = pd.DataFrame()  # começa vazio
+
+    if pedidos_manuais and "Pedido" in df_base.columns:
+        df_final = pd.concat([df_final, df_base[df_base["Pedido"].isin(pedidos_manuais)]],
+                             ignore_index=True).drop_duplicates()
+else:
+    # Se houver programação de carga, acrescenta os manuais ao filtrado
+    if pedidos_manuais and "Pedido" in df_base.columns:
+        df_extra = df_base[df_base["Pedido"].isin(pedidos_manuais)]
+        df_final = pd.concat([df_final, df_extra], ignore_index=True).drop_duplicates()
+
 
 # ===================================
 # ROTAS MANUAIS
 # ===================================
 
-rotas_manuais = filtros.get("rotas_manuais", [])
-rotas_manuais = [str(r).strip() for r in rotas_manuais if r]
-
-if rotas_manuais and "Rota" in df_base.columns:
-    df_extra_rotas = df_base[df_base["Rota"].isin(rotas_manuais)]
-    df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True).drop_duplicates()
+if not pcs_sel:
+    if rotas_manuais and "Rota" in df_base.columns:
+        df_final = pd.concat([df_final, df_base[df_base["Rota"].isin(rotas_manuais)]],
+                             ignore_index=True).drop_duplicates()
+else:
+    if rotas_manuais and "Rota" in df_base.columns:
+        df_extra_rotas = df_base[df_base["Rota"].isin(rotas_manuais)]
+        df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True).drop_duplicates()
 
 # ===================================
 # SIDEBAR - PEDIDOS MANUAIS
