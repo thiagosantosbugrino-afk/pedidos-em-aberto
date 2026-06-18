@@ -343,14 +343,35 @@ rotas_manuais = st.sidebar.multiselect(
 # APLICAÇÃO DOS MANUAIS
 # ===================================
 
+# aplica o mesmo filtro de data na base completa
+df_base_filtrada = df_base.copy()
+
+if "Previsão" in df_base_filtrada.columns:
+
+    df_base_filtrada["Previsão"] = pd.to_datetime(
+        df_base_filtrada["Previsão"],
+        errors="coerce",
+        dayfirst=True
+    )
+
+    df_base_filtrada = df_base_filtrada[
+        (df_base_filtrada["Previsão"].dt.date >= start_date)
+        &
+        (df_base_filtrada["Previsão"].dt.date <= end_date)
+    ]
+
 df_final = df_filtrado.copy()
 
-if pedidos_manuais and "Pedido" in df_base.columns:
-    df_extra = df_base[df_base["Pedido"].astype(str).isin(pedidos_manuais)]
+if pedidos_manuais and "Pedido" in df_base_filtrada.columns:
+    df_extra = df_base_filtrada[
+        df_base_filtrada["Pedido"].astype(str).isin(pedidos_manuais)
+    ]
     df_final = pd.concat([df_final, df_extra], ignore_index=True)
 
-if rotas_manuais and "Rota" in df_base.columns:
-    df_extra_rotas = df_base[df_base["Rota"].astype(str).isin(rotas_manuais)]
+if rotas_manuais and "Rota" in df_base_filtrada.columns:
+    df_extra_rotas = df_base_filtrada[
+        df_base_filtrada["Rota"].astype(str).isin(rotas_manuais)
+    ]
     df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True)
 
 df_final = df_final.drop_duplicates()
