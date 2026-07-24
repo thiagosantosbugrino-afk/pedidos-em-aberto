@@ -61,17 +61,32 @@ def encontrar_base_excel(arquivo):
     return None, None, None
 
 # =========================================
-# UPLOAD
+# UPLOAD BASE
 # =========================================
 
-arquivo = st.file_uploader("Importar planilha", type=["xlsx", "xlsm"])
+arquivo = st.file_uploader(
+    "Importar Base de Pedidos",
+    type=["xlsx", "xlsm"],
+    key="base"
+)
 
+# =========================================
+# UPLOAD CONSOLIDADOR
+# =========================================
+
+arquivo_consolidador = st.file_uploader(
+    "Importar Consolidador de Estoque (Opcional)",
+    type=["xlsx", "xlsm"],
+    key="consolidador"
+)
 # =========================================
 # SE ENVIAR NOVA PLANILHA
 # =========================================
 
 if arquivo is not None:
+
     try:
+
         df, aba_encontrada, linha_encontrada = encontrar_base_excel(arquivo)
 
         if df is None:
@@ -85,27 +100,77 @@ if arquivo is not None:
 
         # AJUSTE PEDIDO
         if "Pedido" in df.columns:
-            df["Pedido"] = df["Pedido"].astype(str).str.replace(".0", "", regex=False).str.strip()
+            df["Pedido"] = (
+                df["Pedido"]
+                .astype(str)
+                .str.replace(".0", "", regex=False)
+                .str.strip()
+            )
 
         # AJUSTE PC
         if "PC" in df.columns:
-            df["PC"] = df["PC"].astype(str).str.replace(".0", "", regex=False).str.strip()
+            df["PC"] = (
+                df["PC"]
+                .astype(str)
+                .str.replace(".0", "", regex=False)
+                .str.strip()
+            )
 
-        # TRATAR ROTA EM BRANCO (RETIRA)
+        # TRATAR ROTA EM BRANCO
         if "Rota" in df.columns:
-            df["Rota"] = df["Rota"].astype(str).str.strip().replace(["", "nan", "None"], "RETIRA")
+            df["Rota"] = (
+                df["Rota"]
+                .astype(str)
+                .str.strip()
+                .replace(["", "nan", "None"], "RETIRA")
+            )
 
-        # SALVAR BASE
-        df.to_excel("dados.xlsx", index=False, engine="openpyxl")
+        # SALVA BASE
+        df.to_excel(
+            "dados.xlsx",
+            index=False,
+            engine="openpyxl"
+        )
 
-        # SALVAR DATA UPDATE
+        # DATA DA ATUALIZAÇÃO
         with open("ultima_atualizacao.json", "w") as f:
-            json.dump({"ultima_atualizacao": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}, f)
+            json.dump(
+                {
+                    "ultima_atualizacao": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                },
+                f
+            )
 
-        st.success(f"✅ Base encontrada automaticamente | Aba: {aba_encontrada} | Cabeçalho linha: {linha_encontrada + 1}")
+        st.success(
+            f"✅ Base encontrada automaticamente | Aba: {aba_encontrada} | Cabeçalho linha: {linha_encontrada + 1}"
+        )
+
         st.success("✅ Planilha carregada e salva!")
 
+        # =========================================
+        # CONSOLIDADOR (OPCIONAL)
+        # =========================================
+
+        if arquivo_consolidador is not None:
+
+            try:
+
+                df_consolidador = pd.read_excel(arquivo_consolidador)
+
+                df_consolidador.to_excel(
+                    "consolidador.xlsx",
+                    index=False,
+                    engine="openpyxl"
+                )
+
+                st.success("✅ Consolidador salvo com sucesso!")
+
+            except Exception as e:
+
+                st.error(f"Erro ao salvar Consolidador: {e}")
+
     except Exception as e:
+
         st.error(f"Erro ao ler planilha: {e}")
 
 # =========================================
