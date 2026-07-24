@@ -20,6 +20,7 @@ def codigo_material(texto):
     REF1032102400  -> REF10
     LAM0632102400  -> LAM06
     LAMINC063210X2400  -> LMINC06
+    
     """
 
     if pd.isna(texto):
@@ -27,7 +28,7 @@ def codigo_material(texto):
 
     texto = str(texto).upper().strip()
 
-    if len(texto) < 5:
+    if len(texto) < 6:
         return texto
 
     return texto[:5]
