@@ -399,6 +399,120 @@ if rotas_manuais and "Rota" in df_base_filtrada.columns:
 df_final = df_final.drop_duplicates()
 
 # ===================================
+# VISÃO MATÉRIA-PRIMA
+# ===================================
+
+st.markdown("---")
+
+mostrar_mp = st.checkbox(
+    "🪵 Mostrar Matéria-Prima",
+    value=False
+)
+
+if mostrar_mp:
+
+    if not consolidador_carregado:
+
+        st.warning("⚠️ Nenhum Consolidador foi enviado.")
+
+    else:
+
+        st.subheader("📦 Estoque de Matéria-Prima")
+
+        # -----------------------------
+        # Estoque
+        # -----------------------------
+
+        estoque = (
+            df_consolidador.iloc[:, [1, 18]]
+            .copy()
+        )
+
+        estoque.columns = [
+            "Produto",
+            "Estoque"
+        ]
+
+        estoque["Produto"] = (
+            estoque["Produto"]
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+
+        estoque["Estoque"] = pd.to_numeric(
+            estoque["Estoque"],
+            errors="coerce"
+        ).fillna(0)
+
+        # -----------------------------
+        # Consumo
+        # -----------------------------
+
+        consumo = (
+            df_final[["Produto", "M2 Vendido"]]
+            .copy()
+        )
+
+        consumo["Produto"] = (
+            consumo["Produto"]
+            .astype(str)
+            .str.strip()
+            .str.upper()
+        )
+
+        consumo["M2 Vendido"] = pd.to_numeric(
+            consumo["M2 Vendido"],
+            errors="coerce"
+        ).fillna(0)
+
+        # -----------------------------
+        # Soma consumo
+        # -----------------------------
+
+        consumo = (
+            consumo
+            .groupby("Produto", as_index=False)
+            .sum()
+        )
+
+        consumo.columns = [
+            "Produto",
+            "Consumo"
+        ]
+
+        # -----------------------------
+        # Junta estoque + consumo
+        # -----------------------------
+
+        resumo = estoque.merge(
+            consumo,
+            on="Produto",
+            how="left"
+        )
+
+        resumo["Consumo"] = (
+            resumo["Consumo"]
+            .fillna(0)
+        )
+
+        resumo["Saldo"] = (
+            resumo["Estoque"]
+            -
+            resumo["Consumo"]
+        )
+
+        resumo = resumo.sort_values(
+            "Saldo"
+        )
+
+        st.dataframe(
+            resumo,
+            use_container_width=True,
+            height=600
+        )
+        
+# ===================================
 # INDICADORES
 # ===================================
 
