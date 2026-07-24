@@ -28,10 +28,10 @@ def codigo_material(texto):
 
     texto = str(texto).upper().strip()
 
-    if len(texto) < 7:
+    if len(texto) < 6:
         return texto
 
-    return texto[:6]
+    return texto[:7]
 
 # ===================================
 # CONFIGURAÇÃO
