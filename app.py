@@ -64,6 +64,28 @@ df_base = pd.read_excel("dados.xlsx")
 df_base.columns = df_base.columns.astype(str).str.strip()
 
 # ===================================
+# CARREGA CONSOLIDADOR (OPCIONAL)
+# ===================================
+
+try:
+
+    df_consolidador = pd.read_excel("consolidador.xlsx")
+
+    df_consolidador.columns = (
+        df_consolidador.columns
+        .astype(str)
+        .str.strip()
+    )
+
+    consolidador_carregado = True
+
+except:
+
+    df_consolidador = pd.DataFrame()
+
+    consolidador_carregado = False
+    
+# ===================================
 # CORREÇÃO GLOBAL (IMPORTANTE)
 # ===================================
 
