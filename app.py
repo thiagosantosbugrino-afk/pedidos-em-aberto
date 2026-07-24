@@ -31,7 +31,7 @@ def codigo_material(texto):
     if len(texto) < 7:
         return texto
 
-    return texto[:7]
+    return texto[:6]
 
 # ===================================
 # CONFIGURAÇÃO
