@@ -446,9 +446,9 @@ if mostrar_mp:
 
         st.subheader("📦 Estoque de Matéria-Prima")
 
-        # -----------------------------
-        # Estoque
-        # -----------------------------
+        # =====================================
+        # ESTOQUE
+        # =====================================
 
         estoque = (
             df_consolidador.iloc[:, [1, 18]]
@@ -462,9 +462,7 @@ if mostrar_mp:
 
         estoque["Produto"] = (
             estoque["Produto"]
-            .astype(str)
-            .str.strip()
-            .str.upper()
+            .apply(codigo_material)
         )
 
         estoque["Estoque"] = pd.to_numeric(
@@ -472,9 +470,19 @@ if mostrar_mp:
             errors="coerce"
         ).fillna(0)
 
-        # -----------------------------
-        # Consumo
-        # -----------------------------
+        estoque = (
+            estoque
+            .groupby("Produto", as_index=False)
+            .sum()
+        )
+
+        estoque = estoque[
+            estoque["Estoque"] > 0
+        ]
+
+        # =====================================
+        # CONSUMO
+        # =====================================
 
         consumo = (
             df_final[["Produto", "M2 Vendido"]]
@@ -483,19 +491,13 @@ if mostrar_mp:
 
         consumo["Produto"] = (
             consumo["Produto"]
-            .astype(str)
-            .str.strip()
-            .str.upper()
+            .apply(codigo_material)
         )
 
         consumo["M2 Vendido"] = pd.to_numeric(
             consumo["M2 Vendido"],
             errors="coerce"
         ).fillna(0)
-
-        # -----------------------------
-        # Soma consumo
-        # -----------------------------
 
         consumo = (
             consumo
@@ -508,9 +510,9 @@ if mostrar_mp:
             "Consumo"
         ]
 
-        # -----------------------------
-        # Junta estoque + consumo
-        # -----------------------------
+        # =====================================
+        # RESUMO
+        # =====================================
 
         resumo = estoque.merge(
             consumo,
@@ -518,20 +520,18 @@ if mostrar_mp:
             how="left"
         )
 
-        resumo["Consumo"] = (
-            resumo["Consumo"]
-            .fillna(0)
-        )
+        resumo["Consumo"] = resumo["Consumo"].fillna(0)
 
         resumo["Saldo"] = (
             resumo["Estoque"]
-            -
-            resumo["Consumo"]
+            - resumo["Consumo"]
         )
 
-        resumo = resumo.sort_values(
-            "Saldo"
-        )
+        resumo = resumo[
+            resumo["Estoque"] > 0
+        ]
+
+        resumo = resumo.sort_values("Produto")
 
         st.dataframe(
             resumo,
