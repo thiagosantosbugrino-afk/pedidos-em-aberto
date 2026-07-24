@@ -6,6 +6,33 @@ from io import BytesIO
 from datetime import datetime, timedelta
 
 # ===================================
+# FUNÇÃO IDENTIFICADOR DO MATERIAL
+# ===================================
+
+def codigo_material(texto):
+    """
+    Retorna o código do material.
+
+    Exemplos:
+
+    INC0832102400  -> INC08
+    INC0860003210  -> INC08
+    REF1032102400  -> REF10
+    LAM0632102400  -> LAM06
+    LAMINC063210X2400  -> LMINC06
+    """
+
+    if pd.isna(texto):
+        return None
+
+    texto = str(texto).upper().strip()
+
+    if len(texto) < 5:
+        return texto
+
+    return texto[:5]
+
+# ===================================
 # CONFIGURAÇÃO
 # ===================================
 
