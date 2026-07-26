@@ -555,7 +555,9 @@ resumo = estoque.merge(
 
 # Materiais que só existem nas vendas ficam sem descrição.
 # Usa o próprio código até criarmos a Tabela Mestre.
-resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
+resumo["Descricao"] = resumo["Descricao"].fillna(
+    resumo["Codigo"]
+)
 
 # Valores nulos
 resumo["Estoque"] = (
@@ -580,6 +582,32 @@ resumo["Saldo"] = (
     - resumo["Consumo"]
 )
 
+# =====================================
+# JUNTA A DATA DE ESGOTAMENTO
+# =====================================
+
+resumo = resumo.merge(
+    esgotamento,
+    on="Codigo",
+    how="left"
+)
+
+# Formata a data
+resumo["Data Esgotamento"] = pd.to_datetime(
+    resumo["Data Esgotamento"],
+    errors="coerce"
+)
+
+resumo["Data Esgotamento"] = (
+    resumo["Data Esgotamento"]
+    .dt.strftime("%d/%m/%Y")
+)
+
+resumo["Data Esgotamento"] = (
+    resumo["Data Esgotamento"]
+    .fillna("Não esgota")
+)
+
 # Ordenação
 resumo = resumo.sort_values(
     "Descricao"
@@ -592,7 +620,8 @@ resumo = resumo[
         "Descricao",
         "Estoque",
         "Consumo",
-        "Saldo"
+        "Saldo",
+        "Data Esgotamento"
     ]
 ]
 
@@ -602,13 +631,7 @@ st.dataframe(
     use_container_width=True,
     hide_index=True,
     height=650
-)        
-
-mostrar_consumo = st.checkbox(
-    "🔧 Mostrar tabela de cálculo (desenvolvimento)",
-    value=False
 )
-
 # =====================================
 # CONSUMO POR DATA
 # =====================================
