@@ -604,12 +604,14 @@ st.dataframe(
     height=650
 )        
 
+mostrar_consumo = st.checkbox(
+    "🔧 Mostrar tabela de cálculo (desenvolvimento)",
+    value=False
+)
+
 # =====================================
 # CONSUMO POR DATA
 # =====================================
-
-st.markdown("---")
-st.subheader("📅 Consumo Diário da Matéria-Prima")
 
 consumo_data = (
     df_final[
@@ -646,7 +648,7 @@ consumo_data = (
 
 consumo_data = consumo_data.rename(
     columns={
-        "M2 Vendido":"Consumo Dia"
+        "M2 Vendido": "Consumo Dia"
     }
 )
 
@@ -662,19 +664,67 @@ consumo_data["Consumo Acumulado"] = (
     .groupby("Codigo")["Consumo Dia"]
     .cumsum()
 )
-consumo_visual = consumo_data.copy()
 
-consumo_visual["Previsão"] = (
-    consumo_visual["Previsão"]
-    .dt.strftime("%d/%m/%Y")
+# =====================================
+# CÁLCULO DA DATA DE ESGOTAMENTO
+# =====================================
+
+esgotamento = []
+
+for _, material in resumo.iterrows():
+
+    codigo = material["Codigo"]
+    estoque = material["Estoque"]
+
+    dados_material = consumo_data[
+        consumo_data["Codigo"] == codigo
+    ].copy()
+
+    dados_material = dados_material.sort_values("Previsão")
+
+    data_esgotamento = None
+
+    for _, linha in dados_material.iterrows():
+
+        if linha["Consumo Acumulado"] >= estoque:
+
+            data_esgotamento = linha["Previsão"]
+
+            break
+
+    esgotamento.append({
+        "Codigo": codigo,
+        "Data Esgotamento": data_esgotamento
+    })
+
+esgotamento = pd.DataFrame(esgotamento)
+# =====================================
+# TABELA DE APOIO (OCULTA)
+# =====================================
+
+mostrar_consumo = st.checkbox(
+    "🔧 Mostrar tabela de cálculo",
+    value=False
 )
 
-st.dataframe(
-    consumo_visual,
-    use_container_width=True,
-    hide_index=True,
-    height=500
-)
+if mostrar_consumo:
+
+    consumo_visual = consumo_data.copy()
+
+    consumo_visual["Previsão"] = (
+        consumo_visual["Previsão"]
+        .dt.strftime("%d/%m/%Y")
+    )
+
+    st.markdown("---")
+    st.subheader("📅 Consumo Diário da Matéria-Prima")
+
+    st.dataframe(
+        consumo_visual,
+        use_container_width=True,
+        hide_index=True,
+        height=500
+    )
 # ===================================
 # INDICADORES
 # ===================================
