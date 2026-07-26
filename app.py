@@ -542,7 +542,7 @@ if mostrar_mp:
             .sum()
         )
 
-        # =====================================
+# =====================================
 # RESUMO
 # =====================================
 
@@ -689,7 +689,6 @@ for _, material in resumo.iterrows():
         if linha["Consumo Acumulado"] >= estoque:
 
             data_esgotamento = linha["Previsão"]
-
             break
 
     esgotamento.append({
@@ -698,12 +697,13 @@ for _, material in resumo.iterrows():
     })
 
 esgotamento = pd.DataFrame(esgotamento)
+
 # =====================================
-# TABELA DE APOIO (OCULTA)
+# TABELAS DE APOIO (OCULTAS)
 # =====================================
 
 mostrar_consumo = st.checkbox(
-    "🔧 Mostrar tabela de cálculo",
+    "🔧 Mostrar tabelas de cálculo",
     value=False
 )
 
@@ -716,6 +716,18 @@ if mostrar_consumo:
         .dt.strftime("%d/%m/%Y")
     )
 
+    esgotamento_visual = esgotamento.copy()
+
+    if not esgotamento_visual.empty:
+
+        esgotamento_visual["Data Esgotamento"] = (
+            pd.to_datetime(
+                esgotamento_visual["Data Esgotamento"]
+            )
+            .dt.strftime("%d/%m/%Y")
+            .fillna("Não esgota")
+        )
+
     st.markdown("---")
     st.subheader("📅 Consumo Diário da Matéria-Prima")
 
@@ -723,8 +735,17 @@ if mostrar_consumo:
         consumo_visual,
         use_container_width=True,
         hide_index=True,
-        height=500
+        height=450
     )
+
+    st.subheader("📅 Previsão de Esgotamento")
+
+    st.dataframe(
+        esgotamento_visual,
+        use_container_width=True,
+        hide_index=True
+    )
+    
 # ===================================
 # INDICADORES
 # ===================================
