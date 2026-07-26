@@ -543,46 +543,66 @@ if mostrar_mp:
         )
 
         # =====================================
-        # RESUMO
-        # =====================================
+# RESUMO
+# =====================================
 
-        resumo = estoque.merge(
-            consumo,
-            on="Codigo",
-            how="left"
-        )
+# Junta estoque e consumo trazendo TODOS os materiais
+resumo = estoque.merge(
+    consumo,
+    on="Codigo",
+    how="outer"
+)
 
-        resumo["Consumo"] = (
-            resumo["Consumo"]
-            .fillna(0)
-        )
+# Materiais que só existem nas vendas ficam sem descrição.
+# Usa o próprio código até criarmos a Tabela Mestre.
+resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
 
-        resumo["Saldo"] = (
-            resumo["Estoque"]
-            - resumo["Consumo"]
-        )
+# Valores nulos
+resumo["Estoque"] = (
+    pd.to_numeric(
+        resumo["Estoque"],
+        errors="coerce"
+    )
+    .fillna(0)
+)
 
-        resumo = resumo.sort_values(
-            "Descricao"
-        )
+resumo["Consumo"] = (
+    pd.to_numeric(
+        resumo["Consumo"],
+        errors="coerce"
+    )
+    .fillna(0)
+)
 
-        resumo = resumo[
-            [
-                "Codigo",
-                "Descricao",
-                "Estoque",
-                "Consumo",
-                "Saldo"
-            ]
-        ]
+# Saldo
+resumo["Saldo"] = (
+    resumo["Estoque"]
+    - resumo["Consumo"]
+)
 
-        st.dataframe(
-            resumo,
-            use_container_width=True,
-            hide_index=True,
-            height=600
-        )
-        
+# Ordenação
+resumo = resumo.sort_values(
+    "Descricao"
+)
+
+# Colunas
+resumo = resumo[
+    [
+        "Codigo",
+        "Descricao",
+        "Estoque",
+        "Consumo",
+        "Saldo"
+    ]
+]
+
+# Exibição
+st.dataframe(
+    resumo,
+    use_container_width=True,
+    hide_index=True,
+    height=650
+)        
 # ===================================
 # INDICADORES
 # ===================================
