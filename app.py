@@ -9,18 +9,17 @@ from datetime import datetime, timedelta
 # FUNÇÃO IDENTIFICADOR DO MATERIAL
 # ===================================
 
+import re
+
 def codigo_material(texto):
     """
     Retorna o código do material.
 
     Exemplos:
 
-    INC0832102400  -> INC08
-    INC0860003210  -> INC08
-    REF1032102400  -> REF10
-    LAM0632102400  -> LAM06
-    LAMINC063210X2400  -> LMINC06
-    
+    INC0832102400 -> INC08
+    REF1032102400 -> REF10
+    LAM0632102400 -> LAM06
     """
 
     if pd.isna(texto):
@@ -28,10 +27,39 @@ def codigo_material(texto):
 
     texto = str(texto).upper().strip()
 
-    if len(texto) < 6:
-        return texto
+    # Procura 3 letras + 2 dígitos
+    resultado = re.match(r"([A-Z]{3}\d{2})", texto)
 
-    return texto[:7]
+    if resultado:
+        return resultado.group(1)
+
+    return texto[:5]
+
+def descricao_material(texto):
+    """
+    Converte a descrição do consolidador em um nome amigável.
+    """
+
+    if pd.isna(texto):
+        return ""
+
+    texto = str(texto).upper().strip()
+
+    # Remove a palavra CHAPARIA
+    texto = texto.replace("CHAPARIA", "")
+
+    # Remove medidas da chapa (3600 x 1900, 3210 x 2400, etc.)
+    texto = re.sub(r"\d{4}\s*[Xx]\s*\d{4}", "", texto)
+
+    # Remove espaços extras
+    texto = re.sub(r"\s+", " ", texto).strip()
+
+    # Padroniza espessura
+    texto = re.sub(r"\b0(\d)\s*MM\b", r"\1 mm", texto)
+
+    texto = texto.title()
+
+    return texto
 
 # ===================================
 # CONFIGURAÇÃO
@@ -451,31 +479,38 @@ if mostrar_mp:
         # ESTOQUE
         # =====================================
 
-        estoque = (
-            df_consolidador.iloc[:, [1, 18]]
-            .copy()
-        )
+       estoque = (
+    df_consolidador.iloc[:, [1, 2, 18]]
+    .copy()
+)
 
-        estoque.columns = [
-            "Produto",
-            "Estoque"
-        ]
+estoque.columns = [
+    "Codigo",
+    "Descricao",
+    "Estoque"
+]
+        estoque["Codigo"] = (
+    estoque["Codigo"]
+    .apply(codigo_material)
+)
 
-        estoque["Produto"] = (
-            estoque["Produto"]
-            .apply(codigo_material)
-        )
-
+estoque["Descricao"] = (
+    estoque["Descricao"]
+    .apply(descricao_material)
+)
         estoque["Estoque"] = pd.to_numeric(
             estoque["Estoque"],
             errors="coerce"
         ).fillna(0)
 
-        estoque = (
-            estoque
-            .groupby("Produto", as_index=False)
-            .sum()
-        )
+       estoque = (
+    estoque
+    .groupby(
+        ["Codigo", "Descricao"],
+        as_index=False
+    )["Estoque"]
+    .sum()
+)
 
         estoque = estoque[
             estoque["Estoque"] > 0
