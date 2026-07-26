@@ -453,7 +453,6 @@ if rotas_manuais and "Rota" in df_base_filtrada.columns:
     df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True)
 
 df_final = df_final.drop_duplicates()
-
 # ===================================
 # VISÃO MATÉRIA-PRIMA
 # ===================================
@@ -479,38 +478,40 @@ if mostrar_mp:
         # ESTOQUE
         # =====================================
 
-       estoque = (
-    df_consolidador.iloc[:, [1, 2, 18]]
-    .copy()
-)
+        estoque = (
+            df_consolidador.iloc[:, [1, 2, 18]]
+            .copy()
+        )
 
-estoque.columns = [
-    "Codigo",
-    "Descricao",
-    "Estoque"
-]
+        estoque.columns = [
+            "Codigo",
+            "Descricao",
+            "Estoque"
+        ]
+
         estoque["Codigo"] = (
-    estoque["Codigo"]
-    .apply(codigo_material)
-)
+            estoque["Codigo"]
+            .apply(codigo_material)
+        )
 
-estoque["Descricao"] = (
-    estoque["Descricao"]
-    .apply(descricao_material)
-)
+        estoque["Descricao"] = (
+            estoque["Descricao"]
+            .apply(descricao_material)
+        )
+
         estoque["Estoque"] = pd.to_numeric(
             estoque["Estoque"],
             errors="coerce"
         ).fillna(0)
 
-       estoque = (
-    estoque
-    .groupby(
-        ["Codigo", "Descricao"],
-        as_index=False
-    )["Estoque"]
-    .sum()
-)
+        estoque = (
+            estoque
+            .groupby(
+                ["Codigo", "Descricao"],
+                as_index=False
+            )["Estoque"]
+            .sum()
+        )
 
         estoque = estoque[
             estoque["Estoque"] > 0
@@ -525,26 +526,21 @@ estoque["Descricao"] = (
             .copy()
         )
 
-        consumo["Produto"] = (
+        consumo["Codigo"] = (
             consumo["Produto"]
             .apply(codigo_material)
         )
 
-        consumo["M2 Vendido"] = pd.to_numeric(
+        consumo["Consumo"] = pd.to_numeric(
             consumo["M2 Vendido"],
             errors="coerce"
         ).fillna(0)
 
         consumo = (
             consumo
-            .groupby("Produto", as_index=False)
+            .groupby("Codigo", as_index=False)["Consumo"]
             .sum()
         )
-
-        consumo.columns = [
-            "Produto",
-            "Consumo"
-        ]
 
         # =====================================
         # RESUMO
@@ -552,26 +548,38 @@ estoque["Descricao"] = (
 
         resumo = estoque.merge(
             consumo,
-            on="Produto",
+            on="Codigo",
             how="left"
         )
 
-        resumo["Consumo"] = resumo["Consumo"].fillna(0)
+        resumo["Consumo"] = (
+            resumo["Consumo"]
+            .fillna(0)
+        )
 
         resumo["Saldo"] = (
             resumo["Estoque"]
             - resumo["Consumo"]
         )
 
-        resumo = resumo[
-            resumo["Estoque"] > 0
-        ]
+        resumo = resumo.sort_values(
+            "Descricao"
+        )
 
-        resumo = resumo.sort_values("Produto")
+        resumo = resumo[
+            [
+                "Codigo",
+                "Descricao",
+                "Estoque",
+                "Consumo",
+                "Saldo"
+            ]
+        ]
 
         st.dataframe(
             resumo,
             use_container_width=True,
+            hide_index=True,
             height=600
         )
         
