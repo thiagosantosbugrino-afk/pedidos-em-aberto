@@ -657,11 +657,23 @@ consumo_data = consumo_data.sort_values(
     ]
 )
 
+consumo_data["Consumo Acumulado"] = (
+    consumo_data
+    .groupby("Codigo")["Consumo Dia"]
+    .cumsum()
+)
+consumo_visual = consumo_data.copy()
+
+consumo_visual["Previsão"] = (
+    consumo_visual["Previsão"]
+    .dt.strftime("%d/%m/%Y")
+)
+
 st.dataframe(
-    consumo_data,
+    consumo_visual,
     use_container_width=True,
     hide_index=True,
-    height=450
+    height=500
 )
 # ===================================
 # INDICADORES
