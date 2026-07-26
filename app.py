@@ -57,7 +57,7 @@ def descricao_material(texto):
     # Padroniza espessura
     texto = re.sub(r"\b0(\d)\s*MM\b", r"\1 mm", texto)
 
-    texto = texto.title()
+    texto = texto.upper()
 
     return texto
 
