@@ -603,6 +603,66 @@ st.dataframe(
     hide_index=True,
     height=650
 )        
+
+# =====================================
+# CONSUMO POR DATA
+# =====================================
+
+st.markdown("---")
+st.subheader("📅 Consumo Diário da Matéria-Prima")
+
+consumo_data = (
+    df_final[
+        [
+            "Previsão",
+            "Produto",
+            "M2 Vendido"
+        ]
+    ]
+    .copy()
+)
+
+consumo_data["Codigo"] = (
+    consumo_data["Produto"]
+    .apply(codigo_material)
+)
+
+consumo_data["M2 Vendido"] = pd.to_numeric(
+    consumo_data["M2 Vendido"],
+    errors="coerce"
+).fillna(0)
+
+consumo_data = (
+    consumo_data
+    .groupby(
+        [
+            "Previsão",
+            "Codigo"
+        ],
+        as_index=False
+    )["M2 Vendido"]
+    .sum()
+)
+
+consumo_data = consumo_data.rename(
+    columns={
+        "M2 Vendido":"Consumo Dia"
+    }
+)
+
+consumo_data = consumo_data.sort_values(
+    [
+        "Codigo",
+        "Previsão"
+    ]
+)
+
+st.dataframe(
+    consumo_data,
+    use_container_width=True,
+    hide_index=True,
+    height=450
+)
 # ===================================
 # INDICADORES
 # ===================================
