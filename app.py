@@ -531,7 +531,7 @@ if mostrar_mp:
             .sum()
         )
 
-        # =====================================
+# =====================================
 # CONSUMO POR DATA
 # =====================================
 
@@ -619,13 +619,14 @@ for _, linha in resumo.iterrows():
 resumo["Produz até"] = produz_ate
 resumo["Primeira Falta"] = primeira_falta
 
-        # =====================================
-        # COMPRA NECESSÁRIA
-        # =====================================
+# =====================================
+# COMPRA NECESSÁRIA
+# =====================================
 
-        resumo["Compra Necessária"] = resumo["Saldo"].apply(
-            lambda x: abs(x) if x < 0 else 0
-        )
+# Cria coluna indicando necessidade de compra
+resumo["Compra Necessária"] = resumo["Saldo"].apply(
+    lambda x: "Sim" if x < 0 else "Não"
+)
 
         # =====================================
         # STATUS
