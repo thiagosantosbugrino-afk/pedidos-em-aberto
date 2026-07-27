@@ -672,13 +672,39 @@ resumo = resumo.merge(
     how="left"
 )
 
-resumo["Data Esgotamento"] = pd.to_datetime(
+# Mantém uma cópia da data para fazer os cálculos
+resumo["DataEsgotamentoCalc"] = pd.to_datetime(
     resumo["Data Esgotamento"],
     errors="coerce"
 )
 
+# =====================================
+# DIAS RESTANTES
+# =====================================
+
+hoje = pd.Timestamp.today().normalize()
+
+resumo["Dias Restantes"] = (
+    resumo["DataEsgotamentoCalc"] - hoje
+).dt.days
+
+resumo["Dias Restantes"] = (
+    resumo["Dias Restantes"]
+    .fillna(9999)
+    .astype(int)
+)
+
+resumo["Dias Restantes"] = resumo["Dias Restantes"].replace(
+    9999,
+    "Não esgota"
+)
+
+# =====================================
+# FORMATA DATA
+# =====================================
+
 resumo["Data Esgotamento"] = (
-    resumo["Data Esgotamento"]
+    resumo["DataEsgotamentoCalc"]
     .dt.strftime("%d/%m/%Y")
 )
 
@@ -686,6 +712,9 @@ resumo["Data Esgotamento"] = (
     resumo["Data Esgotamento"]
     .fillna("Não esgota")
 )
+
+# Remove coluna auxiliar
+resumo = resumo.drop(columns="DataEsgotamentoCalc")
 
 resumo = resumo.sort_values(
     "Descricao"
@@ -698,7 +727,8 @@ resumo = resumo[
         "Estoque",
         "Consumo",
         "Saldo",
-        "Data Esgotamento"
+        "Data Esgotamento",
+        "Dias Restantes"
     ]
 ]
 
@@ -708,7 +738,6 @@ st.dataframe(
     hide_index=True,
     height=650
 )
-
 # =====================================
 # TABELAS DE APOIO
 # =====================================
