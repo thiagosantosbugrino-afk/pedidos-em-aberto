@@ -623,30 +623,24 @@ resumo["Primeira Falta"] = primeira_falta
 # COMPRA NECESSÁRIA
 # =====================================
 
-# Cria coluna indicando necessidade de compra
 resumo["Compra Necessária"] = resumo["Saldo"].apply(
     lambda x: "Sim" if x < 0 else "Não"
 )
 
-        # =====================================
-        # STATUS
-        # =====================================
+# =====================================
+# STATUS DO MATERIAL
+# =====================================
 
-        def status_material(linha):
+def status_material(linha):
+    if pd.isna(linha["Primeira Falta"]):
+        return "OK"
+    elif linha["Saldo"] <= 0:
+        return "Falta"
+    else:
+        return "Parcial"
 
-            if pd.notna(linha["Primeira Falta"]):
-                return "🔴 Comprar"
+resumo["Status"] = resumo.apply(status_material, axis=1)
 
-            elif linha["Compra Necessária"] > 0:
-                return "🟠 Atenção"
-
-            else:
-                return "🟢 OK"
-
-        resumo["Status"] = resumo.apply(
-            status_material,
-            axis=1
-        )
 
         resumo["Estoque"] = resumo["Estoque"].round(2)
         resumo["Consumo"] = resumo["Consumo"].round(2)
