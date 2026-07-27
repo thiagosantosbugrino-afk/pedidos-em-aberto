@@ -550,7 +550,7 @@ if mostrar_mp:
             .sum()
         )
 
-        # =====================================
+                # =====================================
         # CONSUMO POR DATA
         # =====================================
 
@@ -563,7 +563,7 @@ if mostrar_mp:
                     "Cliente",
                     "PC",
                     "Rota",
-                    "M2 Vendido"
+                    "M2 Vendido",
                 ]
             ]
             .copy()
@@ -577,15 +577,15 @@ if mostrar_mp:
         consumo_data["Consumo Dia"] = (
             pd.to_numeric(
                 consumo_data["M2 Vendido"],
-                errors="coerce"
+                errors="coerce",
             )
             .fillna(0)
         )
 
-            consumo_data = consumo_data.sort_values(
+        consumo_data = consumo_data.sort_values(
             [
                 "Codigo",
-                "Previsão"
+                "Previsão",
             ]
         )
 
@@ -597,7 +597,7 @@ if mostrar_mp:
             estoque,
             consumo,
             on="Codigo",
-            how="outer"
+            how="outer",
         )
 
         resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
