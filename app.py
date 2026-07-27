@@ -456,44 +456,30 @@ if mostrar_mp:
 
         st.subheader("📦 Estoque de Matéria-Prima")
 
-        # =====================================
-        # ESTOQUE
-        # =====================================
+# =====================================
+# ESTOQUE
+# =====================================
 
-        estoque = (
-            df_consolidador.iloc[:, [1, 2, 18]]
-            .copy()
-        )
+estoque = (
+    df_consolidador.iloc[:, [1, 2, 18]]
+    .copy()
+)
 
-        estoque.columns = [
-            "Codigo",
-            "Descricao",
-            "Estoque"
-        ]
+estoque.columns = ["Codigo", "Descricao", "Estoque"]
 
-        estoque["Codigo"] = estoque["Codigo"].apply(codigo_material)
+estoque["Codigo"] = estoque["Codigo"].apply(codigo_material)
 
-        estoque["Descricao"] = (
-            estoque["Descricao"]
-            .apply(descricao_material)
-        )
+# Se quiser apenas padronizar a descrição, use:
+estoque["Descricao"] = estoque["Descricao"].astype(str).str.strip()
 
-        estoque["Estoque"] = (
-            pd.to_numeric(
-                estoque["Estoque"],
-                errors="coerce"
-            )
-            .fillna(0)
-        )
+estoque["Estoque"] = (
+    pd.to_numeric(estoque["Estoque"], errors="coerce").fillna(0)
+)
 
-        estoque = (
-            estoque
-            .groupby(
-                ["Codigo", "Descricao"],
-                as_index=False
-            )["Estoque"]
-            .sum()
-        )
+estoque = (
+    estoque.groupby(["Codigo", "Descricao"], as_index=False)["Estoque"].sum()
+)
+
 
         # =====================================
         # CONSUMO
@@ -625,7 +611,6 @@ def status_material(linha):
         return "Parcial"
 
 resumo["Status"] = resumo.apply(status_material, axis=1)
-
 
 # =====================================
 # AJUSTES FINAIS
