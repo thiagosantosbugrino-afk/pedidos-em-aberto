@@ -582,13 +582,14 @@ if mostrar_mp:
             .fillna(0)
         )
 
-        consumo_data = consumo_data.sort_values(
-            [
-                "Codigo",
-                "Previsão"
-            ]
-        )
-                # =====================================
+      consumo_data = consumo_data.sort_values(
+    [
+        "Codigo",
+        "Previsão"
+    ]
+)
+
+        # =====================================
         # RESUMO
         # =====================================
 
@@ -683,146 +684,7 @@ if mostrar_mp:
         resumo["Consumo"] = resumo["Consumo"].round(2)
         resumo["Saldo"] = resumo["Saldo"].round(2)
         resumo["Compra Necessária"] = resumo["Compra Necessária"].round(2)
-        # =====================================
-        # INDICADORES
-        # =====================================
 
-        col1, col2, col3, col4, col5 = st.columns(5)
-
-        col1.metric(
-            "📦 Materiais",
-            len(resumo)
-        )
-
-        col2.metric(
-            "🔴 Comprar",
-            (resumo["Necessidade Compra"] > 0).sum()
-        )
-
-        col3.metric(
-            "📐 Total Comprar (m²)",
-            f'{resumo["Necessidade Compra"].sum():,.2f}'
-        )
-
-        col4.metric(
-            "⚠️ Esgotam em 30 dias",
-            (resumo["Dias Restantes"] <= 30).sum()
-        )
-
-        col5.metric(
-            "🟢 OK",
-            (resumo["Dias Restantes"] > 30).sum()
-        )
-
-        # =====================================
-        # FORMATAÇÃO
-        # =====================================
-
-        resumo["Estoque"] = resumo["Estoque"].round(2)
-        resumo["Consumo"] = resumo["Consumo"].round(2)
-        resumo["Saldo"] = resumo["Saldo"].round(2)
-        resumo["Necessidade Compra"] = resumo["Necessidade Compra"].round(2)
-
-        resumo = resumo[
-    [
-        "Codigo",
-        "Descricao",
-        "Estoque",
-        "Consumo",
-        "Saldo",
-        "Produz até",
-        "Primeira Falta",
-        "Compra Necessária",
-        "Status",
-    ]
-]
-
-        resumo = resumo.sort_values(
-            by=[
-                "Necessidade Compra",
-                "Dias Restantes",
-            ],
-            ascending=[False, True]
-        )
-
-        st.dataframe(
-            resumo,
-            use_container_width=True,
-            hide_index=True,
-            height=650
-        )
-st.dataframe(
-    resumo,
-    use_container_width=True,
-    hide_index=True,
-    height=650
-)
-
-st.markdown("---")
-st.subheader("🔍 Detalhar Material")
-
-material = st.selectbox(
-    "Selecione o material",
-    sorted(resumo["Codigo"].unique())
-)
-        # =====================================
-        # TABELAS DE APOIO
-        # =====================================
-
-        mostrar_consumo = st.checkbox(
-            "🔧 Mostrar tabelas de cálculo",
-            value=False
-        )
-
-        if mostrar_consumo:
-
-            st.markdown("### Consumo por Data")
-
-            st.dataframe(
-                consumo_data,
-                use_container_width=True,
-                hide_index=True
-            )
-
-            st.markdown("### Estoque")
-
-            st.dataframe(
-                estoque,
-                use_container_width=True,
-                hide_index=True
-            )
-
-            st.markdown("### Consumo")
-
-            st.dataframe(
-                consumo,
-                use_container_width=True,
-                hide_index=True
-            )
-
-        # =====================================
-        # EXPORTAÇÃO
-        # =====================================
-
-        excel = io.BytesIO()
-
-        with pd.ExcelWriter(
-            excel,
-            engine="openpyxl"
-        ) as writer:
-
-            resumo.to_excel(
-                writer,
-                sheet_name="Materia Prima",
-                index=False
-            )
-
-        st.download_button(
-            "📥 Baixar Matéria-Prima",
-            data=excel.getvalue(),
-            file_name="Materia_Prima.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
         # =====================================
         # INDICADORES
         # =====================================
