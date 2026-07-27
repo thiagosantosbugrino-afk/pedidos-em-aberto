@@ -625,73 +625,68 @@ if mostrar_mp:
         )
 
         # =====================================
-        # DATA ESGOTAMENTO
+# COBERTURA DO ESTOQUE
+# =====================================
+
+produz_ate = []
+primeira_falta = []
+
+for _, linha in resumo.iterrows():
+
+    codigo = linha["Codigo"]
+    saldo = linha["Estoque"]
+
+    tabela = (
+        consumo_data[
+            consumo_data["Codigo"] == codigo
+        ]
+        .sort_values("Previsão")
+        .copy()
+    )
+
+    ultima_data_ok = pd.NaT
+    primeira_data_sem = pd.NaT
+
+    for _, item in tabela.iterrows():
+
+        consumo = item["Consumo Dia"]
+
+        if saldo >= consumo:
+
+            saldo -= consumo
+            ultima_data_ok = item["Previsão"]
+
+        else:
+
+            primeira_data_sem = item["Previsão"]
+            break
+
+    produz_ate.append(ultima_data_ok)
+    primeira_falta.append(primeira_data_sem)
+
+resumo["Produz até"] = produz_ate
+resumo["Primeira Falta"] = primeira_falta
+
         # =====================================
-
-        datas_esgotamento = []
-
-        for _, linha in resumo.iterrows():
-
-            codigo = linha["Codigo"]
-            estoque_atual = linha["Estoque"]
-
-            tabela = consumo_data[
-                consumo_data["Codigo"] == codigo
-            ].copy()
-
-            tabela = tabela.sort_values("Previsão")
-
-            esgotou = pd.NaT
-
-            for _, item in tabela.iterrows():
-
-                if item["Consumo Acumulado"] >= estoque_atual:
-
-                    esgotou = item["Previsão"]
-                    break
-
-            datas_esgotamento.append(esgotou)
-
-        resumo["Data Esgotamento"] = datas_esgotamento
-
-        hoje = pd.Timestamp.today().normalize()
-
-        resumo["Dias Restantes"] = (
-            resumo["Data Esgotamento"] - hoje
-        ).dt.days
-
-        resumo["Dias Restantes"] = (
-            resumo["Dias Restantes"]
-            .fillna(9999)
-            .astype(int)
-        )
-
-        def status_material(dias):
-
-            if dias <= 7:
-                return "🔴 Crítico"
-
-            elif dias <= 15:
-                return "🟠 Atenção"
-
-            elif dias <= 30:
-                return "🟡 Planejar"
-
-            else:
-                return "🟢 OK"
-
-        resumo["Status"] = (
-            resumo["Dias Restantes"]
-            .apply(status_material)
-        )   
-                # =====================================
         # NECESSIDADE DE COMPRA
         # =====================================
 
-        resumo["Necessidade Compra"] = resumo["Saldo"].apply(
-            lambda x: abs(x) if x < 0 else 0
-        )
+        def status_material(linha):
 
+    if pd.notna(linha["Primeira Falta"]):
+        return "🔴 Comprar"
+
+    elif linha["Compra Necessária"] > 0:
+        return "🟠 Atenção"
+
+    else:
+        return "🟢 OK"
+
+
+resumo["Status"] = resumo.apply(
+    status_material,
+    axis=1
+)
         # =====================================
         # INDICADORES
         # =====================================
@@ -733,18 +728,18 @@ if mostrar_mp:
         resumo["Necessidade Compra"] = resumo["Necessidade Compra"].round(2)
 
         resumo = resumo[
-            [
-                "Codigo",
-                "Descricao",
-                "Estoque",
-                "Consumo",
-                "Saldo",
-                "Necessidade Compra",
-                "Data Esgotamento",
-                "Dias Restantes",
-                "Status",
-            ]
-        ]
+    [
+        "Codigo",
+        "Descricao",
+        "Estoque",
+        "Consumo",
+        "Saldo",
+        "Produz até",
+        "Primeira Falta",
+        "Compra Necessária",
+        "Status",
+    ]
+]
 
         resumo = resumo.sort_values(
             by=[
@@ -760,7 +755,20 @@ if mostrar_mp:
             hide_index=True,
             height=650
         )
+st.dataframe(
+    resumo,
+    use_container_width=True,
+    hide_index=True,
+    height=650
+)
 
+st.markdown("---")
+st.subheader("🔍 Detalhar Material")
+
+material = st.selectbox(
+    "Selecione o material",
+    sorted(resumo["Codigo"].unique())
+)
         # =====================================
         # TABELAS DE APOIO
         # =====================================
