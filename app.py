@@ -582,12 +582,12 @@ if mostrar_mp:
             .fillna(0)
         )
 
-      consumo_data = consumo_data.sort_values(
-    [
-        "Codigo",
-        "Previsão"
-    ]
-)
+            consumo_data = consumo_data.sort_values(
+            [
+                "Codigo",
+                "Previsão"
+            ]
+        )
 
         # =====================================
         # RESUMO
