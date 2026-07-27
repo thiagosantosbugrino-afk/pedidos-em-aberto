@@ -723,46 +723,46 @@ resumo["Necessidade Compra"] = (
     .apply(lambda x: abs(x) if x < 0 else 0)
 )
 # =====================================
-# SUGESTÃO DE COMPRA
+# NECESSIDADE DE COMPRA
 # =====================================
 
-resumo["Sugestão Compra"] = (
+resumo["Necessidade Compra"] = (
     resumo["Saldo"]
     .apply(lambda x: abs(x) if x < 0 else 0)
 )
+
+# =====================================
+# DIAS RESTANTES
+# =====================================
 
 resumo["Dias Restantes"] = (
     resumo["Dias Restantes"]
     .replace(9999, "Não esgota")
 )
-        resumo["Dias Restantes"] = (
-            resumo["Dias Restantes"]
-            .replace(9999, "Não esgota")
-        )
 
-        # =====================================
-        # FORMATA DATA
-        # =====================================
+# =====================================
+# FORMATA DATA
+# =====================================
 
-        resumo["Data Esgotamento"] = (
-            resumo["DataCalc"]
-            .dt.strftime("%d/%m/%Y")
-        )
+resumo["Data Esgotamento"] = (
+    resumo["DataCalc"]
+    .dt.strftime("%d/%m/%Y")
+)
 
-        resumo["Data Esgotamento"] = (
-            resumo["Data Esgotamento"]
-            .fillna("Não esgota")
-        )
+resumo["Data Esgotamento"] = (
+    resumo["Data Esgotamento"]
+    .fillna("Não esgota")
+)
 
-        resumo = resumo.drop(
-            columns="DataCalc"
-        )
+resumo = resumo.drop(
+    columns="DataCalc"
+)
 
-        resumo = resumo.sort_values(
-            "Descricao"
-        )
+resumo = resumo.sort_values(
+    "Descricao"
+)
 
-        resumo = resumo[
+resumo = resumo[
     [
         "Codigo",
         "Descricao",
@@ -772,7 +772,7 @@ resumo["Dias Restantes"] = (
         "Necessidade Compra",
         "Data Esgotamento",
         "Dias Restantes",
-        "Status"
+        "Status",
     ]
 ]
 
