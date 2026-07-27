@@ -713,7 +713,28 @@ if mostrar_mp:
         resumo["Status"] = resumo["Dias Restantes"].apply(
             status_material
         )
+        
+# =====================================
+# NECESSIDADE DE COMPRA
+# =====================================
 
+resumo["Necessidade Compra"] = (
+    resumo["Saldo"]
+    .apply(lambda x: abs(x) if x < 0 else 0)
+)
+# =====================================
+# SUGESTÃO DE COMPRA
+# =====================================
+
+resumo["Sugestão Compra"] = (
+    resumo["Saldo"]
+    .apply(lambda x: abs(x) if x < 0 else 0)
+)
+
+resumo["Dias Restantes"] = (
+    resumo["Dias Restantes"]
+    .replace(9999, "Não esgota")
+)
         resumo["Dias Restantes"] = (
             resumo["Dias Restantes"]
             .replace(9999, "Não esgota")
@@ -742,25 +763,78 @@ if mostrar_mp:
         )
 
         resumo = resumo[
-            [
-                "Codigo",
-                "Descricao",
-                "Estoque",
-                "Consumo",
-                "Saldo",
-                "Data Esgotamento",
-                "Dias Restantes",
-                "Status"
-            ]
-        ]
+    [
+        "Codigo",
+        "Descricao",
+        "Estoque",
+        "Consumo",
+        "Saldo",
+        "Necessidade Compra",
+        "Data Esgotamento",
+        "Dias Restantes",
+        "Status"
+    ]
+]
 
-        st.dataframe(
-            resumo,
-            use_container_width=True,
-            hide_index=True,
-            height=650
-        )
+        # =====================================
+# INDICADORES PCP
+# =====================================
 
+total_materiais = len(resumo)
+
+materiais_compra = (
+    resumo["Necessidade Compra"] > 0
+).sum()
+
+total_compra = (
+    resumo["Necessidade Compra"]
+    .sum()
+)
+
+materiais_esgotam = (
+    resumo["Data Esgotamento"] != "Não esgota"
+).sum()
+
+materiais_ok = (
+    resumo["Necessidade Compra"] == 0
+).sum()
+
+c1, c2, c3, c4, c5 = st.columns(5)
+
+c1.metric(
+    "📦 Materiais",
+    total_materiais
+)
+
+c2.metric(
+    "🔴 Comprar",
+    materiais_compra
+)
+
+c3.metric(
+    "📐 Total Comprar (m²)",
+    f"{total_compra:,.2f}"
+    .replace(",", "X")
+    .replace(".", ",")
+    .replace("X", ".")
+)
+
+c4.metric(
+    "⚠️ Esgotam",
+    materiais_esgotam
+)
+
+c5.metric(
+    "🟢 OK",
+    materiais_ok
+)
+
+st.dataframe(
+    resumo,
+    use_container_width=True,
+    hide_index=True,
+    height=650
+)
         # =====================================
         # TABELAS DE APOIO
         # =====================================
