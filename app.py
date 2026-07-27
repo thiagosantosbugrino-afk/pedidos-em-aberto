@@ -505,24 +505,24 @@ if mostrar_mp:
         ).fillna(0)
 
         estoque = (
-            estoque
-            .groupby(
+            estoque.groupby(
                 ["Codigo", "Descricao"],
                 as_index=False
             )["Estoque"]
             .sum()
         )
 
-        estoque = estoque[
-            estoque["Estoque"] > 0
-        ]
-
         # =====================================
         # CONSUMO
         # =====================================
 
         consumo = (
-            df_final[["Produto", "M2 Vendido"]]
+            df_final[
+                [
+                    "Produto",
+                    "M2 Vendido"
+                ]
+            ]
             .copy()
         )
 
@@ -537,252 +537,281 @@ if mostrar_mp:
         ).fillna(0)
 
         consumo = (
-            consumo
-            .groupby("Codigo", as_index=False)["Consumo"]
+            consumo.groupby(
+                "Codigo",
+                as_index=False
+            )["Consumo"]
             .sum()
         )
 
-# =====================================
-# CONSUMO POR DATA
-# =====================================
+        # =====================================
+        # CONSUMO POR DATA
+        # =====================================
 
-consumo_data = (
-    df_final[
-        [
-            "Previsão",
-            "Produto",
-            "M2 Vendido"
-        ]
-    ]
-    .copy()
-)
-
-consumo_data["Codigo"] = (
-    consumo_data["Produto"]
-    .apply(codigo_material)
-)
-
-consumo_data["M2 Vendido"] = pd.to_numeric(
-    consumo_data["M2 Vendido"],
-    errors="coerce"
-).fillna(0)
-
-consumo_data = (
-    consumo_data
-    .groupby(
-        [
-            "Previsão",
-            "Codigo"
-        ],
-        as_index=False
-    )["M2 Vendido"]
-    .sum()
-)
-
-consumo_data = consumo_data.rename(
-    columns={
-        "M2 Vendido": "Consumo Dia"
-    }
-)
-
-consumo_data = consumo_data.sort_values(
-    [
-        "Codigo",
-        "Previsão"
-    ]
-)
-
-consumo_data["Consumo Acumulado"] = (
-    consumo_data
-    .groupby("Codigo")["Consumo Dia"]
-    .cumsum()
-)
-
-# =====================================
-# RESUMO
-# =====================================
-
-resumo = estoque.merge(
-    consumo,
-    on="Codigo",
-    how="outer"
-)
-
-resumo["Descricao"] = resumo["Descricao"].fillna(
-    resumo["Codigo"]
-)
-
-resumo["Estoque"] = pd.to_numeric(
-    resumo["Estoque"],
-    errors="coerce"
-).fillna(0)
-
-resumo["Consumo"] = pd.to_numeric(
-    resumo["Consumo"],
-    errors="coerce"
-).fillna(0)
-
-resumo["Saldo"] = (
-    resumo["Estoque"]
-    - resumo["Consumo"]
-)
-
-# =====================================
-# CÁLCULO DA DATA DE ESGOTAMENTO
-# =====================================
-
-esgotamento = []
-
-for _, material in resumo.iterrows():
-
-    codigo = material["Codigo"]
-    estoque_atual = material["Estoque"]
-
-    dados_material = consumo_data[
-        consumo_data["Codigo"] == codigo
-    ].copy()
-
-    dados_material = dados_material.sort_values(
-        "Previsão"
-    )
-
-    data_esgotamento = pd.NaT
-
-    for _, linha in dados_material.iterrows():
-
-        if linha["Consumo Acumulado"] >= estoque_atual:
-
-            data_esgotamento = linha["Previsão"]
-            break
-
-    esgotamento.append({
-        "Codigo": codigo,
-        "Data Esgotamento": data_esgotamento
-    })
-
-esgotamento = pd.DataFrame(esgotamento)
-
-# =====================================
-# JUNTA DATA AO RESUMO
-# =====================================
-
-resumo = resumo.merge(
-    esgotamento,
-    on="Codigo",
-    how="left"
-)
-
-# Mantém uma cópia da data para fazer os cálculos
-resumo["DataEsgotamentoCalc"] = pd.to_datetime(
-    resumo["Data Esgotamento"],
-    errors="coerce"
-)
-
-# =====================================
-# DIAS RESTANTES
-# =====================================
-
-hoje = pd.Timestamp.today().normalize()
-
-resumo["Dias Restantes"] = (
-    resumo["DataEsgotamentoCalc"] - hoje
-).dt.days
-
-resumo["Dias Restantes"] = (
-    resumo["Dias Restantes"]
-    .fillna(9999)
-    .astype(int)
-)
-
-resumo["Dias Restantes"] = resumo["Dias Restantes"].replace(
-    9999,
-    "Não esgota"
-)
-
-# =====================================
-# FORMATA DATA
-# =====================================
-
-resumo["Data Esgotamento"] = (
-    resumo["DataEsgotamentoCalc"]
-    .dt.strftime("%d/%m/%Y")
-)
-
-resumo["Data Esgotamento"] = (
-    resumo["Data Esgotamento"]
-    .fillna("Não esgota")
-)
-
-# Remove coluna auxiliar
-resumo = resumo.drop(columns="DataEsgotamentoCalc")
-
-resumo = resumo.sort_values(
-    "Descricao"
-)
-
-resumo = resumo[
-    [
-        "Codigo",
-        "Descricao",
-        "Estoque",
-        "Consumo",
-        "Saldo",
-        "Data Esgotamento",
-        "Dias Restantes"
-    ]
-]
-
-st.dataframe(
-    resumo,
-    use_container_width=True,
-    hide_index=True,
-    height=650
-)
-# =====================================
-# TABELAS DE APOIO
-# =====================================
-
-mostrar_consumo = st.checkbox(
-    "🔧 Mostrar tabelas de cálculo",
-    value=False
-)
-
-if mostrar_consumo:
-
-    consumo_visual = consumo_data.copy()
-
-    consumo_visual["Previsão"] = (
-        consumo_visual["Previsão"]
-        .dt.strftime("%d/%m/%Y")
-    )
-
-    st.markdown("---")
-    st.subheader("📅 Consumo Diário da Matéria-Prima")
-
-    st.dataframe(
-        consumo_visual,
-        use_container_width=True,
-        hide_index=True,
-        height=450
-    )
-
-    esgotamento_visual = esgotamento.copy()
-
-    esgotamento_visual["Data Esgotamento"] = (
-        pd.to_datetime(
-            esgotamento_visual["Data Esgotamento"]
+        consumo_data = (
+            df_final[
+                [
+                    "Previsão",
+                    "Produto",
+                    "M2 Vendido"
+                ]
+            ]
+            .copy()
         )
-        .dt.strftime("%d/%m/%Y")
-        .fillna("Não esgota")
-    )
 
-    st.subheader("📅 Previsão de Esgotamento")
+        consumo_data["Codigo"] = (
+            consumo_data["Produto"]
+            .apply(codigo_material)
+        )
 
-    st.dataframe(
-        esgotamento_visual,
-        use_container_width=True,
-        hide_index=True
-    )
+        consumo_data["Consumo Dia"] = pd.to_numeric(
+            consumo_data["M2 Vendido"],
+            errors="coerce"
+        ).fillna(0)
+
+        consumo_data = (
+            consumo_data.groupby(
+                [
+                    "Previsão",
+                    "Codigo"
+                ],
+                as_index=False
+            )["Consumo Dia"]
+            .sum()
+        )
+
+        consumo_data = consumo_data.sort_values(
+            [
+                "Codigo",
+                "Previsão"
+            ]
+        )
+
+        consumo_data["Consumo Acumulado"] = (
+            consumo_data
+            .groupby("Codigo")["Consumo Dia"]
+            .cumsum()
+        )
+
+        # =====================================
+        # RESUMO
+        # =====================================
+
+        resumo = estoque.merge(
+            consumo,
+            on="Codigo",
+            how="outer"
+        )
+
+        resumo["Descricao"] = resumo["Descricao"].fillna(
+            resumo["Codigo"]
+        )
+
+        resumo["Estoque"] = pd.to_numeric(
+            resumo["Estoque"],
+            errors="coerce"
+        ).fillna(0)
+
+        resumo["Consumo"] = pd.to_numeric(
+            resumo["Consumo"],
+            errors="coerce"
+        ).fillna(0)
+
+        resumo["Saldo"] = (
+            resumo["Estoque"]
+            - resumo["Consumo"]
+        )
+
+        # =====================================
+        # ESGOTAMENTO
+        # =====================================
+
+        esgotamento = []
+
+        for _, material in resumo.iterrows():
+
+            codigo = material["Codigo"]
+
+            estoque_atual = material["Estoque"]
+
+            dados_material = consumo_data[
+                consumo_data["Codigo"] == codigo
+            ].copy()
+
+            dados_material = dados_material.sort_values(
+                "Previsão"
+            )
+
+            data_esgotamento = pd.NaT
+
+            for _, linha in dados_material.iterrows():
+
+                if linha["Consumo Acumulado"] >= estoque_atual:
+
+                    data_esgotamento = linha["Previsão"]
+
+                    break
+
+            esgotamento.append(
+                {
+                    "Codigo": codigo,
+                    "Data Esgotamento": data_esgotamento
+                }
+            )
+
+        esgotamento = pd.DataFrame(esgotamento)
+        
+        # =====================================
+        # JUNTA DATA AO RESUMO
+        # =====================================
+
+        resumo = resumo.merge(
+            esgotamento,
+            on="Codigo",
+            how="left"
+        )
+
+        # Guarda a data original para cálculos
+        resumo["DataCalc"] = pd.to_datetime(
+            resumo["Data Esgotamento"],
+            errors="coerce"
+        )
+
+        # =====================================
+        # DIAS RESTANTES
+        # =====================================
+
+        hoje = pd.Timestamp.today().normalize()
+
+        resumo["Dias Restantes"] = (
+            resumo["DataCalc"] - hoje
+        ).dt.days
+
+        resumo["Dias Restantes"] = (
+            resumo["Dias Restantes"]
+            .fillna(9999)
+            .astype(int)
+        )
+
+        # =====================================
+        # STATUS
+        # =====================================
+
+        def status_material(valor):
+
+            if valor == 9999:
+                return "🟢 Normal"
+
+            if valor <= 7:
+                return "🔴 Comprar"
+
+            if valor <= 15:
+                return "🟡 Atenção"
+
+            return "🟢 Normal"
+
+        resumo["Status"] = resumo["Dias Restantes"].apply(
+            status_material
+        )
+
+        resumo["Dias Restantes"] = (
+            resumo["Dias Restantes"]
+            .replace(9999, "Não esgota")
+        )
+
+        # =====================================
+        # FORMATA DATA
+        # =====================================
+
+        resumo["Data Esgotamento"] = (
+            resumo["DataCalc"]
+            .dt.strftime("%d/%m/%Y")
+        )
+
+        resumo["Data Esgotamento"] = (
+            resumo["Data Esgotamento"]
+            .fillna("Não esgota")
+        )
+
+        resumo = resumo.drop(
+            columns="DataCalc"
+        )
+
+        resumo = resumo.sort_values(
+            "Descricao"
+        )
+
+        resumo = resumo[
+            [
+                "Codigo",
+                "Descricao",
+                "Estoque",
+                "Consumo",
+                "Saldo",
+                "Data Esgotamento",
+                "Dias Restantes",
+                "Status"
+            ]
+        ]
+
+        st.dataframe(
+            resumo,
+            use_container_width=True,
+            hide_index=True,
+            height=650
+        )
+
+        # =====================================
+        # TABELAS DE APOIO
+        # =====================================
+
+        mostrar_consumo = st.checkbox(
+            "🔧 Mostrar tabelas de cálculo",
+            value=False
+        )
+
+        if mostrar_consumo:
+
+            st.markdown("---")
+
+            st.subheader(
+                "📅 Consumo Diário da Matéria-Prima"
+            )
+
+            consumo_visual = consumo_data.copy()
+
+            consumo_visual["Previsão"] = (
+                consumo_visual["Previsão"]
+                .dt.strftime("%d/%m/%Y")
+            )
+
+            st.dataframe(
+                consumo_visual,
+                use_container_width=True,
+                hide_index=True,
+                height=400
+            )
+
+            st.subheader(
+                "📅 Previsão de Esgotamento"
+            )
+
+            esgotamento_visual = esgotamento.copy()
+
+            esgotamento_visual["Data Esgotamento"] = (
+                pd.to_datetime(
+                    esgotamento_visual["Data Esgotamento"]
+                )
+                .dt.strftime("%d/%m/%Y")
+                .fillna("Não esgota")
+            )
+
+            st.dataframe(
+                esgotamento_visual,
+                use_container_width=True,
+                hide_index=True
+            )
+        
 # ===================================
 # INDICADORES
 # ===================================
