@@ -465,150 +465,80 @@ if rotas_manuais and "Rota" in df_base_filtrada.columns:
     df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True)
 
 df_final = df_final.drop_duplicates()
-# ===================================
+
+# =====================================
 # VISÃO MATÉRIA-PRIMA
-# ===================================
+# =====================================
 
 st.markdown("---")
 
-mostrar_mp = st.checkbox(
-    "🪵 Mostrar Matéria-Prima",
-    value=False
-)
+mostrar_mp = st.checkbox("🪵 Mostrar Matéria-Prima", value=False)
+
+# Cria variáveis padrão para evitar NameError
+estoque = pd.DataFrame(columns=["Codigo", "Descricao", "Estoque"])
+consumo = pd.DataFrame(columns=["Codigo", "Consumo"])
+consumo_data = pd.DataFrame()
 
 if mostrar_mp:
-
     if not consolidador_carregado:
-
         st.warning("⚠️ Nenhum Consolidador foi enviado.")
-
     else:
-
         st.subheader("📦 Estoque de Matéria-Prima")
 
         # =====================================
         # ESTOQUE
         # =====================================
 
-        estoque = (
-            df_consolidador.iloc[:, [1, 2, 18]]
-            .copy()
-        )
-
-        estoque.columns = [
-            "Codigo",
-            "Descricao",
-            "Estoque"
-        ]
+        estoque = df_consolidador.iloc[:, [1, 2, 18]].copy()
+        estoque.columns = ["Codigo", "Descricao", "Estoque"]
 
         estoque["Codigo"] = estoque["Codigo"].apply(codigo_material)
+        estoque["Descricao"] = estoque["Descricao"].apply(descricao_material)
+        estoque["Estoque"] = pd.to_numeric(estoque["Estoque"], errors="coerce").fillna(0)
 
-        estoque["Descricao"] = (
-            estoque["Descricao"]
-            .apply(descricao_material)
-        )
-
-        estoque["Estoque"] = (
-            pd.to_numeric(
-                estoque["Estoque"],
-                errors="coerce"
-            )
-            .fillna(0)
-        )
-
-        estoque = (
-            estoque
-            .groupby(
-                ["Codigo", "Descricao"],
-                as_index=False
-            )["Estoque"]
-            .sum()
-        )
+        estoque = estoque.groupby(["Codigo", "Descricao"], as_index=False)["Estoque"].sum()
 
 # =====================================
 # CONSUMO
 # =====================================
 
-consumo = (
-    df_final[
-        [
-            "Produto",
-            "M2 Vendido"
-        ]
-    ]
-    .copy()
-)
-
+consumo = df_final[["Produto", "M2 Vendido"]].copy()
 consumo["Codigo"] = consumo["Produto"].apply(codigo_material)
-
-consumo["Consumo"] = (
-    pd.to_numeric(consumo["M2 Vendido"], errors="coerce").fillna(0)
-)
-
-consumo = (
-    consumo.groupby("Codigo", as_index=False)["Consumo"].sum()
-)
+consumo["Consumo"] = pd.to_numeric(consumo["M2 Vendido"], errors="coerce").fillna(0)
+consumo = consumo.groupby("Codigo", as_index=False)["Consumo"].sum()
 
 # =====================================
 # CONSUMO POR DATA
 # =====================================
 
-consumo_data = (
-    df_final[
-        [
-            "Previsão",
-            "Produto",
-            "Pedido",
-            "Cliente",
-            "PC",
-            "Rota",
-            "M2 Vendido",
-        ]
-    ]
-    .copy()
-)
+consumo_data = df_final[
+    ["Previsão", "Produto", "Pedido", "Cliente", "PC", "Rota", "M2 Vendido"]
+].copy()
 
 consumo_data["Codigo"] = consumo_data["Produto"].apply(codigo_material)
-
-consumo_data["Consumo Dia"] = (
-    pd.to_numeric(consumo_data["M2 Vendido"], errors="coerce").fillna(0)
-)
-
+consumo_data["Consumo Dia"] = pd.to_numeric(consumo_data["M2 Vendido"], errors="coerce").fillna(0)
 consumo_data = consumo_data.sort_values(["Codigo", "Previsão"])
 
 # =====================================
 # RESUMO
 # =====================================
 
-resumo = pd.merge(
-    estoque,
-    consumo,
-    on="Codigo",
-    how="outer",
-)
+resumo = pd.merge(estoque, consumo, on="Codigo", how="outer")
 
 resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
 resumo["Estoque"] = resumo["Estoque"].fillna(0)
 resumo["Consumo"] = resumo["Consumo"].fillna(0)
-
 resumo["Saldo"] = resumo["Estoque"] - resumo["Consumo"]
 
 # Remove linhas de cabeçalho importadas da planilha
 resumo = resumo[
     ~(
-        resumo["Codigo"]
-        .astype(str)
-        .str.upper()
-        .str.contains("CÓDIG|CODIG", na=False)
+        resumo["Codigo"].astype(str).str.upper().str.contains("CÓDIG|CODIG", na=False)
     )
 ]
-
 resumo = resumo[
     ~(
-        resumo["Descricao"]
-        .astype(str)
-        .str.upper()
-        .str.contains("DESCRI", na=False)
+        resumo["Descricao"].astype(str).str.upper().str.contains("DESCRI", na=False)
     )
 ]
 
@@ -623,18 +553,13 @@ for _, linha in resumo.iterrows():
     codigo = linha["Codigo"]
     saldo = linha["Estoque"]
 
-    tabela = (
-        consumo_data[consumo_data["Codigo"] == codigo]
-        .sort_values("Previsão")
-        .copy()
-    )
+    tabela = consumo_data[consumo_data["Codigo"] == codigo].sort_values("Previsão").copy()
 
     ultima_data_ok = pd.NaT
     primeira_data_sem = pd.NaT
 
     for _, item in tabela.iterrows():
         consumo = item["Consumo Dia"]
-
         if saldo >= consumo:
             saldo -= consumo
             ultima_data_ok = item["Previsão"]
@@ -661,9 +586,7 @@ for coluna in ["Produz até", "Primeira Falta"]:
 # COMPRA NECESSÁRIA
 # =====================================
 
-resumo["Compra Necessária"] = resumo["Saldo"].apply(
-    lambda x: abs(x) if x < 0 else 0
-)
+resumo["Compra Necessária"] = resumo["Saldo"].apply(lambda x: abs(x) if x < 0 else 0)
 
 # =====================================
 # STATUS
@@ -687,6 +610,7 @@ resumo["Estoque"] = resumo["Estoque"].round(2)
 resumo["Consumo"] = resumo["Consumo"].round(2)
 resumo["Saldo"] = resumo["Saldo"].round(2)
 resumo["Compra Necessária"] = resumo["Compra Necessária"].round(2)
+
 
 # =====================================
 # INDICADORES
