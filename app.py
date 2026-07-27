@@ -592,30 +592,31 @@ if mostrar_mp:
             .groupby("Codigo")["Consumo Dia"]
             .cumsum()
         )
+  # =====================================
+# RESUMO
+# =====================================
 
-        # =====================================
-        # RESUMO
-        # =====================================
-
-        resumo = estoque.merge(
+        resumo = pd.merge(
+            estoque,
             consumo,
             on="Codigo",
             how="outer"
         )
 
-        resumo["Descricao"] = resumo["Descricao"].fillna(
-            resumo["Codigo"]
+        resumo["Descricao"] = (
+            resumo["Descricao"]
+            .fillna(resumo["Codigo"])
         )
 
-        resumo["Estoque"] = pd.to_numeric(
-            resumo["Estoque"],
-            errors="coerce"
-        ).fillna(0)
+        resumo["Estoque"] = (
+            resumo["Estoque"]
+            .fillna(0)
+        )
 
-        resumo["Consumo"] = pd.to_numeric(
-            resumo["Consumo"],
-            errors="coerce"
-        ).fillna(0)
+        resumo["Consumo"] = (
+            resumo["Consumo"]
+            .fillna(0)
+        )
 
         resumo["Saldo"] = (
             resumo["Estoque"]
@@ -623,68 +624,39 @@ if mostrar_mp:
         )
 
         # =====================================
-        # ESGOTAMENTO
+        # DATA ESGOTAMENTO
         # =====================================
 
-        esgotamento = []
+        datas_esgotamento = []
 
-        for _, material in resumo.iterrows():
+        for _, linha in resumo.iterrows():
 
-            codigo = material["Codigo"]
+            codigo = linha["Codigo"]
+            estoque_atual = linha["Estoque"]
 
-            estoque_atual = material["Estoque"]
-
-            dados_material = consumo_data[
+            tabela = consumo_data[
                 consumo_data["Codigo"] == codigo
             ].copy()
 
-            dados_material = dados_material.sort_values(
-                "Previsão"
-            )
+            tabela = tabela.sort_values("Previsão")
 
-            data_esgotamento = pd.NaT
+            esgotou = pd.NaT
 
-            for _, linha in dados_material.iterrows():
+            for _, item in tabela.iterrows():
 
-                if linha["Consumo Acumulado"] >= estoque_atual:
+                if item["Consumo Acumulado"] >= estoque_atual:
 
-                    data_esgotamento = linha["Previsão"]
-
+                    esgotou = item["Previsão"]
                     break
 
-            esgotamento.append(
-                {
-                    "Codigo": codigo,
-                    "Data Esgotamento": data_esgotamento
-                }
-            )
+            datas_esgotamento.append(esgotou)
 
-        esgotamento = pd.DataFrame(esgotamento)
-        
-        # =====================================
-        # JUNTA DATA AO RESUMO
-        # =====================================
-
-        resumo = resumo.merge(
-            esgotamento,
-            on="Codigo",
-            how="left"
-        )
-
-        # Guarda a data original para cálculos
-        resumo["DataCalc"] = pd.to_datetime(
-            resumo["Data Esgotamento"],
-            errors="coerce"
-        )
-
-        # =====================================
-        # DIAS RESTANTES
-        # =====================================
+        resumo["Data Esgotamento"] = datas_esgotamento
 
         hoje = pd.Timestamp.today().normalize()
 
         resumo["Dias Restantes"] = (
-            resumo["DataCalc"] - hoje
+            resumo["Data Esgotamento"] - hoje
         ).dt.days
 
         resumo["Dias Restantes"] = (
@@ -693,148 +665,101 @@ if mostrar_mp:
             .astype(int)
         )
 
+        def status_material(dias):
+
+            if dias <= 7:
+                return "🔴 Crítico"
+
+            elif dias <= 15:
+                return "🟠 Atenção"
+
+            elif dias <= 30:
+                return "🟡 Planejar"
+
+            else:
+                return "🟢 OK"
+
+        resumo["Status"] = (
+            resumo["Dias Restantes"]
+            .apply(status_material)
+        )   
+                # =====================================
+        # NECESSIDADE DE COMPRA
         # =====================================
-        # STATUS
-        # =====================================
 
-        def status_material(valor):
-
-            if valor == 9999:
-                return "🟢 Normal"
-
-            if valor <= 7:
-                return "🔴 Comprar"
-
-            if valor <= 15:
-                return "🟡 Atenção"
-
-            return "🟢 Normal"
-
-        resumo["Status"] = resumo["Dias Restantes"].apply(
-            status_material
+        resumo["Necessidade Compra"] = resumo["Saldo"].apply(
+            lambda x: abs(x) if x < 0 else 0
         )
-        
-# =====================================
-# NECESSIDADE DE COMPRA
-# =====================================
 
-resumo["Necessidade Compra"] = (
-    resumo["Saldo"]
-    .apply(lambda x: abs(x) if x < 0 else 0)
-)
-# =====================================
-# NECESSIDADE DE COMPRA
-# =====================================
+        # =====================================
+        # INDICADORES
+        # =====================================
 
-resumo["Necessidade Compra"] = (
-    resumo["Saldo"]
-    .apply(lambda x: abs(x) if x < 0 else 0)
-)
+        col1, col2, col3, col4, col5 = st.columns(5)
 
-# =====================================
-# DIAS RESTANTES
-# =====================================
+        col1.metric(
+            "📦 Materiais",
+            len(resumo)
+        )
 
-resumo["Dias Restantes"] = (
-    resumo["Dias Restantes"]
-    .replace(9999, "Não esgota")
-)
+        col2.metric(
+            "🔴 Comprar",
+            (resumo["Necessidade Compra"] > 0).sum()
+        )
 
-# =====================================
-# FORMATA DATA
-# =====================================
+        col3.metric(
+            "📐 Total Comprar (m²)",
+            f'{resumo["Necessidade Compra"].sum():,.2f}'
+        )
 
-resumo["Data Esgotamento"] = (
-    resumo["DataCalc"]
-    .dt.strftime("%d/%m/%Y")
-)
+        col4.metric(
+            "⚠️ Esgotam em 30 dias",
+            (resumo["Dias Restantes"] <= 30).sum()
+        )
 
-resumo["Data Esgotamento"] = (
-    resumo["Data Esgotamento"]
-    .fillna("Não esgota")
-)
+        col5.metric(
+            "🟢 OK",
+            (resumo["Dias Restantes"] > 30).sum()
+        )
 
-resumo = resumo.drop(
-    columns="DataCalc"
-)
+        # =====================================
+        # FORMATAÇÃO
+        # =====================================
 
-resumo = resumo.sort_values(
-    "Descricao"
-)
+        resumo["Estoque"] = resumo["Estoque"].round(2)
+        resumo["Consumo"] = resumo["Consumo"].round(2)
+        resumo["Saldo"] = resumo["Saldo"].round(2)
+        resumo["Necessidade Compra"] = resumo["Necessidade Compra"].round(2)
 
-resumo = resumo[
-    [
-        "Codigo",
-        "Descricao",
-        "Estoque",
-        "Consumo",
-        "Saldo",
-        "Necessidade Compra",
-        "Data Esgotamento",
-        "Dias Restantes",
-        "Status",
-    ]
-]
+        resumo = resumo[
+            [
+                "Codigo",
+                "Descricao",
+                "Estoque",
+                "Consumo",
+                "Saldo",
+                "Necessidade Compra",
+                "Data Esgotamento",
+                "Dias Restantes",
+                "Status",
+            ]
+        ]
 
-# =====================================
-# INDICADORES PCP
-# =====================================
+        resumo = resumo.sort_values(
+            by=[
+                "Necessidade Compra",
+                "Dias Restantes",
+            ],
+            ascending=[False, True]
+        )
 
-total_materiais = len(resumo)
+        st.dataframe(
+            resumo,
+            use_container_width=True,
+            hide_index=True,
+            height=650
+        )
 
-materiais_compra = (
-    resumo["Necessidade Compra"] > 0
-).sum()
-
-total_compra = (
-    resumo["Necessidade Compra"]
-    .sum()
-)
-
-materiais_esgotam = (
-    resumo["Data Esgotamento"] != "Não esgota"
-).sum()
-
-materiais_ok = (
-    resumo["Necessidade Compra"] == 0
-).sum()
-
-c1, c2, c3, c4, c5 = st.columns(5)
-
-c1.metric(
-    "📦 Materiais",
-    total_materiais
-)
-
-c2.metric(
-    "🔴 Comprar",
-    materiais_compra
-)
-
-c3.metric(
-    "📐 Total Comprar (m²)",
-    f"{total_compra:,.2f}"
-    .replace(",", "X")
-    .replace(".", ",")
-    .replace("X", ".")
-)
-
-c4.metric(
-    "⚠️ Esgotam",
-    materiais_esgotam
-)
-
-c5.metric(
-    "🟢 OK",
-    materiais_ok
-)
-
-st.dataframe(
-    resumo,
-    use_container_width=True,
-    hide_index=True,
-    height=650
-)
         # =====================================
         # TABELAS DE APOIO
         # =====================================
@@ -846,46 +771,53 @@ st.dataframe(
 
         if mostrar_consumo:
 
-            st.markdown("---")
-
-            st.subheader(
-                "📅 Consumo Diário da Matéria-Prima"
-            )
-
-            consumo_visual = consumo_data.copy()
-
-            consumo_visual["Previsão"] = (
-                consumo_visual["Previsão"]
-                .dt.strftime("%d/%m/%Y")
-            )
+            st.markdown("### Consumo por Data")
 
             st.dataframe(
-                consumo_visual,
-                use_container_width=True,
-                hide_index=True,
-                height=400
-            )
-
-            st.subheader(
-                "📅 Previsão de Esgotamento"
-            )
-
-            esgotamento_visual = esgotamento.copy()
-
-            esgotamento_visual["Data Esgotamento"] = (
-                pd.to_datetime(
-                    esgotamento_visual["Data Esgotamento"]
-                )
-                .dt.strftime("%d/%m/%Y")
-                .fillna("Não esgota")
-            )
-
-            st.dataframe(
-                esgotamento_visual,
+                consumo_data,
                 use_container_width=True,
                 hide_index=True
             )
-        
+
+            st.markdown("### Estoque")
+
+            st.dataframe(
+                estoque,
+                use_container_width=True,
+                hide_index=True
+            )
+
+            st.markdown("### Consumo")
+
+            st.dataframe(
+                consumo,
+                use_container_width=True,
+                hide_index=True
+            )
+
+        # =====================================
+        # EXPORTAÇÃO
+        # =====================================
+
+        excel = io.BytesIO()
+
+        with pd.ExcelWriter(
+            excel,
+            engine="openpyxl"
+        ) as writer:
+
+            resumo.to_excel(
+                writer,
+                sheet_name="Materia Prima",
+                index=False
+            )
+
+        st.download_button(
+            "📥 Baixar Matéria-Prima",
+            data=excel.getvalue(),
+            file_name="Materia_Prima.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 # ===================================
 # INDICADORES
 # ===================================
