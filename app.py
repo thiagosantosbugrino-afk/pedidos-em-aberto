@@ -525,7 +525,7 @@ if mostrar_mp:
             .sum()
         )
 
-        # =====================================
+# =====================================
 # CONSUMO
 # =====================================
 
@@ -688,7 +688,7 @@ resumo["Consumo"] = resumo["Consumo"].round(2)
 resumo["Saldo"] = resumo["Saldo"].round(2)
 resumo["Compra Necessária"] = resumo["Compra Necessária"].round(2)
 
-       # =====================================
+# =====================================
 # INDICADORES
 # =====================================
 
@@ -730,56 +730,35 @@ st.dataframe(
     height=650
 )
 
-        # =====================================
-        # DETALHAR MATERIAL
-        # =====================================
+# =====================================
+# DETALHAR MATERIAL
+# =====================================
 
-        st.markdown("---")
-        st.subheader("🔍 Detalhar Material")
+st.markdown("---")
+st.subheader("🔍 Detalhar Material")
 
-        materiais = (
-            resumo["Codigo"]
-            + " - "
-            + resumo["Descricao"]
-        ).tolist()
+materiais = (resumo["Codigo"] + " - " + resumo["Descricao"]).tolist()
+material = st.selectbox("Selecione o material", sorted(materiais))
+codigo = material.split(" - ")[0]
 
-        material = st.selectbox(
-            "Selecione o material",
-            sorted(materiais)
-        )
+detalhe = (
+    consumo_data[consumo_data["Codigo"] == codigo]
+    .copy()
+    .sort_values("Previsão")
+)
 
-        codigo = material.split(" - ")[0]
+if not detalhe.empty:
+    detalhe["Previsão"] = detalhe["Previsão"].dt.strftime("%d/%m/%Y")
 
-        detalhe = (
-            consumo_data[
-                consumo_data["Codigo"] == codigo
-            ]
-            .copy()
-            .sort_values("Previsão")
-        )
+    st.dataframe(
+        detalhe[
+            ["Previsão", "Pedido", "Cliente", "PC", "Rota", "Consumo Dia"]
+        ],
+        use_container_width=True,
+        hide_index=True,
+        height=350,
+    )
 
-        if not detalhe.empty:
-
-            detalhe["Previsão"] = (
-                detalhe["Previsão"]
-                .dt.strftime("%d/%m/%Y")
-            )
-
-            st.dataframe(
-                detalhe[
-                    [
-                        "Previsão",
-                        "Pedido",
-                        "Cliente",
-                        "PC",
-                        "Rota",
-                        "Consumo Dia",
-                    ]
-                ],
-                use_container_width=True,
-                hide_index=True,
-                height=350,
-            )
 
         # =====================================
         # TABELAS DE APOIO
