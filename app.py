@@ -21,6 +21,7 @@ def codigo_material(texto):
     INC0832102400 -> INC08
     REF1032102400 -> REF10
     LAM0632102400 -> LAM06
+    ESP0432102400 -> ESI04
     """
 
     if pd.isna(texto):
