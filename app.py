@@ -490,23 +490,24 @@ if mostrar_mp:
             "Estoque"
         ]
 
-        estoque["Codigo"] = (
-            estoque["Codigo"]
-            .apply(codigo_material)
-        )
+        estoque["Codigo"] = estoque["Codigo"].apply(codigo_material)
 
         estoque["Descricao"] = (
             estoque["Descricao"]
             .apply(descricao_material)
         )
 
-        estoque["Estoque"] = pd.to_numeric(
-            estoque["Estoque"],
-            errors="coerce"
-        ).fillna(0)
+        estoque["Estoque"] = (
+            pd.to_numeric(
+                estoque["Estoque"],
+                errors="coerce"
+            )
+            .fillna(0)
+        )
 
         estoque = (
-            estoque.groupby(
+            estoque
+            .groupby(
                 ["Codigo", "Descricao"],
                 as_index=False
             )["Estoque"]
@@ -532,13 +533,17 @@ if mostrar_mp:
             .apply(codigo_material)
         )
 
-        consumo["Consumo"] = pd.to_numeric(
-            consumo["M2 Vendido"],
-            errors="coerce"
-        ).fillna(0)
+        consumo["Consumo"] = (
+            pd.to_numeric(
+                consumo["M2 Vendido"],
+                errors="coerce"
+            )
+            .fillna(0)
+        )
 
         consumo = (
-            consumo.groupby(
+            consumo
+            .groupby(
                 "Codigo",
                 as_index=False
             )["Consumo"]
@@ -554,6 +559,10 @@ if mostrar_mp:
                 [
                     "Previsão",
                     "Produto",
+                    "Pedido",
+                    "Cliente",
+                    "PC",
+                    "Rota",
                     "M2 Vendido"
                 ]
             ]
@@ -565,20 +574,12 @@ if mostrar_mp:
             .apply(codigo_material)
         )
 
-        consumo_data["Consumo Dia"] = pd.to_numeric(
-            consumo_data["M2 Vendido"],
-            errors="coerce"
-        ).fillna(0)
-
-        consumo_data = (
-            consumo_data.groupby(
-                [
-                    "Previsão",
-                    "Codigo"
-                ],
-                as_index=False
-            )["Consumo Dia"]
-            .sum()
+        consumo_data["Consumo Dia"] = (
+            pd.to_numeric(
+                consumo_data["M2 Vendido"],
+                errors="coerce"
+            )
+            .fillna(0)
         )
 
         consumo_data = consumo_data.sort_values(
@@ -587,15 +588,9 @@ if mostrar_mp:
                 "Previsão"
             ]
         )
-
-        consumo_data["Consumo Acumulado"] = (
-            consumo_data
-            .groupby("Codigo")["Consumo Dia"]
-            .cumsum()
-        )
-  # =====================================
-# RESUMO
-# =====================================
+                # =====================================
+        # RESUMO
+        # =====================================
 
         resumo = pd.merge(
             estoque,
@@ -604,20 +599,9 @@ if mostrar_mp:
             how="outer"
         )
 
-        resumo["Descricao"] = (
-            resumo["Descricao"]
-            .fillna(resumo["Codigo"])
-        )
-
-        resumo["Estoque"] = (
-            resumo["Estoque"]
-            .fillna(0)
-        )
-
-        resumo["Consumo"] = (
-            resumo["Consumo"]
-            .fillna(0)
-        )
+        resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
+        resumo["Estoque"] = resumo["Estoque"].fillna(0)
+        resumo["Consumo"] = resumo["Consumo"].fillna(0)
 
         resumo["Saldo"] = (
             resumo["Estoque"]
@@ -625,68 +609,80 @@ if mostrar_mp:
         )
 
         # =====================================
-# COBERTURA DO ESTOQUE
-# =====================================
+        # COBERTURA DO ESTOQUE
+        # =====================================
 
-produz_ate = []
-primeira_falta = []
+        produz_ate = []
+        primeira_falta = []
 
-for _, linha in resumo.iterrows():
+        for _, linha in resumo.iterrows():
 
-    codigo = linha["Codigo"]
-    saldo = linha["Estoque"]
+            codigo = linha["Codigo"]
+            saldo = linha["Estoque"]
 
-    tabela = (
-        consumo_data[
-            consumo_data["Codigo"] == codigo
-        ]
-        .sort_values("Previsão")
-        .copy()
-    )
+            tabela = (
+                consumo_data[
+                    consumo_data["Codigo"] == codigo
+                ]
+                .sort_values("Previsão")
+                .copy()
+            )
 
-    ultima_data_ok = pd.NaT
-    primeira_data_sem = pd.NaT
+            ultima_data_ok = pd.NaT
+            primeira_data_sem = pd.NaT
 
-    for _, item in tabela.iterrows():
+            for _, item in tabela.iterrows():
 
-        consumo = item["Consumo Dia"]
+                consumo = item["Consumo Dia"]
 
-        if saldo >= consumo:
+                if saldo >= consumo:
 
-            saldo -= consumo
-            ultima_data_ok = item["Previsão"]
+                    saldo -= consumo
+                    ultima_data_ok = item["Previsão"]
 
-        else:
+                else:
 
-            primeira_data_sem = item["Previsão"]
-            break
+                    primeira_data_sem = item["Previsão"]
+                    break
 
-    produz_ate.append(ultima_data_ok)
-    primeira_falta.append(primeira_data_sem)
+            produz_ate.append(ultima_data_ok)
+            primeira_falta.append(primeira_data_sem)
 
-resumo["Produz até"] = produz_ate
-resumo["Primeira Falta"] = primeira_falta
+        resumo["Produz até"] = produz_ate
+        resumo["Primeira Falta"] = primeira_falta
 
         # =====================================
-        # NECESSIDADE DE COMPRA
+        # COMPRA NECESSÁRIA
+        # =====================================
+
+        resumo["Compra Necessária"] = resumo["Saldo"].apply(
+            lambda x: abs(x) if x < 0 else 0
+        )
+
+        # =====================================
+        # STATUS
         # =====================================
 
         def status_material(linha):
 
-    if pd.notna(linha["Primeira Falta"]):
-        return "🔴 Comprar"
+            if pd.notna(linha["Primeira Falta"]):
+                return "🔴 Comprar"
 
-    elif linha["Compra Necessária"] > 0:
-        return "🟠 Atenção"
+            elif linha["Compra Necessária"] > 0:
+                return "🟠 Atenção"
 
-    else:
-        return "🟢 OK"
+            else:
+                return "🟢 OK"
 
+        resumo["Status"] = resumo.apply(
+            status_material,
+            axis=1
+        )
 
-resumo["Status"] = resumo.apply(
-    status_material,
-    axis=1
-)
+        resumo["Estoque"] = resumo["Estoque"].round(2)
+        resumo["Consumo"] = resumo["Consumo"].round(2)
+        resumo["Saldo"] = resumo["Saldo"].round(2)
+        resumo["Compra Necessária"] = resumo["Compra Necessária"].round(2)
         # =====================================
         # INDICADORES
         # =====================================
@@ -769,6 +765,179 @@ material = st.selectbox(
     "Selecione o material",
     sorted(resumo["Codigo"].unique())
 )
+        # =====================================
+        # TABELAS DE APOIO
+        # =====================================
+
+        mostrar_consumo = st.checkbox(
+            "🔧 Mostrar tabelas de cálculo",
+            value=False
+        )
+
+        if mostrar_consumo:
+
+            st.markdown("### Consumo por Data")
+
+            st.dataframe(
+                consumo_data,
+                use_container_width=True,
+                hide_index=True
+            )
+
+            st.markdown("### Estoque")
+
+            st.dataframe(
+                estoque,
+                use_container_width=True,
+                hide_index=True
+            )
+
+            st.markdown("### Consumo")
+
+            st.dataframe(
+                consumo,
+                use_container_width=True,
+                hide_index=True
+            )
+
+        # =====================================
+        # EXPORTAÇÃO
+        # =====================================
+
+        excel = io.BytesIO()
+
+        with pd.ExcelWriter(
+            excel,
+            engine="openpyxl"
+        ) as writer:
+
+            resumo.to_excel(
+                writer,
+                sheet_name="Materia Prima",
+                index=False
+            )
+
+        st.download_button(
+            "📥 Baixar Matéria-Prima",
+            data=excel.getvalue(),
+            file_name="Materia_Prima.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        # =====================================
+        # INDICADORES
+        # =====================================
+
+        col1, col2, col3, col4, col5 = st.columns(5)
+
+        col1.metric(
+            "📦 Materiais",
+            len(resumo)
+        )
+
+        col2.metric(
+            "🔴 Comprar",
+            (resumo["Compra Necessária"] > 0).sum()
+        )
+
+        col3.metric(
+            "📐 Total Comprar (m²)",
+            f'{resumo["Compra Necessária"].sum():,.2f}'
+        )
+
+        col4.metric(
+            "⚠️ Falta Material",
+            resumo["Primeira Falta"].notna().sum()
+        )
+
+        col5.metric(
+            "🟢 OK",
+            (resumo["Status"] == "🟢 OK").sum()
+        )
+
+        # =====================================
+        # TABELA PRINCIPAL
+        # =====================================
+
+        resumo = resumo[
+            [
+                "Codigo",
+                "Descricao",
+                "Estoque",
+                "Consumo",
+                "Saldo",
+                "Produz até",
+                "Primeira Falta",
+                "Compra Necessária",
+                "Status",
+            ]
+        ]
+
+        resumo = resumo.sort_values(
+            by=[
+                "Compra Necessária",
+                "Primeira Falta"
+            ],
+            ascending=[False, True]
+        )
+
+        st.dataframe(
+            resumo,
+            use_container_width=True,
+            hide_index=True,
+            height=650
+        )
+
+        # =====================================
+        # DETALHAR MATERIAL
+        # =====================================
+
+        st.markdown("---")
+        st.subheader("🔍 Detalhar Material")
+
+        materiais = (
+            resumo["Codigo"]
+            + " - "
+            + resumo["Descricao"]
+        ).tolist()
+
+        material = st.selectbox(
+            "Selecione o material",
+            sorted(materiais)
+        )
+
+        codigo = material.split(" - ")[0]
+
+        detalhe = (
+            consumo_data[
+                consumo_data["Codigo"] == codigo
+            ]
+            .copy()
+            .sort_values("Previsão")
+        )
+
+        if not detalhe.empty:
+
+            detalhe["Previsão"] = (
+                detalhe["Previsão"]
+                .dt.strftime("%d/%m/%Y")
+            )
+
+            st.dataframe(
+                detalhe[
+                    [
+                        "Previsão",
+                        "Pedido",
+                        "Cliente",
+                        "PC",
+                        "Rota",
+                        "Consumo Dia",
+                    ]
+                ],
+                use_container_width=True,
+                hide_index=True,
+                height=350,
+            )
+
         # =====================================
         # TABELAS DE APOIO
         # =====================================
