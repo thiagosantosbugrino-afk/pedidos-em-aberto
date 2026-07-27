@@ -759,41 +759,21 @@ if not detalhe.empty:
         height=350,
     )
 
+# =====================================
+# TABELAS DE APOIO
+# =====================================
 
-        # =====================================
-        # TABELAS DE APOIO
-        # =====================================
+mostrar_consumo = st.checkbox("🔧 Mostrar tabelas de cálculo", value=False)
 
-        mostrar_consumo = st.checkbox(
-            "🔧 Mostrar tabelas de cálculo",
-            value=False
-        )
+if mostrar_consumo:
+    st.markdown("### Consumo por Data")
+    st.dataframe(consumo_data, use_container_width=True, hide_index=True)
 
-        if mostrar_consumo:
+    st.markdown("### Estoque")
+    st.dataframe(estoque, use_container_width=True, hide_index=True)
 
-            st.markdown("### Consumo por Data")
-
-            st.dataframe(
-                consumo_data,
-                use_container_width=True,
-                hide_index=True
-            )
-
-            st.markdown("### Estoque")
-
-            st.dataframe(
-                estoque,
-                use_container_width=True,
-                hide_index=True
-            )
-
-            st.markdown("### Consumo")
-
-            st.dataframe(
-                consumo,
-                use_container_width=True,
-                hide_index=True
-            )
+    st.markdown("### Consumo")
+    st.dataframe(consumo, use_container_width=True, hide_index=True)
 
         # =====================================
         # EXPORTAÇÃO
