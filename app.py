@@ -637,7 +637,7 @@ resumo = resumo[
         .str.contains("DESCRI", na=False)
     )
 ]
-        # =====================================
+         # =====================================
         # COBERTURA DO ESTOQUE
         # =====================================
 
@@ -680,18 +680,20 @@ resumo = resumo[
         resumo["Produz até"] = produz_ate
         resumo["Primeira Falta"] = primeira_falta
 
-# Formata datas
-for coluna in ["Produz até", "Primeira Falta"]:
+        # =====================================
+        # FORMATA DATAS
+        # =====================================
 
-    resumo[coluna] = pd.to_datetime(
-        resumo[coluna],
-        errors="coerce"
-    )
+        for coluna in ["Produz até", "Primeira Falta"]:
 
-    resumo[coluna] = resumo[coluna].dt.strftime("%d/%m/%Y")
+            resumo[coluna] = pd.to_datetime(
+                resumo[coluna],
+                errors="coerce"
+            )
 
-    resumo[coluna] = resumo[coluna].fillna("")
+            resumo[coluna] = resumo[coluna].dt.strftime("%d/%m/%Y")
 
+            resumo[coluna] = resumo[coluna].fillna("")
         # =====================================
         # COMPRA NECESSÁRIA
         # =====================================
