@@ -688,69 +688,43 @@ resumo["Consumo"] = resumo["Consumo"].round(2)
 resumo["Saldo"] = resumo["Saldo"].round(2)
 resumo["Compra Necessária"] = resumo["Compra Necessária"].round(2)
 
-        # =====================================
-        # INDICADORES
-        # =====================================
+       # =====================================
+# INDICADORES
+# =====================================
 
-        col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5 = st.columns(5)
 
-        col1.metric(
-            "📦 Materiais",
-            len(resumo)
-        )
+col1.metric("📦 Materiais", len(resumo))
+col2.metric("🔴 Comprar", (resumo["Compra Necessária"] > 0).sum())
+col3.metric("📐 Total Comprar (m²)", f'{resumo["Compra Necessária"].sum():,.2f}')
+col4.metric("⚠️ Falta Material", resumo["Primeira Falta"].notna().sum())
+col5.metric("🟢 OK", (resumo["Status"] == "🟢 OK").sum())
 
-        col2.metric(
-            "🔴 Comprar",
-            (resumo["Compra Necessária"] > 0).sum()
-        )
+# =====================================
+# TABELA PRINCIPAL
+# =====================================
 
-        col3.metric(
-            "📐 Total Comprar (m²)",
-            f'{resumo["Compra Necessária"].sum():,.2f}'
-        )
+resumo = resumo[
+    [
+        "Codigo",
+        "Descricao",
+        "Estoque",
+        "Consumo",
+        "Saldo",
+        "Produz até",
+        "Primeira Falta",
+        "Compra Necessária",
+        "Status",
+    ]
+]
 
-        col4.metric(
-            "⚠️ Falta Material",
-            resumo["Primeira Falta"].notna().sum()
-        )
+resumo = resumo.sort_values(
+    by=["Compra Necessária", "Primeira Falta"],
+    ascending=[False, True]
+)
 
-        col5.metric(
-            "🟢 OK",
-            (resumo["Status"] == "🟢 OK").sum()
-        )
-
-        # =====================================
-        # TABELA PRINCIPAL
-        # =====================================
-
-        resumo = resumo[
-            [
-                "Codigo",
-                "Descricao",
-                "Estoque",
-                "Consumo",
-                "Saldo",
-                "Produz até",
-                "Primeira Falta",
-                "Compra Necessária",
-                "Status",
-            ]
-        ]
-
-        resumo = resumo.sort_values(
-            by=[
-                "Compra Necessária",
-                "Primeira Falta"
-            ],
-            ascending=[False, True]
-        )
-
-        st.dataframe(
-    resumo.style.set_properties(
-        **{
-            "text-align": "center"
-        }
-    ),
+st.dataframe(
+    resumo.style.set_properties(**{"text-align": "center"}),
     use_container_width=True,
     hide_index=True,
     height=650
