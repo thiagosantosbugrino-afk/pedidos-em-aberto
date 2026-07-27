@@ -551,23 +551,14 @@ consumo_data = (
 )
 
 consumo_data["Codigo"] = consumo_data["Produto"].apply(codigo_material)
-
-consumo_data["Consumo Dia"] = (
-    pd.to_numeric(consumo_data["M2 Vendido"], errors="coerce").fillna(0)
-)
-
+consumo_data["Consumo Dia"] = pd.to_numeric(consumo_data["M2 Vendido"], errors="coerce").fillna(0)
 consumo_data = consumo_data.sort_values(["Codigo", "Previsão"])
 
 # =====================================
 # RESUMO
 # =====================================
 
-resumo = pd.merge(
-    estoque,
-    consumo,
-    on="Codigo",
-    how="outer"
-)
+resumo = pd.merge(estoque, consumo, on="Codigo", how="outer")
 
 # Remove linhas que vieram como cabeçalho
 resumo = resumo[resumo["Codigo"].astype(str).str.upper() != "CODIGO"]
@@ -594,11 +585,7 @@ for _, linha in resumo.iterrows():
     codigo = linha["Codigo"]
     saldo = linha["Estoque"]
 
-    tabela = (
-        consumo_data[consumo_data["Codigo"] == codigo]
-        .sort_values("Previsão")
-        .copy()
-    )
+    tabela = consumo_data[consumo_data["Codigo"] == codigo].sort_values("Previsão").copy()
 
     ultima_data_ok = pd.NaT
     primeira_data_sem = pd.NaT
@@ -623,9 +610,7 @@ resumo["Primeira Falta"] = primeira_falta
 # COMPRA NECESSÁRIA
 # =====================================
 
-resumo["Compra Necessária"] = resumo["Saldo"].apply(
-    lambda x: "Sim" if x < 0 else "Não"
-)
+resumo["Compra Necessária"] = resumo["Saldo"].apply(lambda x: "Sim" if x < 0 else "Não")
 
 # =====================================
 # STATUS DO MATERIAL
@@ -640,6 +625,7 @@ def status_material(linha):
         return "Parcial"
 
 resumo["Status"] = resumo.apply(status_material, axis=1)
+
 
 # =====================================
 # AJUSTES FINAIS
