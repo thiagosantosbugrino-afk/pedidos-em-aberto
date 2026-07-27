@@ -14,14 +14,16 @@ import re
 
 def codigo_material(texto):
     """
-    Retorna o código do material.
+    Retorna o código padronizado do material.
 
     Exemplos:
 
-    INC0832102400 -> INC08
-    REF1032102400 -> REF10
-    LAM0632102400 -> LAM06
-    ESP0432102400 -> ESI04
+    INC0832102400      -> INC08
+    REF1032102400      -> REF10
+    ESP0432102400      -> ESP04
+    ESI0432102400      -> ESP04
+    LAMINC0632102400   -> LAMINC06
+    LAMINC0832102400   -> LAMINC08
     """
 
     if pd.isna(texto):
@@ -29,13 +31,23 @@ def codigo_material(texto):
 
     texto = str(texto).upper().strip()
 
-    # Procura 3 letras + 2 dígitos
+    # Padroniza códigos equivalentes
+    texto = texto.replace("ESI", "ESP")
+
+    # Laminados
+    resultado = re.match(r"(LAMINC\d{2})", texto)
+
+    if resultado:
+        return resultado.group(1)
+
+    # Materiais comuns
     resultado = re.match(r"([A-Z]{3}\d{2})", texto)
 
     if resultado:
         return resultado.group(1)
 
-    return texto[:5]
+    return texto
+
 
 def descricao_material(texto):
     """
@@ -50,7 +62,7 @@ def descricao_material(texto):
     # Remove a palavra CHAPARIA
     texto = texto.replace("CHAPARIA", "")
 
-    # Remove medidas da chapa (3600 x 1900, 3210 x 2400, etc.)
+    # Remove medidas da chapa
     texto = re.sub(r"\d{4}\s*[Xx]\s*\d{4}", "", texto)
 
     # Remove espaços extras
@@ -59,9 +71,7 @@ def descricao_material(texto):
     # Padroniza espessura
     texto = re.sub(r"\b0(\d)\s*MM\b", r"\1 mm", texto)
 
-    texto = texto.upper()
-
-    return texto
+    return texto.upper()
 
 # ===================================
 # CONFIGURAÇÃO
@@ -551,7 +561,7 @@ if mostrar_mp:
             .sum()
         )
 
-                # =====================================
+        # =====================================
         # CONSUMO POR DATA
         # =====================================
 
@@ -609,7 +619,24 @@ if mostrar_mp:
             resumo["Estoque"]
             - resumo["Consumo"]
         )
+# Remove linhas de cabeçalho importadas da planilha
+resumo = resumo[
+    ~(
+        resumo["Codigo"]
+        .astype(str)
+        .str.upper()
+        .str.contains("CÓDIG|CODIG", na=False)
+    )
+]
 
+resumo = resumo[
+    ~(
+        resumo["Descricao"]
+        .astype(str)
+        .str.upper()
+        .str.contains("DESCRI", na=False)
+    )
+]
         # =====================================
         # COBERTURA DO ESTOQUE
         # =====================================
@@ -652,6 +679,18 @@ if mostrar_mp:
 
         resumo["Produz até"] = produz_ate
         resumo["Primeira Falta"] = primeira_falta
+
+# Formata datas
+for coluna in ["Produz até", "Primeira Falta"]:
+
+    resumo[coluna] = pd.to_datetime(
+        resumo[coluna],
+        errors="coerce"
+    )
+
+    resumo[coluna] = resumo[coluna].dt.strftime("%d/%m/%Y")
+
+    resumo[coluna] = resumo[coluna].fillna("")
 
         # =====================================
         # COMPRA NECESSÁRIA
@@ -744,11 +783,15 @@ if mostrar_mp:
         )
 
         st.dataframe(
-            resumo,
-            use_container_width=True,
-            hide_index=True,
-            height=650
-        )
+    resumo.style.set_properties(
+        **{
+            "text-align": "center"
+        }
+    ),
+    use_container_width=True,
+    hide_index=True,
+    height=650
+)
 
         # =====================================
         # DETALHAR MATERIAL
