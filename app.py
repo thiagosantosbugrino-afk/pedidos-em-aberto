@@ -775,29 +775,22 @@ if mostrar_consumo:
     st.markdown("### Consumo")
     st.dataframe(consumo, use_container_width=True, hide_index=True)
 
-        # =====================================
-        # EXPORTAÇÃO
-        # =====================================
+# =====================================
+# EXPORTAÇÃO
+# =====================================
 
-        excel = io.BytesIO()
+excel = io.BytesIO()
 
-        with pd.ExcelWriter(
-            excel,
-            engine="openpyxl"
-        ) as writer:
+with pd.ExcelWriter(excel, engine="openpyxl") as writer:
+    resumo.to_excel(writer, sheet_name="Materia Prima", index=False)
 
-            resumo.to_excel(
-                writer,
-                sheet_name="Materia Prima",
-                index=False
-            )
+st.download_button(
+    label="📥 Baixar Matéria-Prima",
+    data=excel.getvalue(),
+    file_name="Materia_Prima.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+)
 
-        st.download_button(
-            "📥 Baixar Matéria-Prima",
-            data=excel.getvalue(),
-            file_name="Materia_Prima.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
 # ===================================
 # INDICADORES
 # ===================================
