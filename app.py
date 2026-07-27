@@ -532,126 +532,92 @@ if mostrar_mp:
         )
 
         # =====================================
-        # CONSUMO POR DATA
-        # =====================================
+# CONSUMO POR DATA
+# =====================================
 
-        consumo_data = (
-            df_final[
-                [
-                    "Previsão",
-                    "Produto",
-                    "Pedido",
-                    "Cliente",
-                    "PC",
-                    "Rota",
-                    "M2 Vendido",
-                ]
-            ]
-            .copy()
-        )
+consumo_data = (
+    df_final[
+        [
+            "Previsão",
+            "Produto",
+            "Pedido",
+            "Cliente",
+            "PC",
+            "Rota",
+            "M2 Vendido",
+        ]
+    ]
+    .copy()
+)
 
-        consumo_data["Codigo"] = (
-            consumo_data["Produto"]
-            .apply(codigo_material)
-        )
+consumo_data["Codigo"] = consumo_data["Produto"].apply(codigo_material)
 
-        consumo_data["Consumo Dia"] = (
-            pd.to_numeric(
-                consumo_data["M2 Vendido"],
-                errors="coerce",
-            )
-            .fillna(0)
-        )
+consumo_data["Consumo Dia"] = (
+    pd.to_numeric(consumo_data["M2 Vendido"], errors="coerce").fillna(0)
+)
 
-        consumo_data = consumo_data.sort_values(
-            [
-                "Codigo",
-                "Previsão",
-            ]
-        )
-        
-# Remove linhas que vieram como cabeçalho
-resumo = resumo[
-    resumo["Codigo"].astype(str).str.upper() != "CODIGO"
-]
-
-resumo = resumo[
-    resumo["Descricao"].astype(str).str.upper() != "DESCRICAO"
-]
+consumo_data = consumo_data.sort_values(["Codigo", "Previsão"])
 
 # =====================================
 # RESUMO
 # =====================================
 
 resumo = pd.merge(
-estoque,
-consumo,
-on="Codigo",
-how="outer"
+    estoque,
+    consumo,
+    on="Codigo",
+    how="outer"
 )
+
+# Remove linhas que vieram como cabeçalho
+resumo = resumo[resumo["Codigo"].astype(str).str.upper() != "CODIGO"]
+resumo = resumo[resumo["Descricao"].astype(str).str.upper() != "DESCRICAO"]
 
 # Preenche descrição quando o material só existe nas vendas
 resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
 
 # Garante que os valores sejam numéricos
-resumo["Estoque"] = pd.to_numeric(
-resumo["Estoque"],
-errors="coerce"
-).fillna(0)
-
-resumo["Consumo"] = pd.to_numeric(
-resumo["Consumo"],
-errors="coerce"
-).fillna(0)
+resumo["Estoque"] = pd.to_numeric(resumo["Estoque"], errors="coerce").fillna(0)
+resumo["Consumo"] = pd.to_numeric(resumo["Consumo"], errors="coerce").fillna(0)
 
 # Calcula saldo
-resumo["Saldo"] = (
-resumo["Estoque"]
-- resumo["Consumo"]
-)
+resumo["Saldo"] = resumo["Estoque"] - resumo["Consumo"]
 
-    # =====================================
-    # COBERTURA DO ESTOQUE
-    # =====================================
+# =====================================
+# COBERTURA DO ESTOQUE
+# =====================================
 
-    produz_ate = []
-    primeira_falta = []
+produz_ate = []
+primeira_falta = []
 
-    for _, linha in resumo.iterrows():
+for _, linha in resumo.iterrows():
+    codigo = linha["Codigo"]
+    saldo = linha["Estoque"]
 
-        codigo = linha["Codigo"]
-        saldo = linha["Estoque"]
+    tabela = (
+        consumo_data[consumo_data["Codigo"] == codigo]
+        .sort_values("Previsão")
+        .copy()
+    )
 
-        tabela = (
-            consumo_data[
-                consumo_data["Codigo"] == codigo
-            ]
-            .sort_values("Previsão")
-            .copy()
-        )
+    ultima_data_ok = pd.NaT
+    primeira_data_sem = pd.NaT
 
-        ultima_data_ok = pd.NaT
-        primeira_data_sem = pd.NaT
+    for _, item in tabela.iterrows():
+        consumo = item["Consumo Dia"]
 
-        for _, item in tabela.iterrows():
+        if saldo >= consumo:
+            saldo -= consumo
+            ultima_data_ok = item["Previsão"]
+        else:
+            primeira_data_sem = item["Previsão"]
+            break
 
-            consumo = item["Consumo Dia"]
+    produz_ate.append(ultima_data_ok)
+    primeira_falta.append(primeira_data_sem)
 
-            if saldo >= consumo:
-
-                saldo -= consumo
-                ultima_data_ok = item["Previsão"]
-
-            else:
-
-                primeira_data_sem = item["Previsão"]
-                break
-
-        produz_ate.append(ultima_data_ok)
-        primeira_falta.append(primeira_data_sem)
-
-    resumo["Produz até"] = produz_ate
-    resumo["Primeira Falta"] = primeira_falta
+resumo["Produz até"] = produz_ate
+resumo["Primeira Falta"] = primeira_falta
 
         # =====================================
         # COMPRA NECESSÁRIA
