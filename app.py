@@ -748,7 +748,12 @@ with pd.ExcelWriter(excel, engine="openpyxl") as writer:
     resumo.to_excel(writer, sheet_name="Materia Prima", index=False)
 
 st.download_button(
-    "📥 Baixar
+    label="📥 Baixar Matéria-Prima",
+    data=excel.getvalue(),
+    file_name="Materia_Prima.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
 # ===================================
 # INDICADORES
 # ===================================
