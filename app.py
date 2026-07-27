@@ -434,6 +434,7 @@ if rotas_manuais and "Rota" in df_base_filtrada.columns:
     df_final = pd.concat([df_final, df_extra_rotas], ignore_index=True)
 
 df_final = df_final.drop_duplicates()
+
 # ===================================
 # VISÃO MATÉRIA-PRIMA
 # ===================================
@@ -577,25 +578,36 @@ resumo = resumo[
 resumo = resumo[
     resumo["Descricao"].astype(str).str.upper() != "DESCRICAO"
 ]
-        # =====================================
-        # RESUMO
-        # =====================================
+       # =====================================
+# RESUMO
+# =====================================
 
-        resumo = pd.merge(
-            estoque,
-            consumo,
-            on="Codigo",
-            how="outer",
-        )
+resumo = pd.merge(
+    estoque,
+    consumo,
+    on="Codigo",
+    how="outer"
+)
 
-        resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
-        resumo["Estoque"] = resumo["Estoque"].fillna(0)
-        resumo["Consumo"] = resumo["Consumo"].fillna(0)
+# Preenche descrição quando o material só existe nas vendas
+resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
 
-        resumo["Saldo"] = (
-            resumo["Estoque"]
-            - resumo["Consumo"]
-        )
+# Garante que os valores sejam numéricos
+resumo["Estoque"] = pd.to_numeric(
+    resumo["Estoque"],
+    errors="coerce"
+).fillna(0)
+
+resumo["Consumo"] = pd.to_numeric(
+    resumo["Consumo"],
+    errors="coerce"
+).fillna(0)
+
+# Calcula saldo
+resumo["Saldo"] = (
+    resumo["Estoque"]
+    - resumo["Consumo"]
+)
 
         # =====================================
         # COBERTURA DO ESTOQUE
