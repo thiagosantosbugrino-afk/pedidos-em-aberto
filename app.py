@@ -824,50 +824,36 @@ if mostrar_mp:
 
             )
 
-        # =====================================
-        # INDICADORES
-        # =====================================
+# =====================================
+# INDICADORES
+# =====================================
 
-        col1, col2, col3, col4, col5 = (
-            st.columns(5)
-        )
+col1, col2, col3, col4, col5 = st.columns(5)
 
-        col1.metric(
-            "📦 Materiais",
-            len(resumo)
-        )
+col1.metric(
+    "📦 Materiais",
+    len(resumo)
+)
 
-        col2.metric(
-            "🔴 Comprar",
-            (
-                resumo["Saldo"]
-                < 0
-            ).sum()
-        )
+col2.metric(
+    "🔴 Comprar",
+    (resumo["Saldo"] < 0).sum()
+)
 
-        col3.metric(
-            "📐 Total Comprar (m²)",
-            (
-                f"{resumo['Compra Necessária']"
-                f".sum():,.2f}"
-            )
-        )
+col3.metric(
+    "📐 Total Comprar (m²)",
+    f"{resumo['Compra Necessária'].sum():,.2f}"
+)
 
-        col4.metric(
-            "⚠️ Falta Material",
-            (
-                resumo["Primeira Falta"]
-                != ""
-            ).sum()
-        )
+col4.metric(
+    "⚠️ Falta Material",
+    (resumo["Primeira Falta"] != "").sum()
+)
 
-        col5.metric(
-            "🟢 OK",
-            (
-                resumo["Saldo"]
-                >= 0
-            ).sum()
-        )
+col5.metric(
+    "🟢 OK",
+    (resumo["Saldo"] >= 0).sum()
+)
 
         # =====================================
         # COLUNAS DA TABELA
