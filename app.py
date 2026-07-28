@@ -550,36 +550,55 @@ if mostrar_mp:
         )
 
         # =====================================
-        # RESUMO
-        # =====================================
+# RESUMO
+# =====================================
 
-        resumo = pd.merge(
-            estoque,
-            consumo,
-            on="Codigo",
-            how="outer"
-        )
+resumo = pd.merge(
+    consumo,
+    estoque,
+    on="Codigo",
+    how="left"
+)
 
-        resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
-        resumo["Estoque"] = resumo["Estoque"].fillna(0)
-        resumo["Consumo"] = resumo["Consumo"].fillna(0)
+resumo["Descricao"] = resumo["Descricao"].fillna(
+    resumo["Codigo"]
+)
 
-        resumo["Saldo"] = (
-            resumo["Estoque"] -
-            resumo["Consumo"]
-        )
+resumo["Estoque"] = resumo["Estoque"].fillna(0)
 
-        resumo = resumo[
-            ~resumo["Codigo"]
-            .astype(str)
-            .str.contains("CODIG|CÓDIG", case=False, na=False)
-        ]
+resumo["Consumo"] = resumo["Consumo"].fillna(0)
 
-        resumo = resumo[
-            ~resumo["Descricao"]
-            .astype(str)
-            .str.contains("DESCRI", case=False, na=False)
-        ]
+resumo["Saldo"] = (
+    resumo["Estoque"] -
+    resumo["Consumo"]
+)
+
+# Mantém somente os materiais presentes
+# nos pedidos selecionados pelos filtros
+resumo = resumo[
+    resumo["Consumo"] > 0
+].copy()
+
+# Remove possíveis linhas de cabeçalho
+resumo = resumo[
+    ~resumo["Codigo"]
+    .astype(str)
+    .str.contains(
+        "CODIG|CÓDIG",
+        case=False,
+        na=False
+    )
+]
+
+resumo = resumo[
+    ~resumo["Descricao"]
+    .astype(str)
+    .str.contains(
+        "DESCRI",
+        case=False,
+        na=False
+    )
+]
 
         # =====================================
         # COBERTURA
