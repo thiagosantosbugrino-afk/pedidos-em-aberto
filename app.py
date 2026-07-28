@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 
 # ===================================
-# FUNÇÕES
+# FUNÇÃO IDENTIFICADOR DO MATERIAL
 # ===================================
 
 def codigo_material(texto):
@@ -19,6 +19,7 @@ def codigo_material(texto):
     Retorna o código padronizado do material.
 
     Exemplos:
+
     INC0832102400      -> INC08
     REF1032102400      -> REF10
     ESP0432102400      -> ESP04
@@ -36,19 +37,29 @@ def codigo_material(texto):
     texto = texto.replace("ESI", "ESP")
 
     # Laminados
-    resultado = re.match(r"(LAMINC\d{2})", texto)
+    resultado = re.match(
+        r"(LAMINC\d{2})",
+        texto
+    )
 
     if resultado:
         return resultado.group(1)
 
     # Materiais comuns
-    resultado = re.match(r"([A-Z]{3}\d{2})", texto)
+    resultado = re.match(
+        r"([A-Z]{3}\d{2})",
+        texto
+    )
 
     if resultado:
         return resultado.group(1)
 
     return texto
 
+
+# ===================================
+# FUNÇÃO DESCRIÇÃO DO MATERIAL
+# ===================================
 
 def descricao_material(texto):
     """
@@ -61,17 +72,20 @@ def descricao_material(texto):
 
     texto = str(texto).upper().strip()
 
-    # Remove CHAPARIA
-    texto = texto.replace("CHAPARIA", "")
+    # Remove a palavra CHAPARIA
+    texto = texto.replace(
+        "CHAPARIA",
+        ""
+    )
 
-    # Remove medidas
+    # Remove medidas da chapa
     texto = re.sub(
         r"\d{4}\s*[Xx]\s*\d{4}",
         "",
         texto
     )
 
-    # Remove espaços extras
+    # Remove espaços duplicados
     texto = re.sub(
         r"\s+",
         " ",
@@ -88,24 +102,6 @@ def descricao_material(texto):
     return texto.upper()
 
 
-def formatar_numero_br(valor):
-    """
-    Formata números no padrão brasileiro.
-    Exemplo:
-    1234.50 -> 1.234,50
-    """
-
-    if pd.isna(valor):
-        return ""
-
-    return (
-        f"{float(valor):,.2f}"
-        .replace(",", "X")
-        .replace(".", ",")
-        .replace("X", ".")
-    )
-
-
 # ===================================
 # CONFIGURAÇÃO
 # ===================================
@@ -116,7 +112,9 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📊 Pedidos Em Aberto - Visualização")
+st.title(
+    "📊 Pedidos Em Aberto - Visualização"
+)
 
 
 # ===================================
@@ -161,99 +159,31 @@ st.markdown(
 # LEITURA DA PLANILHA
 # ===================================
 
-try:
+df = pd.read_excel(
+    "dados.xlsx",
+    sheet_name=0
+)
 
-    df = pd.read_excel(
-        "dados.xlsx",
-        sheet_name=0
-    )
+df_base = pd.read_excel(
+    "dados.xlsx",
+    sheet_name=0
+)
 
-    df_base = pd.read_excel(
-        "dados.xlsx",
-        sheet_name=0
-    )
+df.columns = (
+    df.columns
+    .astype(str)
+    .str.strip()
+)
 
-except Exception as erro:
-
-    st.error(
-        f"❌ Erro ao abrir dados.xlsx: {erro}"
-    )
-
-    st.stop()
-
-
-# ===================================
-# LIMPEZA DAS COLUNAS
-# ===================================
-
-for base in [df, df_base]:
-
-    base.columns = (
-        base.columns
-        .astype(str)
-        .str.strip()
-    )
-
-    # Pedido
-    if "Pedido" in base.columns:
-
-        base["Pedido"] = (
-            pd.to_numeric(
-                base["Pedido"],
-                errors="coerce"
-            )
-            .astype("Int64")
-            .astype(str)
-        )
-
-        base["Pedido"] = (
-            base["Pedido"]
-            .replace("<NA>", "")
-        )
-
-    # PC
-    if "PC" in base.columns:
-
-        base["PC"] = (
-            base["PC"]
-            .astype(str)
-            .str.replace(
-                ".0",
-                "",
-                regex=False
-            )
-        )
-
-        base["PC"] = (
-            base["PC"]
-            .replace("nan", "")
-        )
-
-    # Data
-    if "Previsão" in base.columns:
-
-        base["Previsão"] = (
-            pd.to_datetime(
-                base["Previsão"],
-                errors="coerce",
-                dayfirst=True
-            )
-        )
-
-    # M²
-    if "M2 Vendido" in base.columns:
-
-        base["M2 Vendido"] = (
-            pd.to_numeric(
-                base["M2 Vendido"],
-                errors="coerce"
-            )
-            .fillna(0)
-        )
+df_base.columns = (
+    df_base.columns
+    .astype(str)
+    .str.strip()
+)
 
 
 # ===================================
-# CONSOLIDADOR
+# CARREGA CONSOLIDADOR
 # ===================================
 
 try:
@@ -278,6 +208,60 @@ except Exception:
 
 
 # ===================================
+# PADRONIZA PEDIDOS
+# ===================================
+
+for base in [df, df_base]:
+
+    if "Pedido" in base.columns:
+
+        pedido_numerico = pd.to_numeric(
+            base["Pedido"],
+            errors="coerce"
+        )
+
+        base["Pedido"] = (
+            pedido_numerico
+            .astype("Int64")
+            .astype(str)
+        )
+
+
+# ===================================
+# PADRONIZA PC
+# ===================================
+
+for base in [df, df_base]:
+
+    if "PC" in base.columns:
+
+        base["PC"] = (
+            base["PC"]
+            .astype(str)
+            .str.replace(
+                ".0",
+                "",
+                regex=False
+            )
+        )
+
+
+# ===================================
+# PADRONIZA DATA
+# ===================================
+
+for base in [df, df_base]:
+
+    if "Previsão" in base.columns:
+
+        base["Previsão"] = pd.to_datetime(
+            base["Previsão"],
+            errors="coerce",
+            dayfirst=True
+        )
+
+
+# ===================================
 # ÚLTIMA ATUALIZAÇÃO
 # ===================================
 
@@ -293,7 +277,9 @@ try:
         )
 
     data_update = datetime.strptime(
-        dados_update["ultima_atualizacao"],
+        dados_update[
+            "ultima_atualizacao"
+        ],
         "%Y-%m-%d %H:%M:%S"
     )
 
@@ -304,7 +290,9 @@ try:
 
     data_formatada = (
         data_update
-        .strftime("%d/%m/%Y %H:%M:%S")
+        .strftime(
+            "%d/%m/%Y %H:%M:%S"
+        )
     )
 
     st.info(
@@ -356,7 +344,9 @@ except Exception:
 # SIDEBAR
 # ===================================
 
-st.sidebar.title("Filtros")
+st.sidebar.title(
+    "Filtros"
+)
 
 
 # ===================================
@@ -368,106 +358,91 @@ end_date = None
 
 if (
     "Previsão" in df.columns
-    and df["Previsão"].notna().any()
+    and not df.empty
 ):
 
-    min_data = (
+    datas_validas = (
         df["Previsão"]
-        .min()
-        .date()
+        .dropna()
     )
 
-    max_data = (
-        df["Previsão"]
-        .max()
-        .date()
-    )
+    if not datas_validas.empty:
 
-    try:
-
-        start_default = (
-            pd.to_datetime(
-                filtros.get(
-                    "start_date",
-                    min_data
-                )
-            )
+        min_data = (
+            datas_validas
+            .min()
             .date()
         )
 
-    except Exception:
-
-        start_default = min_data
-
-    try:
-
-        end_default = (
-            pd.to_datetime(
-                filtros.get(
-                    "end_date",
-                    max_data
-                )
-            )
+        max_data = (
+            datas_validas
+            .max()
             .date()
         )
 
-    except Exception:
+        try:
 
-        end_default = max_data
+            start_default = (
+                pd.to_datetime(
+                    filtros.get(
+                        "start_date",
+                        min_data
+                    )
+                )
+                .date()
+            )
 
-    # Evita datas fora do intervalo
-    start_default = max(
-        min_data,
-        min(
-            start_default,
-            max_data
-        )
-    )
+        except Exception:
 
-    end_default = max(
-        min_data,
-        min(
-            end_default,
-            max_data
-        )
-    )
+            start_default = min_data
 
-    start_date = st.sidebar.date_input(
-        "Data inicial",
-        value=start_default,
-        min_value=min_data,
-        max_value=max_data,
-        format="DD/MM/YYYY"
-    )
+        try:
 
-    end_date = st.sidebar.date_input(
-        "Data final",
-        value=end_default,
-        min_value=min_data,
-        max_value=max_data,
-        format="DD/MM/YYYY"
-    )
+            end_default = (
+                pd.to_datetime(
+                    filtros.get(
+                        "end_date",
+                        max_data
+                    )
+                )
+                .date()
+            )
 
-    if start_date > end_date:
+        except Exception:
 
-        st.sidebar.error(
-            "A data inicial não pode "
-            "ser maior que a data final."
+            end_default = max_data
+
+        start_date = (
+            st.sidebar
+            .date_input(
+                "Data inicial",
+                value=start_default,
+                format="DD/MM/YYYY"
+            )
         )
 
-        st.stop()
+        end_date = (
+            st.sidebar
+            .date_input(
+                "Data final",
+                value=end_default,
+                format="DD/MM/YYYY"
+            )
+        )
 
-    df = df[
-        (
-            df["Previsão"].dt.date
-            >= start_date
-        )
-        &
-        (
-            df["Previsão"].dt.date
-            <= end_date
-        )
-    ]
+        df = df[
+            (
+                df["Previsão"]
+                .dt.date
+                >= start_date
+            )
+            &
+            (
+                df["Previsão"]
+                .dt.date
+                <= end_date
+            )
+        ]
 
 
 # ===================================
@@ -496,10 +471,13 @@ if "Rota" in df.columns:
 
     ]
 
-    rotas_sel = st.sidebar.multiselect(
-        "Rotas",
-        options=rotas,
-        default=rotas_default
+    rotas_sel = (
+        st.sidebar
+        .multiselect(
+            "Rotas",
+            rotas,
+            default=rotas_default
+        )
     )
 
     if rotas_sel:
@@ -507,8 +485,14 @@ if "Rota" in df.columns:
         df = df[
             df["Rota"]
             .astype(str)
-            .isin(rotas_sel)
+            .isin(
+                rotas_sel
+            )
         ]
+
+else:
+
+    rotas_sel = []
 
 
 # ===================================
@@ -537,10 +521,13 @@ if "Produto" in df.columns:
 
     ]
 
-    produtos_sel = st.sidebar.multiselect(
-        "Produtos",
-        options=produtos,
-        default=produtos_default
+    produtos_sel = (
+        st.sidebar
+        .multiselect(
+            "Produtos",
+            produtos,
+            default=produtos_default
+        )
     )
 
     if produtos_sel:
@@ -548,8 +535,14 @@ if "Produto" in df.columns:
         df = df[
             df["Produto"]
             .astype(str)
-            .isin(produtos_sel)
+            .isin(
+                produtos_sel
+            )
         ]
+
+else:
+
+    produtos_sel = []
 
 
 # ===================================
@@ -578,10 +571,13 @@ if "PC" in df.columns:
 
     ]
 
-    pcs_sel = st.sidebar.multiselect(
-        "Programação de carga",
-        options=pcs,
-        default=pcs_default
+    pcs_sel = (
+        st.sidebar
+        .multiselect(
+            "Programação de carga",
+            pcs,
+            default=pcs_default
+        )
     )
 
     if pcs_sel:
@@ -589,24 +585,36 @@ if "PC" in df.columns:
         df = df[
             df["PC"]
             .astype(str)
-            .isin(pcs_sel)
+            .isin(
+                pcs_sel
+            )
         ]
+
+else:
+
+    pcs_sel = []
 
 
 # ===================================
 # BASE FILTRADA
 # ===================================
 
-df_filtrado = df.copy()
+df_filtrado = (
+    df.copy()
+)
 
-df_final = df_filtrado.copy()
+df_final = (
+    df_filtrado.copy()
+)
 
 
 # ===================================
 # PEDIDOS MANUAIS
 # ===================================
 
-st.sidebar.markdown("---")
+st.sidebar.markdown(
+    "---"
+)
 
 st.sidebar.subheader(
     "📌 Pedidos manuais"
@@ -615,10 +623,17 @@ st.sidebar.subheader(
 lista_pedidos = (
 
     sorted(
-        df_base["Pedido"]
+
+        df_base[
+            "Pedido"
+        ]
+
         .dropna()
+
         .astype(str)
+
         .unique()
+
     )
 
     if "Pedido" in df_base.columns
@@ -628,9 +643,10 @@ lista_pedidos = (
 )
 
 pedidos_manuais = (
-    st.sidebar.multiselect(
+    st.sidebar
+    .multiselect(
         "Selecionar pedidos manuais",
-        options=lista_pedidos,
+        lista_pedidos,
         default=[
 
             pedido
@@ -651,7 +667,9 @@ pedidos_manuais = (
 # ROTAS MANUAIS
 # ===================================
 
-st.sidebar.markdown("---")
+st.sidebar.markdown(
+    "---"
+)
 
 st.sidebar.subheader(
     "🚚 Rotas manuais"
@@ -660,10 +678,17 @@ st.sidebar.subheader(
 lista_rotas = (
 
     sorted(
-        df_base["Rota"]
+
+        df_base[
+            "Rota"
+        ]
+
         .dropna()
+
         .astype(str)
+
         .unique()
+
     )
 
     if "Rota" in df_base.columns
@@ -673,9 +698,10 @@ lista_rotas = (
 )
 
 rotas_manuais = (
-    st.sidebar.multiselect(
+    st.sidebar
+    .multiselect(
         "Selecionar rotas manuais",
-        options=lista_rotas,
+        lista_rotas,
         default=[
 
             rota
@@ -703,7 +729,8 @@ df_base_filtrada = (
 if (
     start_date is not None
     and end_date is not None
-    and "Previsão" in df_base_filtrada.columns
+    and "Previsão"
+    in df_base_filtrada.columns
 ):
 
     df_base_filtrada = (
@@ -711,18 +738,25 @@ if (
             (
                 df_base_filtrada[
                     "Previsão"
-                ].dt.date
+                ]
+                .dt.date
                 >= start_date
             )
             &
             (
                 df_base_filtrada[
                     "Previsão"
-                ].dt.date
+                ]
+                .dt.date
                 <= end_date
             )
         ]
     )
+
+
+df_final = (
+    df_filtrado.copy()
+)
 
 
 if (
@@ -789,7 +823,9 @@ df_final = (
 # VISÃO MATÉRIA-PRIMA
 # =====================================
 
-st.markdown("---")
+st.markdown(
+    "---"
+)
 
 mostrar_mp = st.checkbox(
     "🪵 Mostrar Matéria-Prima",
@@ -802,24 +838,8 @@ if mostrar_mp:
     if not consolidador_carregado:
 
         st.warning(
-            "⚠️ Nenhum arquivo "
-            "consolidador.xlsx foi encontrado."
-        )
-
-    elif len(
-        df_consolidador.columns
-    ) < 19:
-
-        st.error(
-            "❌ O consolidador não possui "
-            "as colunas necessárias."
-        )
-
-    elif df_final.empty:
-
-        st.info(
-            "Nenhum pedido foi encontrado "
-            "nos filtros selecionados."
+            "⚠️ Nenhum Consolidador "
+            "foi enviado."
         )
 
     else:
@@ -832,353 +852,149 @@ if mostrar_mp:
         # ESTOQUE
         # =====================================
 
-        estoque = (
-            df_consolidador
-            .iloc[:, [1, 2, 18]]
-            .copy()
-        )
-
-        estoque.columns = [
-            "Codigo",
-            "Descricao",
-            "Estoque"
-        ]
-
-        estoque["Codigo"] = (
-            estoque["Codigo"]
-            .apply(
-                codigo_material
-            )
-        )
-
-        estoque["Descricao"] = (
-            estoque["Descricao"]
-            .apply(
-                descricao_material
-            )
-        )
-
-        estoque["Estoque"] = (
-            pd.to_numeric(
-                estoque["Estoque"],
-                errors="coerce"
-            )
-            .fillna(0)
-        )
-
-        estoque = (
-            estoque[
-                estoque["Codigo"]
-                .notna()
-            ]
-        )
-
-        estoque = (
-            estoque
-            .groupby(
-                [
-                    "Codigo",
-                    "Descricao"
-                ],
-                as_index=False
-            )["Estoque"]
-            .sum()
-        )
-
-        # =====================================
-        # CONSUMO DOS FILTROS
-        # =====================================
-
         if (
-            "Produto"
-            not in df_final.columns
-            or
-            "M2 Vendido"
-            not in df_final.columns
+            df_consolidador.shape[1]
+            <= 18
         ):
 
             st.error(
-                "❌ As colunas Produto "
-                "ou M2 Vendido não foram "
-                "encontradas."
+                "O arquivo Consolidador "
+                "não possui as colunas "
+                "necessárias."
             )
 
         else:
 
-            consumo = (
-                df_final[
-                    [
-                        "Produto",
-                        "M2 Vendido"
-                    ]
+            estoque = (
+                df_consolidador
+                .iloc[
+                    :,
+                    [1, 2, 18]
                 ]
                 .copy()
             )
 
-            consumo["Codigo"] = (
-                consumo["Produto"]
-                .apply(
-                    codigo_material
-                )
-            )
+            estoque.columns = [
 
-            consumo["Consumo"] = (
-                pd.to_numeric(
-                    consumo[
-                        "M2 Vendido"
-                    ],
-                    errors="coerce"
-                )
-                .fillna(0)
-            )
+                "Codigo",
 
-            consumo = (
-                consumo[
-                    consumo["Codigo"]
-                    .notna()
-                ]
-            )
+                "Descricao",
 
-            consumo = (
-                consumo
-                .groupby(
-                    "Codigo",
-                    as_index=False
-                )["Consumo"]
-                .sum()
-            )
-
-            # =================================
-            # CONSUMO POR DATA
-            # =================================
-
-            colunas_detalhe = [
-
-                "Previsão",
-
-                "Produto",
-
-                "Pedido",
-
-                "Cliente",
-
-                "PC",
-
-                "Rota",
-
-                "M2 Vendido"
+                "Estoque"
 
             ]
 
-            colunas_existentes = [
+            estoque["Codigo"] = (
+
+                estoque[
+                    "Codigo"
+                ]
+
+                .apply(
+                    codigo_material
+                )
+
+            )
+
+            estoque["Descricao"] = (
+
+                estoque[
+                    "Descricao"
+                ]
+
+                .apply(
+                    descricao_material
+                )
+
+            )
+
+            estoque["Estoque"] = (
+
+                pd.to_numeric(
+
+                    estoque[
+                        "Estoque"
+                    ],
+
+                    errors="coerce"
+
+                )
+
+                .fillna(0)
+
+            )
+
+            estoque = (
+
+                estoque
+
+                .dropna(
+                    subset=[
+                        "Codigo"
+                    ]
+                )
+
+                .groupby(
+
+                    [
+                        "Codigo",
+                        "Descricao"
+                    ],
+
+                    as_index=False
+
+                )[
+                    "Estoque"
+                ]
+
+                .sum()
+
+            )
+
+
+            # =====================================
+            # CONSUMO
+            # =====================================
+
+            colunas_consumo = [
 
                 coluna
 
-                for coluna
-                in colunas_detalhe
+                for coluna in [
+
+                    "Produto",
+
+                    "M2 Vendido"
+
+                ]
 
                 if coluna
                 in df_final.columns
 
             ]
 
-            consumo_data = (
-                df_final[
-                    colunas_existentes
-                ]
-                .copy()
-            )
 
-            consumo_data["Codigo"] = (
-                consumo_data[
-                    "Produto"
-                ]
-                .apply(
-                    codigo_material
+            if len(
+                colunas_consumo
+            ) < 2:
+
+                st.warning(
+                    "As colunas "
+                    "'Produto' e "
+                    "'M2 Vendido' "
+                    "não foram encontradas."
                 )
-            )
 
-            consumo_data[
-                "Consumo Dia"
-            ] = (
+            else:
 
-                pd.to_numeric(
-                    consumo_data[
-                        "M2 Vendido"
-                    ],
-                    errors="coerce"
-                )
-                .fillna(0)
+                consumo = (
 
-            )
+                    df_final[
 
-            if (
-                "Previsão"
-                in consumo_data.columns
-            ):
-
-                consumo_data = (
-                    consumo_data
-                    .sort_values(
                         [
-                            "Codigo",
-                            "Previsão"
+                            "Produto",
+                            "M2 Vendido"
                         ]
-                    )
-                )
-
-            # =================================
-            # RESUMO
-            # =================================
-
-            # O merge começa pelo consumo.
-            # Portanto, aparecem somente os
-            # materiais usados pelos filtros.
-
-            resumo = pd.merge(
-
-                consumo,
-
-                estoque,
-
-                on="Codigo",
-
-                how="left"
-
-            )
-
-            resumo["Descricao"] = (
-
-                resumo["Descricao"]
-
-                .fillna(
-
-                    resumo["Codigo"]
-
-                )
-
-            )
-
-            resumo["Estoque"] = (
-
-                resumo["Estoque"]
-
-                .fillna(0)
-
-            )
-
-            resumo["Consumo"] = (
-
-                resumo["Consumo"]
-
-                .fillna(0)
-
-            )
-
-            resumo["Saldo"] = (
-
-                resumo["Estoque"]
-
-                -
-
-                resumo["Consumo"]
-
-            )
-
-            # Mostra somente materiais
-            # utilizados pelos filtros.
-
-            resumo = (
-
-                resumo[
-
-                    resumo["Consumo"]
-
-                    > 0
-
-                ]
-
-                .copy()
-
-            )
-
-            # Remove possíveis cabeçalhos
-
-            resumo = (
-
-                resumo[
-
-                    ~resumo["Codigo"]
-
-                    .astype(str)
-
-                    .str.contains(
-
-                        "CODIG|CÓDIG",
-
-                        case=False,
-
-                        na=False
-
-                    )
-
-                ]
-
-            )
-
-            resumo = (
-
-                resumo[
-
-                    ~resumo["Descricao"]
-
-                    .astype(str)
-
-                    .str.contains(
-
-                        "DESCRI",
-
-                        case=False,
-
-                        na=False
-
-                    )
-
-                ]
-
-            )
-
-            # =================================
-            # COBERTURA
-            # =================================
-
-            produz_ate = []
-
-            primeira_falta = []
-
-            for _, linha in (
-                resumo.iterrows()
-            ):
-
-                codigo_atual = (
-                    linha["Codigo"]
-                )
-
-                saldo_atual = (
-                    linha["Estoque"]
-                )
-
-                tabela_material = (
-
-                    consumo_data[
-
-                        consumo_data[
-                            "Codigo"
-                        ]
-
-                        ==
-
-                        codigo_atual
 
                     ]
 
@@ -1186,14 +1002,349 @@ if mostrar_mp:
 
                 )
 
-                if (
-                    "Previsão"
-                    in tabela_material.columns
+                consumo["Codigo"] = (
+
+                    consumo[
+                        "Produto"
+                    ]
+
+                    .apply(
+                        codigo_material
+                    )
+
+                )
+
+                consumo["Consumo"] = (
+
+                    pd.to_numeric(
+
+                        consumo[
+                            "M2 Vendido"
+                        ],
+
+                        errors="coerce"
+
+                    )
+
+                    .fillna(0)
+
+                )
+
+                consumo = (
+
+                    consumo
+
+                    .dropna(
+                        subset=[
+                            "Codigo"
+                        ]
+                    )
+
+                    .groupby(
+
+                        "Codigo",
+
+                        as_index=False
+
+                    )[
+                        "Consumo"
+                    ]
+
+                    .sum()
+
+                )
+
+
+                # =====================================
+                # CONSUMO POR DATA
+                # =====================================
+
+                colunas_detalhe = [
+
+                    "Previsão",
+
+                    "Produto",
+
+                    "Pedido",
+
+                    "Cliente",
+
+                    "PC",
+
+                    "Rota",
+
+                    "M2 Vendido"
+
+                ]
+
+
+                for coluna in colunas_detalhe:
+
+                    if (
+                        coluna
+                        not in df_final.columns
+                    ):
+
+                        df_final[
+                            coluna
+                        ] = ""
+
+
+                consumo_data = (
+
+                    df_final[
+
+                        colunas_detalhe
+
+                    ]
+
+                    .copy()
+
+                )
+
+                consumo_data[
+                    "Codigo"
+                ] = (
+
+                    consumo_data[
+                        "Produto"
+                    ]
+
+                    .apply(
+                        codigo_material
+                    )
+
+                )
+
+                consumo_data[
+                    "Consumo Dia"
+                ] = (
+
+                    pd.to_numeric(
+
+                        consumo_data[
+                            "M2 Vendido"
+                        ],
+
+                        errors="coerce"
+
+                    )
+
+                    .fillna(0)
+
+                )
+
+                consumo_data = (
+
+                    consumo_data
+
+                    .dropna(
+                        subset=[
+                            "Codigo"
+                        ]
+                    )
+
+                    .sort_values(
+
+                        [
+                            "Codigo",
+                            "Previsão"
+                        ]
+
+                    )
+
+                )
+
+
+                # =====================================
+                # RESUMO
+                # =====================================
+
+                resumo = pd.merge(
+
+                    consumo,
+
+                    estoque,
+
+                    on="Codigo",
+
+                    how="left"
+
+                )
+
+
+                resumo[
+                    "Descricao"
+                ] = (
+
+                    resumo[
+                        "Descricao"
+                    ]
+
+                    .fillna(
+
+                        resumo[
+                            "Codigo"
+                        ]
+
+                    )
+
+                )
+
+
+                resumo[
+                    "Estoque"
+                ] = (
+
+                    resumo[
+                        "Estoque"
+                    ]
+
+                    .fillna(0)
+
+                )
+
+
+                resumo[
+                    "Consumo"
+                ] = (
+
+                    resumo[
+                        "Consumo"
+                    ]
+
+                    .fillna(0)
+
+                )
+
+
+                resumo[
+                    "Saldo"
+                ] = (
+
+                    resumo[
+                        "Estoque"
+                    ]
+
+                    -
+
+                    resumo[
+                        "Consumo"
+                    ]
+
+                )
+
+
+                # Mantém somente os materiais
+                # presentes nos filtros.
+
+                resumo = (
+
+                    resumo[
+
+                        resumo[
+                            "Consumo"
+                        ]
+                        > 0
+
+                    ]
+
+                    .copy()
+
+                )
+
+
+                # Remove possíveis cabeçalhos
+                # importados da planilha.
+
+                resumo = (
+
+                    resumo[
+
+                        ~resumo[
+                            "Codigo"
+                        ]
+
+                        .astype(str)
+
+                        .str.contains(
+
+                            "CODIG|CÓDIG",
+
+                            case=False,
+
+                            na=False
+
+                        )
+
+                    ]
+
+                )
+
+
+                resumo = (
+
+                    resumo[
+
+                        ~resumo[
+                            "Descricao"
+                        ]
+
+                        .astype(str)
+
+                        .str.contains(
+
+                            "DESCRI",
+
+                            case=False,
+
+                            na=False
+
+                        )
+
+                    ]
+
+                )
+
+
+                # =====================================
+                # COBERTURA DO ESTOQUE
+                # =====================================
+
+                produz_ate = []
+
+                primeira_falta = []
+
+
+                for _, linha in (
+                    resumo.iterrows()
                 ):
+
+                    codigo_atual = (
+                        linha[
+                            "Codigo"
+                        ]
+                    )
+
+                    saldo_atual = (
+                        linha[
+                            "Estoque"
+                        ]
+                    )
 
                     tabela_material = (
 
-                        tabela_material
+                        consumo_data[
+
+                            consumo_data[
+                                "Codigo"
+                            ]
+
+                            ==
+
+                            codigo_atual
+
+                        ]
 
                         .sort_values(
 
@@ -1201,47 +1352,49 @@ if mostrar_mp:
 
                         )
 
+                        .copy()
+
                     )
 
-                ultima_data_ok = (
-                    pd.NaT
-                )
 
-                primeira_data_sem = (
-                    pd.NaT
-                )
-
-                for _, item in (
-                    tabela_material
-                    .iterrows()
-                ):
-
-                    consumo_dia = (
-                        item[
-                            "Consumo Dia"
-                        ]
+                    ultima_data_ok = (
+                        pd.NaT
                     )
 
-                    if (
-                        saldo_atual
-                        >=
-                        consumo_dia
+                    primeira_data_sem = (
+                        pd.NaT
+                    )
+
+
+                    for _, item in (
+                        tabela_material
+                        .iterrows()
                     ):
 
-                        saldo_atual = (
+                        consumo_dia = (
 
-                            saldo_atual
-
-                            -
-
-                            consumo_dia
+                            item[
+                                "Consumo Dia"
+                            ]
 
                         )
 
+
                         if (
-                            "Previsão"
-                            in item.index
+                            saldo_atual
+                            >=
+                            consumo_dia
                         ):
+
+                            saldo_atual = (
+
+                                saldo_atual
+
+                                -
+
+                                consumo_dia
+
+                            )
 
                             ultima_data_ok = (
 
@@ -1251,12 +1404,7 @@ if mostrar_mp:
 
                             )
 
-                    else:
-
-                        if (
-                            "Previsão"
-                            in item.index
-                        ):
+                        else:
 
                             primeira_data_sem = (
 
@@ -1266,232 +1414,269 @@ if mostrar_mp:
 
                             )
 
-                        break
+                            break
 
-                produz_ate.append(
 
-                    ultima_data_ok
+                    produz_ate.append(
 
-                )
-
-                primeira_falta.append(
-
-                    primeira_data_sem
-
-                )
-
-            resumo[
-                "Produz até"
-            ] = produz_ate
-
-            resumo[
-                "Primeira Falta"
-            ] = primeira_falta
-
-            # =================================
-            # COMPRA NECESSÁRIA
-            # =================================
-
-            resumo[
-                "Compra Necessária"
-            ] = (
-
-                resumo["Saldo"]
-
-                .clip(
-                    upper=0
-                )
-
-                .abs()
-
-            )
-
-            # =================================
-            # STATUS
-            # =================================
-
-            resumo["Status"] = (
-
-                resumo["Saldo"]
-
-                .apply(
-
-                    lambda valor:
-
-                    "🟢 OK"
-
-                    if valor >= 0
-
-                    else "🔴 Comprar"
-
-                )
-
-            )
-
-            # =================================
-            # ARREDONDAMENTO
-            # =================================
-
-            for coluna in [
-
-                "Estoque",
-
-                "Consumo",
-
-                "Saldo",
-
-                "Compra Necessária"
-
-            ]:
-
-                resumo[coluna] = (
-
-                    resumo[coluna]
-
-                    .round(2)
-
-                )
-
-            # =================================
-            # FORMATAÇÃO DAS DATAS
-            # =================================
-
-            for coluna in [
-
-                "Produz até",
-
-                "Primeira Falta"
-
-            ]:
-
-                resumo[coluna] = (
-
-                    pd.to_datetime(
-
-                        resumo[coluna],
-
-                        errors="coerce"
+                        ultima_data_ok
 
                     )
 
-                    .dt.strftime(
+                    primeira_falta.append(
 
-                        "%d/%m/%Y"
+                        primeira_data_sem
 
                     )
 
-                    .fillna("")
-
-                )
-
-            # =================================
-            # INDICADORES DA MP
-            # =================================
-
-            col1, col2, col3, col4, col5 = (
-                st.columns(5)
-            )
-
-            col1.metric(
-
-                "📦 Materiais",
-
-                len(resumo)
-
-            )
-
-            col2.metric(
-
-                "🔴 Comprar",
-
-                int(
-
-                    (
-                        resumo[
-                            "Saldo"
-                        ]
-
-                        < 0
-
-                    ).sum()
-
-                )
-
-            )
-
-            total_compra = (
 
                 resumo[
+                    "Produz até"
+                ] = produz_ate
+
+                resumo[
+                    "Primeira Falta"
+                ] = primeira_falta
+
+
+                # =====================================
+                # COMPRA NECESSÁRIA
+                # =====================================
+
+                resumo[
+                    "Compra Necessária"
+                ] = (
+
+                    resumo[
+                        "Saldo"
+                    ]
+
+                    .clip(
+                        upper=0
+                    )
+
+                    .abs()
+
+                )
+
+
+                # =====================================
+                # STATUS
+                # =====================================
+
+                resumo[
+                    "Status"
+                ] = (
+
+                    resumo[
+                        "Saldo"
+                    ]
+
+                    .apply(
+
+                        lambda valor:
+
+                        "🟢 OK"
+
+                        if valor >= 0
+
+                        else
+
+                        "🔴 Comprar"
+
+                    )
+
+                )
+
+
+                # =====================================
+                # ARREDONDAMENTO
+                # =====================================
+
+                for coluna in [
+
+                    "Estoque",
+
+                    "Consumo",
+
+                    "Saldo",
 
                     "Compra Necessária"
 
-                ].sum()
+                ]:
 
-            )
-
-            col3.metric(
-
-                "📐 Total Comprar (m²)",
-
-                formatar_numero_br(
-
-                    total_compra
-
-                )
-
-            )
-
-            col4.metric(
-
-                "⚠️ Falta Material",
-
-                int(
-
-                    (
+                    resumo[
+                        coluna
+                    ] = (
 
                         resumo[
-
-                            "Primeira Falta"
-
+                            coluna
                         ]
 
-                        != ""
+                        .round(2)
 
-                    ).sum()
+                    )
+
+
+                # =====================================
+                # FORMATAÇÃO DAS DATAS
+                # =====================================
+
+                for coluna in [
+
+                    "Produz até",
+
+                    "Primeira Falta"
+
+                ]:
+
+                    resumo[
+                        coluna
+                    ] = (
+
+                        pd.to_datetime(
+
+                            resumo[
+                                coluna
+                            ],
+
+                            errors="coerce"
+
+                        )
+
+                        .dt.strftime(
+
+                            "%d/%m/%Y"
+
+                        )
+
+                        .fillna("")
+
+                    )
+
+
+                # =====================================
+                # INDICADORES MATÉRIA-PRIMA
+                # =====================================
+
+                col1, col2, col3, col4, col5 = (
+                    st.columns(5)
+                )
+
+
+                col1.metric(
+
+                    "📦 Materiais",
+
+                    len(resumo)
 
                 )
 
-            )
 
-            col5.metric(
+                col2.metric(
 
-                "🟢 OK",
+                    "🔴 Comprar",
 
-                int(
+                    int(
+
+                        (
+                            resumo[
+                                "Saldo"
+                            ]
+                            < 0
+                        )
+                        .sum()
+
+                    )
+
+                )
+
+
+                total_compra = (
+
+                    resumo[
+                        "Compra Necessária"
+                    ]
+
+                    .sum()
+
+                )
+
+
+                col3.metric(
+
+                    "📐 Total Comprar (m²)",
 
                     (
-
-                        resumo[
-
-                            "Saldo"
-
-                        ]
-
-                        >= 0
-
-                    ).sum()
+                        f"{total_compra:,.2f}"
+                        .replace(
+                            ",",
+                            "X"
+                        )
+                        .replace(
+                            ".",
+                            ","
+                        )
+                        .replace(
+                            "X",
+                            "."
+                        )
+                    )
 
                 )
 
-            )
 
-            # =================================
-            # COLUNAS DA TABELA
-            # =================================
+                col4.metric(
 
-            resumo = (
+                    "⚠️ Falta Material",
 
-                resumo[
+                    int(
+
+                        (
+
+                            resumo[
+                                "Primeira Falta"
+                            ]
+
+                            != ""
+
+                        )
+
+                        .sum()
+
+                    )
+
+                )
+
+
+                col5.metric(
+
+                    "🟢 OK",
+
+                    int(
+
+                        (
+
+                            resumo[
+                                "Saldo"
+                            ]
+
+                            >= 0
+
+                        )
+
+                        .sum()
+
+                    )
+
+                )
+
+
+                # =====================================
+                # COLUNAS
+                # =====================================
+
+                resumo = resumo[
 
                     [
 
@@ -1517,176 +1702,228 @@ if mostrar_mp:
 
                 ]
 
-            )
 
-            resumo = (
+                resumo = (
 
-                resumo
+                    resumo
 
-                .sort_values(
+                    .sort_values(
 
-                    [
+                        [
 
-                        "Compra Necessária",
+                            "Compra Necessária",
 
-                        "Primeira Falta"
+                            "Primeira Falta"
 
-                    ],
+                        ],
 
-                    ascending=[
+                        ascending=[
 
-                        False,
+                            False,
 
-                        True
+                            True
 
-                    ]
-
-                )
-
-            )
-
-            # =================================
-            # TABELA
-            # =================================
-
-            st.dataframe(
-
-                resumo,
-
-                use_container_width=True,
-
-                hide_index=True,
-
-                height=650,
-
-                column_config={
-
-                    "Estoque":
-
-                    st.column_config.NumberColumn(
-
-                        "Estoque",
-
-                        format="%.2f"
-
-                    ),
-
-                    "Consumo":
-
-                    st.column_config.NumberColumn(
-
-                        "Consumo",
-
-                        format="%.2f"
-
-                    ),
-
-                    "Saldo":
-
-                    st.column_config.NumberColumn(
-
-                        "Saldo",
-
-                        format="%.2f"
-
-                    ),
-
-                    "Compra Necessária":
-
-                    st.column_config.NumberColumn(
-
-                        "Compra Necessária",
-
-                        format="%.2f"
+                        ]
 
                     )
 
-                }
+                    .reset_index(
 
-            )
+                        drop=True
 
-            # =================================
-            # DETALHAR MATERIAL
-            # =================================
+                    )
 
-            st.markdown("---")
+                )
 
-            st.subheader(
-                "🔍 Detalhar Material"
-            )
 
-            if not resumo.empty:
+                # =====================================
+                # TABELA CENTRALIZADA
+                # =====================================
 
-                materiais = (
+                estilo_tabela = (
 
-                    resumo["Codigo"]
+                    resumo.style
+
+                    # Centraliza o conteúdo
+                    # de todas as colunas.
+
+                    .set_properties(
+
+                        **{
+
+                            "text-align":
+
+                            "center"
+
+                        }
+
+                    )
+
+                    # Mantém somente o conteúdo
+                    # da descrição à esquerda.
+
+                    .set_properties(
+
+                        subset=[
+
+                            "Descricao"
+
+                        ],
+
+                        **{
+
+                            "text-align":
+
+                            "left"
+
+                        }
+
+                    )
+
+                    # Centraliza todos os títulos.
+
+                    .set_table_styles(
+
+                        [
+
+                            {
+
+                                "selector":
+
+                                "th",
+
+                                "props":
+
+                                [
+
+                                    (
+
+                                        "text-align",
+
+                                        "center !important"
+
+                                    )
+
+                                ]
+
+                            }
+
+                        ]
+
+                    )
+
+                )
+
+
+                altura_tabela = min(
+
+                    45
 
                     +
 
-                    " - "
+                    (
 
-                    +
+                        len(resumo)
 
-                    resumo["Descricao"]
+                        *
 
-                ).tolist()
+                        36
 
-                material = (
+                    ),
 
-                    st.selectbox(
+                    650
 
-                        "Selecione o material",
+                )
 
-                        sorted(
 
-                            materiais
+                st.dataframe(
+
+                    estilo_tabela,
+
+                    use_container_width=True,
+
+                    hide_index=True,
+
+                    height=altura_tabela
+
+                )
+
+
+                # =====================================
+                # DETALHAR MATERIAL
+                # =====================================
+
+                st.markdown(
+                    "---"
+                )
+
+                st.subheader(
+                    "🔍 Detalhar Material"
+                )
+
+
+                if not resumo.empty:
+
+                    materiais = (
+
+                        resumo[
+                            "Codigo"
+                        ]
+
+                        +
+
+                        " - "
+
+                        +
+
+                        resumo[
+                            "Descricao"
+                        ]
+
+                    ).tolist()
+
+
+                    material = (
+
+                        st.selectbox(
+
+                            "Selecione o material",
+
+                            sorted(
+                                materiais
+                            )
 
                         )
 
                     )
 
-                )
 
-                codigo_selecionado = (
+                    codigo_selecionado = (
 
-                    material
+                        material
 
-                    .split(
+                        .split(
+                            " - "
+                        )[0]
 
-                        " - "
+                    )
 
-                    )[0]
-
-                )
-
-                detalhe = (
-
-                    consumo_data[
-
-                        consumo_data[
-
-                            "Codigo"
-
-                        ]
-
-                        ==
-
-                        codigo_selecionado
-
-                    ]
-
-                    .copy()
-
-                )
-
-                if (
-                    "Previsão"
-                    in detalhe.columns
-                ):
 
                     detalhe = (
 
-                        detalhe
+                        consumo_data[
+
+                            consumo_data[
+                                "Codigo"
+                            ]
+
+                            ==
+
+                            codigo_selecionado
+
+                        ]
+
+                        .copy()
 
                         .sort_values(
 
@@ -1696,17 +1933,33 @@ if mostrar_mp:
 
                     )
 
+
                     detalhe[
-
-                        "Previsão"
-
+                        "Consumo Dia"
                     ] = (
 
                         detalhe[
-
-                            "Previsão"
-
+                            "Consumo Dia"
                         ]
+
+                        .round(2)
+
+                    )
+
+
+                    detalhe[
+                        "Previsão"
+                    ] = (
+
+                        pd.to_datetime(
+
+                            detalhe[
+                                "Previsão"
+                            ],
+
+                            errors="coerce"
+
+                        )
 
                         .dt.strftime(
 
@@ -1716,168 +1969,158 @@ if mostrar_mp:
 
                     )
 
-                detalhe[
 
-                    "Consumo Dia"
+                    st.dataframe(
 
-                ] = (
+                        detalhe[
 
-                    detalhe[
+                            [
 
-                        "Consumo Dia"
+                                "Previsão",
 
-                    ]
+                                "Pedido",
 
-                    .round(2)
+                                "Cliente",
 
+                                "PC",
+
+                                "Rota",
+
+                                "Consumo Dia"
+
+                            ]
+
+                        ],
+
+                        use_container_width=True,
+
+                        hide_index=True,
+
+                        height=min(
+
+                            45
+
+                            +
+
+                            (
+
+                                len(
+                                    detalhe
+                                )
+
+                                *
+
+                                36
+
+                            ),
+
+                            350
+
+                        )
+
+                    )
+
+
+                else:
+
+                    st.info(
+
+                        "Nenhum material foi "
+
+                        "encontrado nos filtros "
+
+                        "selecionados."
+
+                    )
+
+
+                # =====================================
+                # EXPORTAÇÃO MATÉRIA-PRIMA
+                # =====================================
+
+                excel_mp = (
+                    io.BytesIO()
                 )
 
-                colunas_exibir = [
 
-                    coluna
+                with pd.ExcelWriter(
 
-                    for coluna in [
+                    excel_mp,
 
-                        "Previsão",
+                    engine="openpyxl"
 
-                        "Pedido",
+                ) as writer:
 
-                        "Cliente",
+                    resumo.to_excel(
 
-                        "PC",
+                        writer,
 
-                        "Rota",
+                        sheet_name="Matéria-Prima",
 
-                        "Consumo Dia"
+                        index=False
 
-                    ]
+                    )
 
-                    if coluna
 
-                    in detalhe.columns
+                st.download_button(
 
-                ]
+                    label=(
 
-                st.dataframe(
-
-                    detalhe[
-
-                        colunas_exibir
-
-                    ],
-
-                    use_container_width=True,
-
-                    hide_index=True,
-
-                    height=350
-
-                )
-
-            else:
-
-                st.info(
-
-                    "Nenhum material foi "
-
-                    "encontrado nos filtros "
-
-                    "selecionados."
-
-                )
-
-            # =================================
-            # EXPORTAÇÃO DA MP
-            # =================================
-
-            excel_mp = (
-                io.BytesIO()
-            )
-
-            with pd.ExcelWriter(
-
-                excel_mp,
-
-                engine="openpyxl"
-
-            ) as writer:
-
-                resumo.to_excel(
-
-                    writer,
-
-                    sheet_name=(
+                        "📥 Baixar "
 
                         "Matéria-Prima"
 
                     ),
 
-                    index=False
+                    data=(
+
+                        excel_mp.getvalue()
+
+                    ),
+
+                    file_name=(
+
+                        "Materia_Prima.xlsx"
+
+                    ),
+
+                    mime=(
+
+                        "application/vnd."
+
+                        "openxmlformats-"
+
+                        "officedocument."
+
+                        "spreadsheetml.sheet"
+
+                    )
 
                 )
-
-            st.download_button(
-
-                label=(
-
-                    "📥 Baixar "
-
-                    "Matéria-Prima"
-
-                ),
-
-                data=(
-
-                    excel_mp.getvalue()
-
-                ),
-
-                file_name=(
-
-                    "Materia_Prima.xlsx"
-
-                ),
-
-                mime=(
-
-                    "application/"
-
-                    "vnd.openxmlformats-"
-
-                    "officedocument."
-
-                    "spreadsheetml.sheet"
-
-                )
-
-            )
 
 
 # ===================================
 # INDICADORES GERAIS
 # ===================================
 
-st.markdown("---")
+st.markdown(
+    "---"
+)
 
-st.subheader("Indicadores")
+st.subheader(
+    "Indicadores"
+)
 
 
 total_pedidos = (
 
-    df_final["Pedido"]
-
-    .replace(
-
-        "",
-
-        pd.NA
-
-    )
+    df_final[
+        "Pedido"
+    ]
 
     .nunique()
 
     if "Pedido"
-
     in df_final.columns
 
     else 0
@@ -1885,8 +2128,8 @@ total_pedidos = (
 )
 
 
-total_pecas = len(
-    df_final
+total_pecas = (
+    len(df_final)
 )
 
 
@@ -1895,9 +2138,7 @@ total_m2 = (
     pd.to_numeric(
 
         df_final[
-
             "M2 Vendido"
-
         ],
 
         errors="coerce"
@@ -1909,7 +2150,6 @@ total_m2 = (
     .sum()
 
     if "M2 Vendido"
-
     in df_final.columns
 
     else 0
@@ -1922,9 +2162,7 @@ total_peso = (
     pd.to_numeric(
 
         df_final[
-
             "Peso"
-
         ],
 
         errors="coerce"
@@ -1936,7 +2174,6 @@ total_peso = (
     .sum()
 
     if "Peso"
-
     in df_final.columns
 
     else 0
@@ -1946,12 +2183,13 @@ total_peso = (
 
 total_rotas = (
 
-    df_final["Rota"]
+    df_final[
+        "Rota"
+    ]
 
     .nunique()
 
     if "Rota"
-
     in df_final.columns
 
     else 0
@@ -1969,49 +2207,50 @@ m2_atrasados = 0
 
 
 if (
-
     "Previsão"
-
     in df_final.columns
-
 ):
 
     limite = (
 
         datetime.now()
 
-        + timedelta(days=2)
+        +
+
+        timedelta(
+            days=2
+        )
 
     ).date()
+
 
     df_atrasados = (
 
         df_final[
 
             df_final[
-
                 "Previsão"
+            ]
 
-            ].dt.date
+            .dt.date
 
-            < limite
+            <
+
+            limite
 
         ]
 
     )
 
-    pecas_atrasadas = len(
 
-        df_atrasados
-
+    pecas_atrasadas = (
+        len(df_atrasados)
     )
 
+
     if (
-
         "M2 Vendido"
-
         in df_atrasados.columns
-
     ):
 
         m2_atrasados = (
@@ -2019,9 +2258,7 @@ if (
             pd.to_numeric(
 
                 df_atrasados[
-
                     "M2 Vendido"
-
                 ],
 
                 errors="coerce"
@@ -2052,15 +2289,17 @@ c2.metric(
 
 c3.metric(
     "Total M²",
-    formatar_numero_br(
-        total_m2
+    round(
+        total_m2,
+        2
     )
 )
 
 c4.metric(
     "Peso Total",
-    formatar_numero_br(
-        total_peso
+    round(
+        total_peso,
+        2
     )
 )
 
@@ -2076,8 +2315,9 @@ c6.metric(
 
 c7.metric(
     "⚠️ M² Atrasado",
-    formatar_numero_br(
-        m2_atrasados
+    round(
+        m2_atrasados,
+        2
     )
 )
 
@@ -2086,7 +2326,9 @@ c7.metric(
 # TABELA POR ROTA
 # ===================================
 
-st.markdown("---")
+st.markdown(
+    "---"
+)
 
 mostrar_rota = st.checkbox(
 
@@ -2097,294 +2339,245 @@ mostrar_rota = st.checkbox(
 )
 
 
-if mostrar_rota:
+if (
+    mostrar_rota
+    and not df_final.empty
+    and "Rota"
+    in df_final.columns
+    and "Previsão"
+    in df_final.columns
+    and "M2 Vendido"
+    in df_final.columns
+):
 
     st.subheader(
         "📊 Tabela por Rota"
     )
 
-    if (
 
-        not df_final.empty
+    df_rota = (
+        df_final.copy()
+    )
 
-        and
 
-        "Rota"
-
-        in df_final.columns
-
-        and
-
-        "Previsão"
-
-        in df_final.columns
-
-        and
-
+    df_rota[
         "M2 Vendido"
+    ] = (
 
-        in df_final.columns
-
-    ):
-
-        df_rota = (
-
-            df_final.copy()
-
-        )
-
-        df_rota[
-
-            "Previsão"
-
-        ] = (
+        pd.to_numeric(
 
             df_rota[
+                "M2 Vendido"
+            ],
 
+            errors="coerce"
+
+        )
+
+        .fillna(0)
+
+    )
+
+
+    df_rota[
+        "Previsão"
+    ] = (
+
+        pd.to_datetime(
+
+            df_rota[
                 "Previsão"
+            ],
 
-            ]
-
-            .dt.strftime(
-
-                "%d/%m/%Y"
-
-            )
+            errors="coerce"
 
         )
 
-        ordem_datas = (
+    )
 
-            sorted(
 
-                pd.to_datetime(
+    ordem_datas = (
 
-                    df_rota[
-
-                        "Previsão"
-
-                    ],
-
-                    format=(
-
-                        "%d/%m/%Y"
-
-                    ),
-
-                    errors="coerce"
-
-                )
-
-                .dropna()
-
-                .unique()
-
-            )
-
-        )
-
-        ordem_datas = [
-
-            pd.to_datetime(
-
-                data
-
-            ).strftime(
-
-                "%d/%m/%Y"
-
-            )
-
-            for data
-
-            in ordem_datas
-
+        df_rota[
+            "Previsão"
         ]
 
-        tabela_rota = (
+        .dropna()
 
-            pd.pivot_table(
+        .sort_values()
 
-                df_rota,
+        .dt.strftime(
 
-                values=(
-
-                    "M2 Vendido"
-
-                ),
-
-                index="Rota",
-
-                columns=(
-
-                    "Previsão"
-
-                ),
-
-                aggfunc="sum",
-
-                fill_value=0,
-
-                margins=True,
-
-                margins_name=(
-
-                    "TOTAL GERAL"
-
-                )
-
-            )
+            "%d/%m/%Y"
 
         )
 
-        colunas = [
+        .unique()
 
-            coluna
+        .tolist()
 
-            for coluna
+    )
 
-            in ordem_datas
 
-            if coluna
+    df_rota[
+        "Previsão"
+    ] = (
 
-            in tabela_rota.columns
-
+        df_rota[
+            "Previsão"
         ]
 
-        if (
+        .dt.strftime(
 
+            "%d/%m/%Y"
+
+        )
+
+    )
+
+
+    tabela_rota = (
+
+        pd.pivot_table(
+
+            df_rota,
+
+            values="M2 Vendido",
+
+            index="Rota",
+
+            columns="Previsão",
+
+            aggfunc="sum",
+
+            fill_value=0,
+
+            margins=True,
+
+            margins_name="TOTAL GERAL"
+
+        )
+
+    )
+
+
+    colunas = [
+
+        coluna
+
+        for coluna
+        in ordem_datas
+
+        if coluna
+        in tabela_rota.columns
+
+    ]
+
+
+    if (
+        "TOTAL GERAL"
+        in tabela_rota.columns
+    ):
+
+        colunas.append(
             "TOTAL GERAL"
+        )
 
-            in tabela_rota.columns
 
-        ):
+    tabela_rota = (
 
-            colunas.append(
+        tabela_rota[
+            colunas
+        ]
 
-                "TOTAL GERAL"
+        .round(2)
 
+    )
+
+
+    tabela_rota = (
+
+        tabela_rota.loc[
+
+            (
+                tabela_rota
+                != 0
             )
 
-        tabela_rota = (
-
-            tabela_rota[
-
-                colunas
-
-            ]
-
-        )
-
-        tabela_rota = (
-
-            tabela_rota
-
-            .round(2)
-
-        )
-
-        tabela_rota = (
-
-            tabela_rota.loc[
-
-                (
-
-                    tabela_rota
-
-                    != 0
-
-                )
-
-                .any(
-
-                    axis=1
-
-                )
-
-            ]
-
-        )
-
-        tabela_rota = (
-
-            tabela_rota.loc[
-
-                :,
-
-                (
-
-                    tabela_rota
-
-                    != 0
-
-                )
-
-                .any(
-
-                    axis=0
-
-                )
-
-            ]
-
-        )
-
-        tabela_rota = (
-
-            tabela_rota
-
-            .replace(
-
-                0,
-
-                ""
-
+            .any(
+                axis=1
             )
 
-        )
+        ]
 
-        html_rota = (
+    )
 
-            tabela_rota
 
-            .to_html(
+    tabela_rota = (
 
-                classes=(
+        tabela_rota.loc[
 
-                    "tabela-centralizada"
+            :,
 
-                ),
-
-                border=0
-
+            (
+                tabela_rota
+                != 0
             )
 
+            .any(
+                axis=0
+            )
+
+        ]
+
+    )
+
+
+    tabela_rota = (
+
+        tabela_rota
+
+        .replace(
+            0,
+            ""
         )
 
-        st.markdown(
+    )
 
-            html_rota,
 
-            unsafe_allow_html=True
+    html_rota = (
+
+        tabela_rota
+
+        .to_html(
+
+            classes=(
+                "tabela-centralizada"
+            ),
+
+            border=0
 
         )
 
-    else:
+    )
 
-        st.info(
 
-            "Não há dados suficientes "
+    st.markdown(
 
-            "para montar a tabela."
+        html_rota,
 
-        )
+        unsafe_allow_html=True
+
+    )
 
 
 # ===================================
 # TABELA POR PRODUTO
 # ===================================
 
-st.markdown("---")
+st.markdown(
+    "---"
+)
 
 mostrar_produto = st.checkbox(
 
@@ -2395,552 +2588,508 @@ mostrar_produto = st.checkbox(
 )
 
 
-if mostrar_produto:
+if (
+    mostrar_produto
+    and not df_final.empty
+    and "Produto"
+    in df_final.columns
+    and "Previsão"
+    in df_final.columns
+    and "M2 Vendido"
+    in df_final.columns
+):
 
     st.subheader(
         "🪟 Tabela por Produto"
     )
 
-    if (
 
-        not df_final.empty
+    df_produto = (
+        df_final.copy()
+    )
 
-        and
 
-        "Produto"
-
-        in df_final.columns
-
-        and
-
-        "Previsão"
-
-        in df_final.columns
-
-        and
-
+    df_produto[
         "M2 Vendido"
+    ] = (
 
-        in df_final.columns
-
-    ):
-
-        df_produto = (
-
-            df_final.copy()
-
-        )
-
-        df_produto[
-
-            "Previsão"
-
-        ] = (
+        pd.to_numeric(
 
             df_produto[
+                "M2 Vendido"
+            ],
 
+            errors="coerce"
+
+        )
+
+        .fillna(0)
+
+    )
+
+
+    df_produto[
+        "Previsão"
+    ] = (
+
+        pd.to_datetime(
+
+            df_produto[
                 "Previsão"
+            ],
 
-            ]
-
-            .dt.strftime(
-
-                "%d/%m/%Y"
-
-            )
+            errors="coerce"
 
         )
 
-        ordem_datas = (
+    )
 
-            sorted(
 
-                pd.to_datetime(
+    ordem_datas = (
 
-                    df_produto[
-
-                        "Previsão"
-
-                    ],
-
-                    format=(
-
-                        "%d/%m/%Y"
-
-                    ),
-
-                    errors="coerce"
-
-                )
-
-                .dropna()
-
-                .unique()
-
-            )
-
-        )
-
-        ordem_datas = [
-
-            pd.to_datetime(
-
-                data
-
-            ).strftime(
-
-                "%d/%m/%Y"
-
-            )
-
-            for data
-
-            in ordem_datas
-
+        df_produto[
+            "Previsão"
         ]
 
-        tabela_produto = (
+        .dropna()
 
-            pd.pivot_table(
+        .sort_values()
 
-                df_produto,
+        .dt.strftime(
 
-                values=(
-
-                    "M2 Vendido"
-
-                ),
-
-                index="Produto",
-
-                columns=(
-
-                    "Previsão"
-
-                ),
-
-                aggfunc="sum",
-
-                fill_value=0,
-
-                margins=True,
-
-                margins_name=(
-
-                    "TOTAL GERAL"
-
-                )
-
-            )
+            "%d/%m/%Y"
 
         )
 
-        colunas = [
+        .unique()
 
-            coluna
+        .tolist()
 
-            for coluna
+    )
 
-            in ordem_datas
 
-            if coluna
+    df_produto[
+        "Previsão"
+    ] = (
 
-            in tabela_produto.columns
-
+        df_produto[
+            "Previsão"
         ]
 
-        if (
+        .dt.strftime(
 
+            "%d/%m/%Y"
+
+        )
+
+    )
+
+
+    tabela_produto = (
+
+        pd.pivot_table(
+
+            df_produto,
+
+            values="M2 Vendido",
+
+            index="Produto",
+
+            columns="Previsão",
+
+            aggfunc="sum",
+
+            fill_value=0,
+
+            margins=True,
+
+            margins_name="TOTAL GERAL"
+
+        )
+
+    )
+
+
+    colunas = [
+
+        coluna
+
+        for coluna
+        in ordem_datas
+
+        if coluna
+        in tabela_produto.columns
+
+    ]
+
+
+    if (
+        "TOTAL GERAL"
+        in tabela_produto.columns
+    ):
+
+        colunas.append(
             "TOTAL GERAL"
+        )
 
-            in tabela_produto.columns
 
-        ):
+    tabela_produto = (
 
-            colunas.append(
+        tabela_produto[
+            colunas
+        ]
 
-                "TOTAL GERAL"
+        .round(2)
 
+    )
+
+
+    tabela_produto = (
+
+        tabela_produto.loc[
+
+            (
+                tabela_produto
+                != 0
             )
 
-        tabela_produto = (
-
-            tabela_produto[
-
-                colunas
-
-            ]
-
-        )
-
-        tabela_produto = (
-
-            tabela_produto
-
-            .round(2)
-
-        )
-
-        tabela_produto = (
-
-            tabela_produto.loc[
-
-                (
-
-                    tabela_produto
-
-                    != 0
-
-                )
-
-                .any(
-
-                    axis=1
-
-                )
-
-            ]
-
-        )
-
-        tabela_produto = (
-
-            tabela_produto.loc[
-
-                :,
-
-                (
-
-                    tabela_produto
-
-                    != 0
-
-                )
-
-                .any(
-
-                    axis=0
-
-                )
-
-            ]
-
-        )
-
-        tabela_produto = (
-
-            tabela_produto
-
-            .replace(
-
-                0,
-
-                ""
-
+            .any(
+                axis=1
             )
 
-        )
+        ]
 
-        html_produto = (
+    )
 
-            tabela_produto
 
-            .to_html(
+    tabela_produto = (
 
-                classes=(
+        tabela_produto.loc[
 
-                    "tabela-centralizada"
+            :,
 
-                ),
-
-                border=0
-
+            (
+                tabela_produto
+                != 0
             )
 
+            .any(
+                axis=0
+            )
+
+        ]
+
+    )
+
+
+    tabela_produto = (
+
+        tabela_produto
+
+        .replace(
+            0,
+            ""
         )
 
-        st.markdown(
+    )
 
-            html_produto,
 
-            unsafe_allow_html=True
+    html_produto = (
+
+        tabela_produto
+
+        .to_html(
+
+            classes=(
+                "tabela-centralizada"
+            ),
+
+            border=0
 
         )
 
-    else:
+    )
 
-        st.info(
 
-            "Não há dados suficientes "
+    st.markdown(
 
-            "para montar a tabela."
+        html_produto,
 
-        )
+        unsafe_allow_html=True
+
+    )
 
 
 # ===================================
 # TABELA ROTA X PRODUTO
 # ===================================
 
-st.markdown("---")
+st.markdown(
+    "---"
+)
 
-mostrar_rota_produto = (
-    st.checkbox(
-        "📊 Mostrar Rota X Produto",
-        value=False
-    )
+mostrar_rota_produto = st.checkbox(
+
+    "📊 Mostrar Rota X Produto",
+
+    value=False
+
 )
 
 
-if mostrar_rota_produto:
+if (
+    mostrar_rota_produto
+    and not df_final.empty
+    and "Rota"
+    in df_final.columns
+    and "Produto"
+    in df_final.columns
+    and "M2 Vendido"
+    in df_final.columns
+):
 
     st.subheader(
         "📊 Rota X Produto"
     )
 
-    if (
 
-        not df_final.empty
+    df_rota_produto = (
+        df_final.copy()
+    )
 
-        and
 
-        "Rota"
-
-        in df_final.columns
-
-        and
-
-        "Produto"
-
-        in df_final.columns
-
-        and
-
+    df_rota_produto[
         "M2 Vendido"
+    ] = (
 
-        in df_final.columns
+        pd.to_numeric(
 
+            df_rota_produto[
+                "M2 Vendido"
+            ],
+
+            errors="coerce"
+
+        )
+
+        .fillna(0)
+
+    )
+
+
+    tabela_rota_produto = (
+
+        pd.pivot_table(
+
+            df_rota_produto,
+
+            values="M2 Vendido",
+
+            index="Rota",
+
+            columns="Produto",
+
+            aggfunc="sum",
+
+            fill_value=0,
+
+            margins=True,
+
+            margins_name="TOTAL GERAL"
+
+        )
+
+    )
+
+
+    tabela_rota_produto = (
+
+        tabela_rota_produto
+
+        .round(2)
+
+    )
+
+
+    tabela_rota_produto = (
+
+        tabela_rota_produto.loc[
+
+            (
+                tabela_rota_produto
+                != 0
+            )
+
+            .any(
+                axis=1
+            )
+
+        ]
+
+    )
+
+
+    tabela_rota_produto = (
+
+        tabela_rota_produto.loc[
+
+            :,
+
+            (
+                tabela_rota_produto
+                != 0
+            )
+
+            .any(
+                axis=0
+            )
+
+        ]
+
+    )
+
+
+    tabela_rota_produto = (
+
+        tabela_rota_produto
+
+        .replace(
+            0,
+            ""
+        )
+
+        .astype(object)
+
+    )
+
+
+    for coluna in (
+        tabela_rota_produto.columns
     ):
 
-        tabela_rota_produto = (
-
-            pd.pivot_table(
-
-                df_final,
-
-                values=(
-
-                    "M2 Vendido"
-
-                ),
-
-                index="Rota",
-
-                columns="Produto",
-
-                aggfunc="sum",
-
-                fill_value=0,
-
-                margins=True,
-
-                margins_name=(
-
-                    "TOTAL GERAL"
-
-                )
-
-            )
-
-        )
-
-        tabela_rota_produto = (
-
-            tabela_rota_produto
-
-            .round(2)
-
-        )
-
-        tabela_rota_produto = (
-
-            tabela_rota_produto
-
-            .loc[
-
-                (
-
-                    tabela_rota_produto
-
-                    != 0
-
-                )
-
-                .any(
-
-                    axis=1
-
-                )
-
-            ]
-
-        )
-
-        tabela_rota_produto = (
-
-            tabela_rota_produto
-
-            .loc[
-
-                :,
-
-                (
-
-                    tabela_rota_produto
-
-                    != 0
-
-                )
-
-                .any(
-
-                    axis=0
-
-                )
-
-            ]
-
-        )
-
-        tabela_rota_produto = (
-
-            tabela_rota_produto
-
-            .replace(
-
-                0,
-
-                ""
-
-            )
-
-        )
-
-        for coluna in (
-            tabela_rota_produto.columns
-        ):
+        tabela_rota_produto[
+            coluna
+        ] = (
 
             tabela_rota_produto[
-
                 coluna
+            ]
 
-            ] = (
+            .apply(
 
-                tabela_rota_produto[
+                lambda valor:
 
-                    coluna
+                (
+                    f"{valor:,.2f}"
 
-                ]
-
-                .apply(
-
-                    lambda valor:
-
-                    formatar_numero_br(
-
-                        valor
-
+                    .replace(
+                        ",",
+                        "X"
                     )
 
-                    if isinstance(
-
-                        valor,
-
-                        (
-
-                            int,
-
-                            float
-
-                        )
-
+                    .replace(
+                        ".",
+                        ","
                     )
 
-                    else valor
+                    .replace(
+                        "X",
+                        "."
+                    )
+                )
+
+                if isinstance(
+
+                    valor,
+
+                    (
+                        int,
+                        float
+                    )
 
                 )
 
-            )
-
-        html_rota_produto = (
-
-            tabela_rota_produto
-
-            .to_html(
-
-                classes=(
-
-                    "tabela-centralizada"
-
-                ),
-
-                border=0
+                else valor
 
             )
 
         )
 
-        st.markdown(
 
-            html_rota_produto,
+    html_rota_produto = (
 
-            unsafe_allow_html=True
+        tabela_rota_produto
 
-        )
+        .to_html(
 
-    else:
+            classes=(
+                "tabela-centralizada"
+            ),
 
-        st.info(
-
-            "Não há dados suficientes "
-
-            "para montar a tabela."
+            border=0
 
         )
+
+    )
+
+
+    st.markdown(
+
+        html_rota_produto,
+
+        unsafe_allow_html=True
+
+    )
 
 
 # ===================================
 # GRÁFICO POR ROTA
 # ===================================
 
-st.markdown("---")
-
-st.subheader(
-    "📈 Produção por Rota"
-)
-
-
 if (
-
     not df_final.empty
-
-    and
-
-    "Rota"
-
+    and "Rota"
     in df_final.columns
-
-    and
-
-    "M2 Vendido"
-
+    and "M2 Vendido"
     in df_final.columns
-
 ):
+
+    st.markdown(
+        "---"
+    )
+
+    st.subheader(
+        "📈 Produção por Rota"
+    )
+
+
+    df_grafico_rota = (
+        df_final.copy()
+    )
+
+
+    df_grafico_rota[
+        "M2 Vendido"
+    ] = (
+
+        pd.to_numeric(
+
+            df_grafico_rota[
+                "M2 Vendido"
+            ],
+
+            errors="coerce"
+
+        )
+
+        .fillna(0)
+
+    )
+
 
     grafico_rota = (
 
-        df_final
+        df_grafico_rota
 
         .groupby(
 
@@ -2949,20 +3098,13 @@ if (
             as_index=False
 
         )[
-
             "M2 Vendido"
-
         ]
 
         .sum()
 
-        .sort_values(
-
-            "M2 Vendido"
-
-        )
-
     )
+
 
     fig_rota = px.bar(
 
@@ -2978,21 +3120,19 @@ if (
 
     )
 
+
     fig_rota.update_traces(
 
         texttemplate=(
-
             "%{text:.2f}"
-
         ),
 
         textposition=(
-
             "outside"
-
         )
 
     )
+
 
     st.plotly_chart(
 
@@ -3002,47 +3142,55 @@ if (
 
     )
 
-else:
-
-    st.info(
-
-        "Não há dados para o gráfico."
-
-    )
-
 
 # ===================================
 # GRÁFICO POR PRODUTO
 # ===================================
 
-st.markdown("---")
-
-st.subheader(
-    "🪟 Produção por Produto"
-)
-
-
 if (
-
     not df_final.empty
-
-    and
-
-    "Produto"
-
+    and "Produto"
     in df_final.columns
-
-    and
-
-    "M2 Vendido"
-
+    and "M2 Vendido"
     in df_final.columns
-
 ):
+
+    st.markdown(
+        "---"
+    )
+
+    st.subheader(
+        "🪟 Produção por Produto"
+    )
+
+
+    df_grafico_produto = (
+        df_final.copy()
+    )
+
+
+    df_grafico_produto[
+        "M2 Vendido"
+    ] = (
+
+        pd.to_numeric(
+
+            df_grafico_produto[
+                "M2 Vendido"
+            ],
+
+            errors="coerce"
+
+        )
+
+        .fillna(0)
+
+    )
+
 
     grafico_produto = (
 
-        df_final
+        df_grafico_produto
 
         .groupby(
 
@@ -3051,20 +3199,13 @@ if (
             as_index=False
 
         )[
-
             "M2 Vendido"
-
         ]
 
         .sum()
 
-        .sort_values(
-
-            "M2 Vendido"
-
-        )
-
     )
+
 
     fig_produto = px.bar(
 
@@ -3080,21 +3221,19 @@ if (
 
     )
 
+
     fig_produto.update_traces(
 
         texttemplate=(
-
             "%{text:.2f}"
-
         ),
 
         textposition=(
-
             "outside"
-
         )
 
     )
+
 
     st.plotly_chart(
 
@@ -3104,26 +3243,21 @@ if (
 
     )
 
-else:
-
-    st.info(
-
-        "Não há dados para o gráfico."
-
-    )
-
 
 # ===================================
 # DETALHAMENTO
 # ===================================
 
-st.markdown("---")
+st.markdown(
+    "---"
+)
 
-mostrar_detalhamento = (
-    st.checkbox(
-        "🔎 Mostrar Detalhamento",
-        value=False
-    )
+mostrar_detalhamento = st.checkbox(
+
+    "🔎 Mostrar Detalhamento",
+
+    value=False
+
 )
 
 
@@ -3133,40 +3267,27 @@ if mostrar_detalhamento:
         "🔎 Detalhamento"
     )
 
+
     df_detalhe = (
         df_final.copy()
     )
 
+
     if (
-
-        not df_detalhe.empty
-
-        and
-
         "Previsão"
-
         in df_detalhe.columns
-
-        and
-
-        df_detalhe[
-
+        and not df_detalhe.empty
+        and df_detalhe[
             "Previsão"
-
         ]
-
         .notna()
-
         .any()
-
     ):
 
         min_det = (
 
             df_detalhe[
-
                 "Previsão"
-
             ]
 
             .min()
@@ -3175,12 +3296,11 @@ if mostrar_detalhamento:
 
         )
 
+
         max_det = (
 
             df_detalhe[
-
                 "Previsão"
-
             ]
 
             .max()
@@ -3189,61 +3309,81 @@ if mostrar_detalhamento:
 
         )
 
+
         coluna_1, coluna_2 = (
             st.columns(2)
         )
 
+
         with coluna_1:
 
             detalhe_inicio = (
+
                 st.date_input(
+
                     "Detalhamento - "
                     "Data Inicial",
+
                     value=min_det,
+
                     key="det_inicio",
+
                     format="DD/MM/YYYY"
+
                 )
+
             )
+
 
         with coluna_2:
 
             detalhe_fim = (
+
                 st.date_input(
+
                     "Detalhamento - "
                     "Data Final",
+
                     value=max_det,
+
                     key="det_fim",
+
                     format="DD/MM/YYYY"
+
                 )
+
             )
+
 
         df_detalhe = (
 
             df_detalhe[
 
                 (
-
                     df_detalhe[
-
                         "Previsão"
+                    ]
 
-                    ].dt.date
+                    .dt.date
 
-                    >= detalhe_inicio
+                    >=
+
+                    detalhe_inicio
 
                 )
 
                 &
 
                 (
-
                     df_detalhe[
-
                         "Previsão"
+                    ]
 
-                    ].dt.date
+                    .dt.date
 
-                    <= detalhe_fim
+                    <=
+
+                    detalhe_fim
 
                 )
 
@@ -3253,16 +3393,13 @@ if mostrar_detalhamento:
 
         )
 
+
         df_detalhe[
-
             "Previsão"
-
         ] = (
 
             df_detalhe[
-
                 "Previsão"
-
             ]
 
             .dt.strftime(
@@ -3273,23 +3410,27 @@ if mostrar_detalhamento:
 
         )
 
+
         st.dataframe(
 
             df_detalhe,
 
             use_container_width=True,
 
-            hide_index=True,
+            height=500,
 
-            height=500
+            hide_index=True
 
         )
 
+
     else:
 
-        st.info(
+        st.warning(
 
-            "Nenhum dado disponível "
+            "Nenhuma coluna "
+
+            "'Previsão' disponível "
 
             "para detalhamento."
 
@@ -3300,13 +3441,16 @@ if mostrar_detalhamento:
 # BASE COMPLETA
 # ===================================
 
-st.markdown("---")
+st.markdown(
+    "---"
+)
 
-mostrar_base = (
-    st.checkbox(
-        "📋 Mostrar Base Completa",
-        value=False
-    )
+mostrar_base = st.checkbox(
+
+    "📋 Mostrar Base Completa",
+
+    value=False
+
 )
 
 
@@ -3316,15 +3460,16 @@ if mostrar_base:
         "📋 Base Completa"
     )
 
+
     st.dataframe(
 
         df_final,
 
         use_container_width=True,
 
-        hide_index=True,
+        height=500,
 
-        height=500
+        hide_index=True
 
     )
 
@@ -3333,7 +3478,9 @@ if mostrar_base:
 # DOWNLOAD
 # ===================================
 
-st.markdown("---")
+st.markdown(
+    "---"
+)
 
 st.subheader(
     "📥 Exportar dados filtrados"
@@ -3344,7 +3491,10 @@ def to_excel(
     dataframe
 ):
 
-    output = BytesIO()
+    output = (
+        BytesIO()
+    )
+
 
     with pd.ExcelWriter(
 
@@ -3361,12 +3511,11 @@ def to_excel(
             index=False,
 
             sheet_name=(
-
                 "Base Filtrada"
-
             )
 
         )
+
 
     return (
         output.getvalue()
@@ -3384,7 +3533,7 @@ st.download_button(
 
     label=(
 
-        "📥 Baixar planilha "
+        "Baixar planilha "
 
         "filtrada (Excel)"
 
@@ -3400,9 +3549,9 @@ st.download_button(
 
     mime=(
 
-        "application/"
+        "application/vnd."
 
-        "vnd.openxmlformats-"
+        "openxmlformats-"
 
         "officedocument."
 
