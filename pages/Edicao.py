@@ -277,37 +277,49 @@ if "Produto" in df.columns:
 
 if "Previsão" in df.columns:
 
-    df_data = df.dropna(
-        subset=["Previsão"]
-    )
+    # Mantém somente datas válidas
+    df_data = df.dropna(subset=["Previsão"]).copy()
 
     if not df_data.empty:
 
-        min_date = (
-            df_data["Previsão"]
-            .min()
-            .date()
-        )
+        min_date = df_data["Previsão"].min().date()
+        max_date = df_data["Previsão"].max().date()
 
-        max_date = (
-            df_data["Previsão"]
-            .max()
-            .date()
-        )
+        # Recupera filtros salvos
+        try:
+            start_padrao = pd.to_datetime(
+                filtros_salvos.get("start_date", min_date),
+                errors="coerce"
+            ).date()
+        except:
+            start_padrao = min_date
 
-        start_padrao = pd.to_datetime(
-            filtros_salvos.get(
-                "start_date",
-                min_date
-            )
-        ).date()
+        try:
+            end_padrao = pd.to_datetime(
+                filtros_salvos.get("end_date", max_date),
+                errors="coerce"
+            ).date()
+        except:
+            end_padrao = max_date
 
-        end_padrao = pd.to_datetime(
-            filtros_salvos.get(
-                "end_date",
-                max_date
-            )
-        ).date()
+        # Corrige datas inválidas
+        if start_padrao is None:
+            start_padrao = min_date
+
+        if end_padrao is None:
+            end_padrao = max_date
+
+        # Garante que estejam dentro do intervalo permitido
+        if start_padrao < min_date or start_padrao > max_date:
+            start_padrao = min_date
+
+        if end_padrao < min_date or end_padrao > max_date:
+            end_padrao = max_date
+
+        # Corrige caso a inicial fique maior que a final
+        if start_padrao > end_padrao:
+            start_padrao = min_date
+            end_padrao = max_date
 
         col1, col2 = st.columns(2)
 
@@ -334,6 +346,9 @@ if "Previsão" in df.columns:
         filtros["start_date"] = str(start_date)
         filtros["end_date"] = str(end_date)
 
+    else:
+
+        st.warning("Não existem datas válidas na coluna Previsão.")
 # =========================================
 # FILTRO PC
 # =========================================
