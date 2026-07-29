@@ -26,6 +26,7 @@ def codigo_material(texto):
     LAMINC0632102400   -> LAMINC06
     LAMINC0832102400   -> LAMINC08
     MBI3424401900      -> MBI03
+    LMLT0632102400     -> LMLT06
     """
 
     if pd.isna(texto):
