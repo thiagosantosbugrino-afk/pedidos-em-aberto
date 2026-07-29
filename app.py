@@ -23,8 +23,8 @@ def codigo_material(texto):
     REF1032102400      -> REF10
     ESP0432102400      -> ESP04
     ESI0432102400      -> ESP04
-    LAMINC0632102400   -> LAMINC06
-    LAMINC0832102400   -> LAMINC08
+    LMINC0632102400   -> LAMINC06
+    LMINC0832102400   -> LAMINC08
     """
 
     if pd.isna(texto):
