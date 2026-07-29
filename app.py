@@ -42,7 +42,7 @@ def codigo_material(texto):
     texto = texto.replace("LMINC08", "LMINCO8")
 
     # Laminados
-    resultado = re.match(r"(LAMINC\d{2})", texto)
+    resultado = re.match(r"(LMINC\d{2})", texto)
 
     if resultado:
         return resultado.group(1)
