@@ -38,6 +38,9 @@ def codigo_material(texto):
     # Padroniza códigos equivalentes
     texto = texto.replace("MBI34", "MBI03")
 
+    # Padroniza códigos equivalentes
+    texto = texto.replace("LMINC08", "LMINCO8")
+
     # Laminados
     resultado = re.match(r"(LAMINC\d{2})", texto)
 
