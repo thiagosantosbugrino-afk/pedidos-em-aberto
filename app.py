@@ -366,109 +366,72 @@ st.sidebar.title("Filtros")
 start_date = None
 end_date = None
 
-if (
-    "Previsão" in df.columns
-    and df["Previsão"].notna().any()
-):
+if "Previsão" in df.columns:
 
-    min_data = (
-        df["Previsão"]
-        .min()
-        .date()
-    )
+    # Remove datas inválidas
+    datas_validas = pd.to_datetime(
+        df["Previsão"],
+        errors="coerce"
+    ).dropna()
 
-    max_data = (
-        df["Previsão"]
-        .max()
-        .date()
-    )
+    if not datas_validas.empty:
 
-    try:
+        min_data = datas_validas.min().date()
+        max_data = datas_validas.max().date()
 
-        start_default = (
-            pd.to_datetime(
-                filtros.get(
-                    "start_date",
-                    min_data
-                )
+        try:
+            start_default = pd.to_datetime(
+                filtros.get("start_date", min_data)
+            ).date()
+        except Exception:
+            start_default = min_data
+
+        try:
+            end_default = pd.to_datetime(
+                filtros.get("end_date", max_data)
+            ).date()
+        except Exception:
+            end_default = max_data
+
+        # Garante que as datas estejam dentro do intervalo permitido
+        if start_default < min_data or start_default > max_data:
+            start_default = min_data
+
+        if end_default < min_data or end_default > max_data:
+            end_default = max_data
+
+        start_date = st.sidebar.date_input(
+            "Data inicial",
+            value=start_default,
+            min_value=min_data,
+            max_value=max_data,
+            format="DD/MM/YYYY"
+        )
+
+        end_date = st.sidebar.date_input(
+            "Data final",
+            value=end_default,
+            min_value=min_data,
+            max_value=max_data,
+            format="DD/MM/YYYY"
+        )
+
+        if start_date > end_date:
+            st.sidebar.error(
+                "A data inicial não pode ser maior que a data final."
             )
-            .date()
-        )
+            st.stop()
 
-    except Exception:
+        df = df[
+            (df["Previsão"].dt.date >= start_date)
+            &
+            (df["Previsão"].dt.date <= end_date)
+        ]
 
-        start_default = min_data
+    else:
 
-    try:
-
-        end_default = (
-            pd.to_datetime(
-                filtros.get(
-                    "end_date",
-                    max_data
-                )
-            )
-            .date()
-        )
-
-    except Exception:
-
-        end_default = max_data
-
-    # Evita datas fora do intervalo
-    start_default = max(
-        min_data,
-        min(
-            start_default,
-            max_data
-        )
-    )
-
-    end_default = max(
-        min_data,
-        min(
-            end_default,
-            max_data
-        )
-    )
-
-    start_date = st.sidebar.date_input(
-        "Data inicial",
-        value=start_default,
-        min_value=min_data,
-        max_value=max_data,
-        format="DD/MM/YYYY"
-    )
-
-    end_date = st.sidebar.date_input(
-        "Data final",
-        value=end_default,
-        min_value=min_data,
-        max_value=max_data,
-        format="DD/MM/YYYY"
-    )
-
-    if start_date > end_date:
-
-        st.sidebar.error(
-            "A data inicial não pode "
-            "ser maior que a data final."
-        )
-
+        st.warning("Nenhuma data válida encontrada na coluna Previsão.")
         st.stop()
-
-    df = df[
-        (
-            df["Previsão"].dt.date
-            >= start_date
-        )
-        &
-        (
-            df["Previsão"].dt.date
-            <= end_date
-        )
-    ]
-
 
 # ===================================
 # FILTRO DE ROTA
