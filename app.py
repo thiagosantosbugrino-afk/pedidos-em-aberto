@@ -25,8 +25,6 @@ def codigo_material(texto):
     ESI0432102400      -> ESP04
     LAMINC0632102400   -> LAMINC06
     LAMINC0832102400   -> LAMINC08
-    LMLT0632102400VMT  -> LMLT06VMT
-  
     """
 
     if pd.isna(texto):
@@ -36,9 +34,6 @@ def codigo_material(texto):
 
     # Padroniza códigos equivalentes
     texto = texto.replace("ESI", "ESP")
-    
-    # Padroniza códigos equivalentes
-    texto = texto.replace("MBI34", "MBI03")
 
     # Laminados
     resultado = re.match(r"(LAMINC\d{2})", texto)
