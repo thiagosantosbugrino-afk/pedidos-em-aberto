@@ -25,10 +25,7 @@ def codigo_material(texto):
 
     texto = str(texto).upper().strip()
 
-    # Padronizações
-    texto = texto.replace("ESI", "ESP")
-    texto = texto.replace("MBI34", "MBI03")
-
+   
     # Busca a equivalência cadastrada
     return EQUIVALENCIAS.get(texto, texto)
 
