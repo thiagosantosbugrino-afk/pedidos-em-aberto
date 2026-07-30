@@ -29,8 +29,9 @@ def codigo_material(texto):
     LMINC0832102400VMT         -> LMINC08VMT
 
     LMN410832102400D&A         -> LMN408D&A
+    LMN140832102400            -> LMN1408
     LMSLX0832102400AMGLASS     -> LMSLX08AMGLASS
-    LMN14083210X2400           -> LMN1408
+    LMSV200832102400           -> LMSV2008
     """
 
     if pd.isna(texto):
@@ -47,26 +48,39 @@ def codigo_material(texto):
     for antigo, novo in equivalencias.items():
         texto = texto.replace(antigo, novo)
 
-    # Procura o início da espessura (primeiros 2 dígitos)
-    m = re.search(r"\d{2}", texto)
+    # Prefixos conhecidos (do maior para o menor)
+    prefixos = [
+        "LMSLX",
+        "LMINC",
+        "LMSV20",
+        "LMN14",
+        "LMN4",
+        "INC",
+        "REF",
+        "ESP",
+    ]
 
-    if not m:
-        return texto
+    for prefixo in sorted(prefixos, key=len, reverse=True):
 
-    inicio = m.start()
+        if texto.startswith(prefixo):
 
-    prefixo = texto[:inicio]
-    espessura = texto[inicio:inicio + 2]
+            restante = texto[len(prefixo):]
 
-    restante = texto[inicio + 2:]
+            # Espessura = próximos 2 dígitos
+            if len(restante) < 2:
+                return texto
 
-    # Remove todas as medidas (qualquer quantidade de dígitos)
-    restante = re.sub(r"^\d+", "", restante)
+            espessura = restante[:2]
 
-    # O que sobrar é o complemento (VMT, D&A, AMGLASS...)
-    sufixo = restante
+            restante = restante[2:]
 
-    return f"{prefixo}{espessura}{sufixo}"
+            # Remove as medidas (qualquer quantidade de dígitos)
+            restante = re.sub(r"^\d+", "", restante)
+
+            # O restante é o complemento (VMT, D&A, AMGLASS...)
+            return prefixo + espessura + restante
+
+    return texto
 
 
 def descricao_material(texto):
@@ -141,7 +155,6 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 # ===================================
 # CSS
 # ===================================
-
 st.markdown(
     """
     <style>
