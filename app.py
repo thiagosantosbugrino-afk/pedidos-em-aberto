@@ -30,6 +30,7 @@ def codigo_material(texto):
 
     LMN410832102400D&A         -> LMN408D&A
     LMSLX0832102400AMGLASS     -> LMSLX08AMGLASS
+    LMN14083210X2400           -> LMN1408
     """
 
     if pd.isna(texto):
