@@ -54,6 +54,7 @@ def codigo_material(texto):
         "LMINC",
         "LMSV20",
         "LMN14",
+        "LMT",
         "LMN4",
         "INC",
         "REF",
