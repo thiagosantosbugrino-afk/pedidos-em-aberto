@@ -27,7 +27,7 @@ def codigo_material(texto):
 
     LMINC0832102400            -> LMINC08
     LMINC0832102400VMT         -> LMINC08VMT
-
+    LMLT0632102400             -> LMLT06
     LMN410832102400D&A         -> LMN408D&A
     LMN140832102400            -> LMN1408
     LMSLX0832102400AMGLASS     -> LMSLX08AMGLASS
