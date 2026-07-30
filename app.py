@@ -8,7 +8,7 @@ import plotly.express as px
 
 from io import BytesIO
 from datetime import datetime, timedelta
-
+from equivalencias import EQUIVALENCIAS
 
 # ===================================
 # FUNÇÕES
@@ -16,22 +16,8 @@ from datetime import datetime, timedelta
 
 def codigo_material(texto):
     """
-    Retorna o código padronizado do material.
-
-    Exemplos:
-    --------------------------------------------
-    INC0832102400              -> INC08
-    REF1032102400              -> REF10
-    ESP0432102400              -> ESP04
-    ESI0432102400              -> ESP04
-
-    LMINC0832102400            -> LMINC08
-    LMINC0832102400VMT         -> LMINC08VMT
-    LMLT0632102400             -> LMLT06
-    LMN410832102400D&A         -> LMN408D&A
-    LMN140832102400            -> LMN1408
-    LMSLX0832102400AMGLASS     -> LMSLX08AMGLASS
-    LMSV200832102400           -> LMSV2008
+    Retorna o código padronizado do material
+    utilizando a tabela de equivalências.
     """
 
     if pd.isna(texto):
@@ -40,50 +26,11 @@ def codigo_material(texto):
     texto = str(texto).upper().strip()
 
     # Padronizações
-    equivalencias = {
-        "ESI": "ESP",
-        "MBI34": "MBI03",
-    }
+    texto = texto.replace("ESI", "ESP")
+    texto = texto.replace("MBI34", "MBI03")
 
-    for antigo, novo in equivalencias.items():
-        texto = texto.replace(antigo, novo)
-
-    # Prefixos conhecidos (do maior para o menor)
-    prefixos = [
-        "LMSLX",
-        "LMINC",
-        "LMSV20",
-        "LMN14",
-        "LMLT",
-        "MBI03",  
-        "N1404",
-        "LMN4",
-        "INC",
-        "REF",
-        "ESP",
-    ]
-
-    for prefixo in sorted(prefixos, key=len, reverse=True):
-
-        if texto.startswith(prefixo):
-
-            restante = texto[len(prefixo):]
-
-            # Espessura = próximos 2 dígitos
-            if len(restante) < 2:
-                return texto
-
-            espessura = restante[:2]
-
-            restante = restante[2:]
-
-            # Remove as medidas (qualquer quantidade de dígitos)
-            restante = re.sub(r"^\d+", "", restante)
-
-            # O restante é o complemento (VMT, D&A, AMGLASS...)
-            return prefixo + espessura + restante
-
-    return texto
+    # Busca a equivalência cadastrada
+    return EQUIVALENCIAS.get(texto, texto)
 
 
 def descricao_material(texto):
@@ -145,7 +92,6 @@ def formatar_numero_br(valor):
 # ===================================
 # CONFIGURAÇÃO
 # ===================================
-
 st.set_page_config(
     page_title="Pedidos Em Aberto - Visualização",
     page_icon="📊",
