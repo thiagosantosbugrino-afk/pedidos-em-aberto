@@ -19,12 +19,17 @@ def codigo_material(texto):
     Retorna o código padronizado do material.
 
     Exemplos:
-    INC0832102400      -> INC08
-    REF1032102400      -> REF10
-    ESP0432102400      -> ESP04
-    ESI0432102400      -> ESP04
-    LMINC0632102400   -> LMINC06
-    LMINC0832102400   -> LMINC08
+    --------------------------------------------
+    INC0832102400              -> INC08
+    REF1032102400              -> REF10
+    ESP0432102400              -> ESP04
+    ESI0432102400              -> ESP04
+
+    LMINC0832102400            -> LMINC08
+    LMINC0832102400VMT         -> LMINC08VMT
+
+    LMN410832102400D&A         -> LMN408D&A
+    LMSLX0832102400AMGLASS     -> LMSLX08AMGLASS
     """
 
     if pd.isna(texto):
@@ -32,28 +37,35 @@ def codigo_material(texto):
 
     texto = str(texto).upper().strip()
 
-    # Padroniza códigos equivalentes
-    texto = texto.replace("ESI", "ESP")
+    # Padronizações
+    equivalencias = {
+        "ESI": "ESP",
+        "MBI34": "MBI03",
+    }
 
-    # Padroniza códigos equivalentes
-    texto = texto.replace("MBI34", "MBI03")
+    for antigo, novo in equivalencias.items():
+        texto = texto.replace(antigo, novo)
 
-    # Padroniza códigos equivalentes
-    texto = texto.replace("LMINC08", "LMINC08")
+    # Procura o início da espessura (primeiros 2 dígitos)
+    m = re.search(r"\d{2}", texto)
 
-    # Laminados
-    resultado = re.match(r"(LMINC\d{2})", texto)
+    if not m:
+        return texto
 
-    if resultado:
-        return resultado.group(1)
+    inicio = m.start()
 
-    # Materiais comuns
-    resultado = re.match(r"([A-Z]{3}\d{2})", texto)
+    prefixo = texto[:inicio]
+    espessura = texto[inicio:inicio + 2]
 
-    if resultado:
-        return resultado.group(1)
+    restante = texto[inicio + 2:]
 
-    return texto
+    # Remove todas as medidas (qualquer quantidade de dígitos)
+    restante = re.sub(r"^\d+", "", restante)
+
+    # O que sobrar é o complemento (VMT, D&A, AMGLASS...)
+    sufixo = restante
+
+    return f"{prefixo}{espessura}{sufixo}"
 
 
 def descricao_material(texto):
