@@ -10,6 +10,8 @@ from io import BytesIO
 from datetime import datetime, timedelta
 from equivalencias import EQUIVALENCIAS
 
+from st_aggrid import AgGrid, GridOptionsBuilder
+
 # ===================================
 # FUNÇÕES
 # ===================================
@@ -1502,74 +1504,36 @@ if mostrar_mp:
                 (resumo["Saldo"] != 0)
             ]
 
-            st.dataframe(
+            gb = GridOptionsBuilder.from_dataframe(resumo)
 
-                resumo,
-
-                use_container_width=True,
-
-                hide_index=True,
-
-                height=650,
-
-                column_config={
-
-                    "Codigo":
-                    st.column_config.TextColumn(
-                        "Código",
-                        width="small"
-                    ),
-
-                    "Descricao":
-                    st.column_config.TextColumn(
-                        "Descrição",
-                        width="large"
-                    ),
-
-                    "Estoque":
-                    st.column_config.NumberColumn(
-                        "Estoque",
-                        format="%.2f"
-                    ),
-
-                    "Consumo":
-                    st.column_config.NumberColumn(
-                        "Consumo",
-                        format="%.2f"
-                    ),
-
-                    "Saldo":
-                    st.column_config.NumberColumn(
-                        "Saldo",
-                        format="%.2f"
-                    ),
-
-                    "Produz até":
-                    st.column_config.TextColumn(
-                        "Produz até"
-                    ),
-
-                    "Primeira Falta":
-                    st.column_config.TextColumn(
-                        "Primeira Falta"
-                    ),
-
-                    "Compra Necessária":
-                    st.column_config.NumberColumn(
-                        "Compra Necessária",
-                        format="%.2f"
-                    ),
-
-                    "Status":
-                    st.column_config.TextColumn(
-                        "Status",
-                        width="small"
-                    )
-
-                }
-
+            gb.configure_default_column(
+                editable=False,
+                sortable=True,
+                filter=True,
+                resizable=True,
+                cellStyle={
+                    "textAlign": "center"
+                },
+                headerClass="ag-center-header"
             )
 
+            for coluna in resumo.columns:
+                gb.configure_column(
+                    coluna,
+                    cellStyle={"textAlign": "center"},
+                    headerClass="ag-center-header"
+                )
+
+            gridOptions = gb.build()
+
+            AgGrid(
+                resumo,
+                gridOptions=gridOptions,
+                fit_columns_on_grid_load=True,
+                height=650,
+                theme="streamlit",
+                allow_unsafe_jscode=True,
+            )
             # =================================
             # DETALHAR MATERIAL
             # =================================
