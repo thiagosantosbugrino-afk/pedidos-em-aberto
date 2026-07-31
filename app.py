@@ -1486,9 +1486,21 @@ if mostrar_mp:
 
             )
 
-            # =================================
+                       # =================================
             # TABELA
             # =================================
+
+            # Remove linhas totalmente vazias
+            resumo = resumo.dropna(how="all")
+
+            # Remove materiais sem estoque, sem consumo e sem saldo
+            resumo = resumo[
+                (resumo["Estoque"] != 0)
+                |
+                (resumo["Consumo"] != 0)
+                |
+                (resumo["Saldo"] != 0)
+            ]
 
             st.dataframe(
 
@@ -1502,44 +1514,56 @@ if mostrar_mp:
 
                 column_config={
 
+                    "Codigo":
+                    st.column_config.TextColumn(
+                        "Código",
+                        width="small"
+                    ),
+
+                    "Descricao":
+                    st.column_config.TextColumn(
+                        "Descrição",
+                        width="large"
+                    ),
+
                     "Estoque":
-
                     st.column_config.NumberColumn(
-
                         "Estoque",
-
                         format="%.2f"
-
                     ),
 
                     "Consumo":
-
                     st.column_config.NumberColumn(
-
                         "Consumo",
-
                         format="%.2f"
-
                     ),
 
                     "Saldo":
-
                     st.column_config.NumberColumn(
-
                         "Saldo",
-
                         format="%.2f"
+                    ),
 
+                    "Produz até":
+                    st.column_config.TextColumn(
+                        "Produz até"
+                    ),
+
+                    "Primeira Falta":
+                    st.column_config.TextColumn(
+                        "Primeira Falta"
                     ),
 
                     "Compra Necessária":
-
                     st.column_config.NumberColumn(
-
                         "Compra Necessária",
-
                         format="%.2f"
+                    ),
 
+                    "Status":
+                    st.column_config.TextColumn(
+                        "Status",
+                        width="small"
                     )
 
                 }
