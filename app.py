@@ -8,7 +8,9 @@ import plotly.express as px
 
 from io import BytesIO
 from datetime import datetime, timedelta
+from equivalencias import EQUIVALENCIAS
 
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 # ===================================
 # FUNÇÕES
@@ -16,15 +18,8 @@ from datetime import datetime, timedelta
 
 def codigo_material(texto):
     """
-    Retorna o código padronizado do material.
-
-    Exemplos:
-    INC0832102400      -> INC08
-    REF1032102400      -> REF10
-    ESP0432102400      -> ESP04
-    ESI0432102400      -> ESP04
-    LMINC0632102400   -> LMINC06
-    LMINC0832102400   -> LMINC08
+    Retorna o código padronizado do material
+    utilizando a tabela de equivalências.
     """
 
     if pd.isna(texto):
@@ -32,28 +27,9 @@ def codigo_material(texto):
 
     texto = str(texto).upper().strip()
 
-    # Padroniza códigos equivalentes
-    texto = texto.replace("ESI", "ESP")
-
-    # Padroniza códigos equivalentes
-    texto = texto.replace("MBI34", "MBI03")
-
-    # Padroniza códigos equivalentes
-    texto = texto.replace("LMINC08", "LMINC08")
-
-    # Laminados
-    resultado = re.match(r"(LMINC\d{2})", texto)
-
-    if resultado:
-        return resultado.group(1)
-
-    # Materiais comuns
-    resultado = re.match(r"([A-Z]{3}\d{2})", texto)
-
-    if resultado:
-        return resultado.group(1)
-
-    return texto
+   
+    # Busca a equivalência cadastrada
+    return EQUIVALENCIAS.get(texto, texto)
 
 
 def descricao_material(texto):
@@ -115,7 +91,6 @@ def formatar_numero_br(valor):
 # ===================================
 # CONFIGURAÇÃO
 # ===================================
-
 st.set_page_config(
     page_title="Pedidos Em Aberto - Visualização",
     page_icon="📊",
@@ -128,7 +103,6 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 # ===================================
 # CSS
 # ===================================
-
 st.markdown(
     """
     <style>
@@ -1514,66 +1488,52 @@ if mostrar_mp:
 
             )
 
-            # =================================
+                       # =================================
             # TABELA
             # =================================
 
-            st.dataframe(
+            # Remove linhas totalmente vazias
+            resumo = resumo.dropna(how="all")
 
-                resumo,
+            # Remove materiais sem estoque, sem consumo e sem saldo
+            resumo = resumo[
+                (resumo["Estoque"] != 0)
+                |
+                (resumo["Consumo"] != 0)
+                |
+                (resumo["Saldo"] != 0)
+            ]
 
-                use_container_width=True,
+            gb = GridOptionsBuilder.from_dataframe(resumo)
 
-                hide_index=True,
-
-                height=650,
-
-                column_config={
-
-                    "Estoque":
-
-                    st.column_config.NumberColumn(
-
-                        "Estoque",
-
-                        format="%.2f"
-
-                    ),
-
-                    "Consumo":
-
-                    st.column_config.NumberColumn(
-
-                        "Consumo",
-
-                        format="%.2f"
-
-                    ),
-
-                    "Saldo":
-
-                    st.column_config.NumberColumn(
-
-                        "Saldo",
-
-                        format="%.2f"
-
-                    ),
-
-                    "Compra Necessária":
-
-                    st.column_config.NumberColumn(
-
-                        "Compra Necessária",
-
-                        format="%.2f"
-
-                    )
-
-                }
-
+            gb.configure_default_column(
+                editable=False,
+                sortable=True,
+                filter=True,
+                resizable=True,
+                cellStyle={
+                    "textAlign": "center"
+                },
+                headerClass="ag-center-header"
             )
 
+            for coluna in resumo.columns:
+                gb.configure_column(
+                    coluna,
+                    cellStyle={"textAlign": "center"},
+                    headerClass="ag-center-header"
+                )
+
+            gridOptions = gb.build()
+
+            AgGrid(
+                resumo,
+                gridOptions=gridOptions,
+                fit_columns_on_grid_load=True,
+                height=650,
+                theme="streamlit",
+                allow_unsafe_jscode=True,
+            )
             # =================================
             # DETALHAR MATERIAL
             # =================================
