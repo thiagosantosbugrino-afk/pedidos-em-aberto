@@ -822,22 +822,22 @@ if mostrar_mp:
             "Descricao",
             "Estoque"
         ]
-
-        estoque["Codigo"] = (
+                estoque["Codigo"] = (
             estoque["Codigo"]
             .apply(
                 codigo_material
             )
         )
-        st.write("ESTOQUE ORIGINAL")
-st.dataframe(
-    df_consolidador.iloc[:, [1, 2, 18]].head(20)
-)
 
-st.write("ESTOQUE PADRONIZADO")
-st.dataframe(
-    estoque.head(20)
-)
+        st.write("ESTOQUE ORIGINAL")
+        st.dataframe(
+            df_consolidador.iloc[:, [1, 2, 18]].head(20)
+        )
+
+        st.write("ESTOQUE PADRONIZADO")
+        st.dataframe(
+            estoque.head(20)
+        )
 
         estoque["Descricao"] = (
             estoque["Descricao"]
@@ -846,6 +846,7 @@ st.dataframe(
             )
         )
 
+        
         estoque["Estoque"] = (
             pd.to_numeric(
                 estoque["Estoque"],
