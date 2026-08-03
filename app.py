@@ -13,6 +13,39 @@ from equivalencias import EQUIVALENCIAS
 from st_aggrid import AgGrid, GridOptionsBuilder
 
 # ===================================
+# CSS DO AGGRID
+# ===================================
+
+st.markdown("""
+<style>
+
+.ag-header-cell-label{
+    justify-content:center !important;
+}
+
+.ag-header-group-cell-label{
+    justify-content:center !important;
+}
+
+.ag-header-cell-text{
+    width:100%;
+    text-align:center !important;
+}
+
+.ag-cell{
+    text-align:center !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ===================================
+# FUNÇÕES
+# ===================================
+
+def codigo_material(texto):
+    ...
+# ===================================
 # FUNÇÕES
 # ===================================
 
