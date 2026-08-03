@@ -1074,107 +1074,163 @@ if mostrar_mp:
                 )
 
             )
+                        # =================================
+            # PREPARAÇÃO PARA O CORTE
             # =================================
-# PREPARAÇÃO PARA O CORTE
-# =================================
 
-# Acrescenta 4 mm para lapidação
-pecas["Largura Corte"] = pecas["Largura"] + 4
-pecas["Altura Corte"] = pecas["Altura"] + 4
+            # Acrescenta 4 mm para lapidação
+            pecas["Largura Corte"] = pecas["Largura"] + 4
+            pecas["Altura Corte"] = pecas["Altura"] + 4
 
-# Área da peça em m²
-pecas["Área"] = (pecas["Largura Corte"] * pecas["Altura Corte"]) / 1000000
-
-
-# =================================
-# DISTÂNCIA MÍNIMA
-# =================================
-
-def distancia_minima(codigo):
-    codigo = str(codigo).upper()
-
-    if codigo.startswith("LM"):
-        return 30
-
-    numeros = re.findall(r"\d+", codigo)
-
-    if numeros:
-        espessura = int(numeros[0])
-
-        if espessura in [3, 4]:
-            return 12
-        elif espessura in [6, 8]:
-            return 20
-        elif espessura >= 10:
-            return 30
-
-    return 12
+            # Área da peça em m²
+            pecas["Área"] = (
+                pecas["Largura Corte"]
+                *
+                pecas["Altura Corte"]
+            ) / 1000000
 
 
-pecas["Distância"] = pecas["Codigo"].apply(distancia_minima)
+            # =================================
+            # DISTÂNCIA MÍNIMA
+            # =================================
+
+            def distancia_minima(codigo):
+
+                codigo = str(codigo).upper()
+
+                if codigo.startswith("LM"):
+                    return 30
+
+                numeros = re.findall(
+                    r"\d+",
+                    codigo
+                )
+
+                if numeros:
+
+                    espessura = int(
+                        numeros[0]
+                    )
+
+                    if espessura in [3, 4]:
+                        return 12
+
+                    elif espessura in [6, 8]:
+                        return 20
+
+                    elif espessura >= 10:
+                        return 30
+
+                return 12
 
 
-# =================================
-# TAMANHO UTILIZADO NO ENCAIXE
-# =================================
-
-pecas["Largura Encaixe"] = pecas["Largura Corte"] + pecas["Distância"]
-pecas["Altura Encaixe"] = pecas["Altura Corte"] + pecas["Distância"]
-
-
-# =================================
-# TESTE DAS PEÇAS
-# =================================
-
-with st.expander("🧪 Teste das Peças"):
-    st.dataframe(
-        pecas,
-        use_container_width=True,
-        hide_index=True,
-        height=300
-    )
+            pecas["Distância"] = (
+                pecas["Codigo"]
+                .apply(
+                    distancia_minima
+                )
+            )
 
 
-# =================================
-# AGRUPA PEÇAS POR MATERIAL
-# =================================
+            # =================================
+            # TAMANHO UTILIZADO NO ENCAIXE
+            # =================================
 
-materiais_otimizacao = {}
+            pecas["Largura Encaixe"] = (
+                pecas["Largura Corte"]
+                +
+                pecas["Distância"]
+            )
 
-for codigo in sorted(pecas["Codigo"].unique()):
-    tabela = pecas[pecas["Codigo"] == codigo].copy()
-
-    tabela = tabela.sort_values(
-        ["Largura Encaixe", "Altura Encaixe"],
-        ascending=False
-    )
-
-    materiais_otimizacao[codigo] = tabela
-
-
-# =================================
-# RESUMO DOS MATERIAIS
-# =================================
-
-resumo_otimizacao = []
-
-for codigo, tabela in materiais_otimizacao.items():
-    resumo_otimizacao.append({
-        "Material": codigo,
-        "Peças": len(tabela),
-        "Área Total": round(tabela["Área"].sum(), 2)
-    })
+            pecas["Altura Encaixe"] = (
+                pecas["Altura Corte"]
+                +
+                pecas["Distância"]
+            )
 
 
-resumo_otimizacao = pd.DataFrame(resumo_otimizacao)
+            # =================================
+            # TESTE DAS PEÇAS
+            # =================================
 
-with st.expander("📋 Resumo da Otimização"):
-    st.dataframe(
-        resumo_otimizacao,
-        use_container_width=True,
-        hide_index=True
-    )
-           
+            with st.expander(
+                "🧪 Teste das Peças"
+            ):
+
+                st.dataframe(
+                    pecas,
+                    use_container_width=True,
+                    hide_index=True,
+                    height=300
+                )
+
+
+            # =================================
+            # AGRUPA PEÇAS POR MATERIAL
+            # =================================
+
+            materiais_otimizacao = {}
+
+            for codigo in sorted(
+                pecas["Codigo"].unique()
+            ):
+
+                tabela = (
+                    pecas[
+                        pecas["Codigo"] == codigo
+                    ]
+                    .copy()
+                )
+
+                tabela = (
+                    tabela
+                    .sort_values(
+                        [
+                            "Largura Encaixe",
+                            "Altura Encaixe"
+                        ],
+                        ascending=False
+                    )
+                )
+
+                materiais_otimizacao[codigo] = tabela
+
+
+            # =================================
+            # RESUMO DOS MATERIAIS
+            # =================================
+
+            resumo_otimizacao = []
+
+            for codigo, tabela in materiais_otimizacao.items():
+
+                resumo_otimizacao.append(
+                    {
+                        "Material": codigo,
+                        "Peças": len(tabela),
+                        "Área Total": round(
+                            tabela["Área"].sum(),
+                            2
+                        )
+                    }
+                )
+
+
+            resumo_otimizacao = pd.DataFrame(
+                resumo_otimizacao
+            )
+
+
+            with st.expander(
+                "📋 Resumo da Otimização"
+            ):
+
+                st.dataframe(
+                    resumo_otimizacao,
+                    use_container_width=True,
+                    hide_index=True
+                )
+                      
                        
 
             # =================================
