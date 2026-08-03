@@ -979,6 +979,248 @@ if mostrar_mp:
                         ]
                     )
                 )
+            # =================================
+            # PEÇAS PARA OTIMIZAÇÃO
+            # =================================
+
+            colunas_pecas = [
+
+                "Produto",
+
+                "Pedido",
+
+                "Cliente",
+
+                "PC",
+
+                "Rota",
+
+                "Largura",
+
+                "Altura"
+
+            ]
+
+            colunas_pecas = [
+
+                c
+
+                for c in colunas_pecas
+
+                if c in df_final.columns
+
+            ]
+
+            pecas = (
+
+                df_final[
+                    colunas_pecas
+                ]
+
+                .copy()
+
+            )
+
+            pecas["Codigo"] = (
+
+                pecas["Produto"]
+
+                .apply(
+
+                    codigo_material
+
+                )
+
+            )
+
+            pecas["Largura"] = (
+
+                pd.to_numeric(
+
+                    pecas["Largura"],
+
+                    errors="coerce"
+
+                )
+
+            )
+
+            pecas["Altura"] = (
+
+                pd.to_numeric(
+
+                    pecas["Altura"],
+
+                    errors="coerce"
+
+                )
+
+            )
+
+            pecas = (
+
+                pecas
+
+                .dropna(
+
+                    subset=[
+
+                        "Largura",
+
+                        "Altura"
+
+                    ]
+
+                )
+
+            )
+            
+            # =================================
+            # PREPARAÇÃO PARA O CORTE
+            # =================================
+
+            # Acrescenta 4 mm para lapidação
+
+            pecas["Largura Corte"] = (
+
+                pecas["Largura"]
+
+                + 4
+
+            )
+
+            pecas["Altura Corte"] = (
+
+                pecas["Altura"]
+
+                + 4
+
+            )
+
+            # Área da peça em m²
+
+            pecas["Área"] = (
+
+                pecas["Largura Corte"]
+
+                *
+
+                pecas["Altura Corte"]
+
+            ) / 1000000
+
+                        # =================================
+            # DISTÂNCIA MÍNIMA
+            # =================================
+
+            def distancia_minima(codigo):
+
+                codigo = str(codigo).upper()
+
+                if codigo.startswith("LM"):
+
+                    return 30
+
+                numeros = re.findall(
+
+                    r"\d+",
+
+                    codigo
+
+                )
+
+                if numeros:
+
+                    espessura = int(
+
+                        numeros[0]
+
+                    )
+
+                    if espessura in [
+
+                        3,
+
+                        4
+
+                    ]:
+
+                        return 12
+
+                    elif espessura in [
+
+                        6,
+
+                        8
+
+                    ]:
+
+                        return 20
+
+                    elif espessura >= 10:
+
+                        return 30
+
+                return 12
+
+            pecas["Distância"] = (
+
+                pecas["Codigo"]
+
+                .apply(
+
+                    distancia_minima
+
+                )
+
+            )
+
+            # =================================
+            # TAMANHO UTILIZADO NO ENCAIXE
+            # =================================
+
+            pecas["Largura Encaixe"] = (
+
+                pecas["Largura Corte"]
+
+                +
+
+                pecas["Distância"]
+
+            )
+
+            pecas["Altura Encaixe"] = (
+
+                pecas["Altura Corte"]
+
+                +
+
+                pecas["Distância"]
+
+            )
+
+            # =================================
+            # TESTE DAS PEÇAS
+            # =================================
+
+            with st.expander(
+
+                "🧪 Teste das Peças"
+
+            ):
+
+                st.dataframe(
+
+                    pecas,
+
+                    use_container_width=True,
+
+                    hide_index=True,
+
+                    height=300
+
+                )
+                
 
             # =================================
             # RESUMO
