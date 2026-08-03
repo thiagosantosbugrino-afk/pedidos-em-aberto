@@ -1103,10 +1103,8 @@ def distancia_minima(codigo):
 
         if espessura in [3, 4]:
             return 12
-
         elif espessura in [6, 8]:
             return 20
-
         elif espessura >= 10:
             return 30
 
@@ -1144,7 +1142,6 @@ with st.expander("🧪 Teste das Peças"):
 materiais_otimizacao = {}
 
 for codigo in sorted(pecas["Codigo"].unique()):
-
     tabela = pecas[pecas["Codigo"] == codigo].copy()
 
     tabela = tabela.sort_values(
@@ -1162,28 +1159,23 @@ for codigo in sorted(pecas["Codigo"].unique()):
 resumo_otimizacao = []
 
 for codigo, tabela in materiais_otimizacao.items():
-
-    resumo_otimizacao.append(
-        {
-            "Material": codigo,
-            "Peças": len(tabela),
-            "Área Total": round(tabela["Área"].sum(), 2)
-        }
-    )
+    resumo_otimizacao.append({
+        "Material": codigo,
+        "Peças": len(tabela),
+        "Área Total": round(tabela["Área"].sum(), 2)
+    })
 
 
 resumo_otimizacao = pd.DataFrame(resumo_otimizacao)
 
-
 with st.expander("📋 Resumo da Otimização"):
-
     st.dataframe(
         resumo_otimizacao,
         use_container_width=True,
         hide_index=True
     )
-            
            
+                       
 
             # =================================
             # RESUMO
