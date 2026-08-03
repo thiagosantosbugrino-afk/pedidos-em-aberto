@@ -8,7 +8,7 @@ import plotly.express as px
 
 from io import BytesIO
 from datetime import datetime, timedelta
-from equivalencias import EQUIVALENCIAS
+
 
 # ===================================
 # FUNÇÕES
@@ -16,8 +16,15 @@ from equivalencias import EQUIVALENCIAS
 
 def codigo_material(texto):
     """
-    Retorna o código padronizado do material
-    utilizando a tabela de equivalências.
+    Retorna o código padronizado do material.
+
+    Exemplos:
+    INC0832102400      -> INC08
+    REF1032102400      -> REF10
+    ESP0432102400      -> ESP04
+    ESI0432102400      -> ESP04
+    LMINC0632102400   -> LMINC06
+    LMINC0832102400   -> LMINC08
     """
 
     if pd.isna(texto):
@@ -25,9 +32,28 @@ def codigo_material(texto):
 
     texto = str(texto).upper().strip()
 
-   
-    # Busca a equivalência cadastrada
-    return EQUIVALENCIAS.get(texto, texto)
+    # Padroniza códigos equivalentes
+    texto = texto.replace("ESI", "ESP")
+
+    # Padroniza códigos equivalentes
+    texto = texto.replace("MBI34", "MBI03")
+
+    # Padroniza códigos equivalentes
+    texto = texto.replace("LMINC08", "LMINC08")
+
+    # Laminados
+    resultado = re.match(r"(LMINC\d{2})", texto)
+
+    if resultado:
+        return resultado.group(1)
+
+    # Materiais comuns
+    resultado = re.match(r"([A-Z]{3}\d{2})", texto)
+
+    if resultado:
+        return resultado.group(1)
+
+    return texto
 
 
 def descricao_material(texto):
@@ -89,6 +115,7 @@ def formatar_numero_br(valor):
 # ===================================
 # CONFIGURAÇÃO
 # ===================================
+
 st.set_page_config(
     page_title="Pedidos Em Aberto - Visualização",
     page_icon="📊",
@@ -101,6 +128,7 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 # ===================================
 # CSS
 # ===================================
+
 st.markdown(
     """
     <style>
