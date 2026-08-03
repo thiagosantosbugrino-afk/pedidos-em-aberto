@@ -1220,6 +1220,116 @@ if mostrar_mp:
                     height=300
 
                 )
+
+                        # =================================
+            # AGRUPA PEÇAS POR MATERIAL
+            # =================================
+
+            materiais_otimizacao = {}
+
+            for codigo in sorted(
+
+                pecas["Codigo"].unique()
+
+            ):
+
+                tabela = (
+
+                    pecas[
+
+                        pecas["Codigo"]
+
+                        ==
+
+                        codigo
+
+                    ]
+
+                    .copy()
+
+                )
+
+                tabela = (
+
+                    tabela
+
+                    .sort_values(
+
+                        [
+
+                            "Largura Encaixe",
+
+                            "Altura Encaixe"
+
+                        ],
+
+                        ascending=False
+
+                    )
+
+                )
+
+                materiais_otimizacao[codigo] = tabela
+
+                        # =================================
+            # RESUMO DOS MATERIAIS
+            # =================================
+
+            resumo_otimizacao = []
+
+            for codigo, tabela in (
+
+                materiais_otimizacao.items()
+
+            ):
+
+                resumo_otimizacao.append(
+
+                    {
+
+                        "Material": codigo,
+
+                        "Peças": len(tabela),
+
+                        "Área Total":
+
+                        round(
+
+                            tabela["Área"].sum(),
+
+                            2
+
+                        )
+
+                    }
+
+                )
+
+            resumo_otimizacao = (
+
+                pd.DataFrame(
+
+                    resumo_otimizacao
+
+                )
+
+            )
+
+                        with st.expander(
+
+                "📋 Resumo da Otimização"
+
+            ):
+
+                st.dataframe(
+
+                    resumo_otimizacao,
+
+                    use_container_width=True,
+
+                    hide_index=True
+
+                )
                 
 
             # =================================
