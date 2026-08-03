@@ -10,8 +10,6 @@ from io import BytesIO
 from datetime import datetime, timedelta
 from equivalencias import EQUIVALENCIAS
 
-from st_aggrid import AgGrid, GridOptionsBuilder
-
 # ===================================
 # FUNÇÕES
 # ===================================
@@ -87,43 +85,7 @@ def formatar_numero_br(valor):
         .replace("X", ".")
     )
 
-# ===================================
-# TABELA PADRÃO
-# ===================================
 
-def mostrar_tabela(df, height=500):
-
-    gb = GridOptionsBuilder.from_dataframe(df)
-
-    gb.configure_default_column(
-        editable=False,
-        sortable=True,
-        filter=True,
-        resizable=True
-    )
-
-    for coluna in df.columns:
-
-        gb.configure_column(
-            coluna,
-            cellStyle={
-                "display": "flex",
-                "justifyContent": "center",
-                "alignItems": "center",
-                "textAlign": "center"
-            }
-        )
-
-    gridOptions = gb.build()
-
-    AgGrid(
-        df,
-        gridOptions=gridOptions,
-        fit_columns_on_grid_load=True,
-        theme="streamlit",
-        height=height,
-        allow_unsafe_jscode=True
-    )
 # ===================================
 # CONFIGURAÇÃO
 # ===================================
@@ -822,21 +784,12 @@ if mostrar_mp:
             "Descricao",
             "Estoque"
         ]
-                estoque["Codigo"] = (
+
+        estoque["Codigo"] = (
             estoque["Codigo"]
             .apply(
                 codigo_material
             )
-        )
-
-        st.write("ESTOQUE ORIGINAL")
-        st.dataframe(
-            df_consolidador.iloc[:, [1, 2, 18]].head(20)
-        )
-
-        st.write("ESTOQUE PADRONIZADO")
-        st.dataframe(
-            estoque.head(20)
         )
 
         estoque["Descricao"] = (
@@ -846,7 +799,6 @@ if mostrar_mp:
             )
         )
 
-        
         estoque["Estoque"] = (
             pd.to_numeric(
                 estoque["Estoque"],
@@ -1534,25 +1486,65 @@ if mostrar_mp:
 
             )
 
-                       # =================================
+            # =================================
             # TABELA
             # =================================
 
-            # Remove linhas totalmente vazias
-            resumo = resumo.dropna(how="all")
+            st.dataframe(
 
-            # Remove materiais sem estoque, sem consumo e sem saldo
-            resumo = resumo[
-                (resumo["Estoque"] != 0)
-                |
-                (resumo["Consumo"] != 0)
-                |
-                (resumo["Saldo"] != 0)
-            ]
-            mostrar_tabela(
-                  resumo,
-                 height=650
-                )
+                resumo,
+
+                use_container_width=True,
+
+                hide_index=True,
+
+                height=650,
+
+                column_config={
+
+                    "Estoque":
+
+                    st.column_config.NumberColumn(
+
+                        "Estoque",
+
+                        format="%.2f"
+
+                    ),
+
+                    "Consumo":
+
+                    st.column_config.NumberColumn(
+
+                        "Consumo",
+
+                        format="%.2f"
+
+                    ),
+
+                    "Saldo":
+
+                    st.column_config.NumberColumn(
+
+                        "Saldo",
+
+                        format="%.2f"
+
+                    ),
+
+                    "Compra Necessária":
+
+                    st.column_config.NumberColumn(
+
+                        "Compra Necessária",
+
+                        format="%.2f"
+
+                    )
+
+                }
+
+            )
 
             # =================================
             # DETALHAR MATERIAL
@@ -1707,10 +1699,21 @@ if mostrar_mp:
 
                 ]
 
-                mostrar_tabela(
-                    detalhe[colunas_exibir],
-                     height=350
-                    )
+                st.dataframe(
+
+                    detalhe[
+
+                        colunas_exibir
+
+                    ],
+
+                    use_container_width=True,
+
+                    hide_index=True,
+
+                    height=350
+
+                )
 
             else:
 
@@ -3254,10 +3257,17 @@ if mostrar_base:
         "📋 Base Completa"
     )
 
-    mostrar_tabela(
-    df_final,
-    height=500
-)
+    st.dataframe(
+
+        df_final,
+
+        use_container_width=True,
+
+        hide_index=True,
+
+        height=500
+
+    )
 
 
 # ===================================
