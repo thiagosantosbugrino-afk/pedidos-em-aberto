@@ -87,7 +87,43 @@ def formatar_numero_br(valor):
         .replace("X", ".")
     )
 
+# ===================================
+# TABELA PADRÃO
+# ===================================
 
+def mostrar_tabela(df, height=500):
+
+    gb = GridOptionsBuilder.from_dataframe(df)
+
+    gb.configure_default_column(
+        editable=False,
+        sortable=True,
+        filter=True,
+        resizable=True
+    )
+
+    for coluna in df.columns:
+
+        gb.configure_column(
+            coluna,
+            cellStyle={
+                "display": "flex",
+                "justifyContent": "center",
+                "alignItems": "center",
+                "textAlign": "center"
+            }
+        )
+
+    gridOptions = gb.build()
+
+    AgGrid(
+        df,
+        gridOptions=gridOptions,
+        fit_columns_on_grid_load=True,
+        theme="streamlit",
+        height=height,
+        allow_unsafe_jscode=True
+    )
 # ===================================
 # CONFIGURAÇÃO
 # ===================================
@@ -1503,37 +1539,11 @@ if mostrar_mp:
                 |
                 (resumo["Saldo"] != 0)
             ]
-
-            gb = GridOptionsBuilder.from_dataframe(resumo)
-
-            gb.configure_default_column(
-                editable=False,
-                sortable=True,
-                filter=True,
-                resizable=True,
-                cellStyle={
-                    "textAlign": "center"
-                },
-                headerClass="ag-center-header"
-            )
-
-            for coluna in resumo.columns:
-                gb.configure_column(
-                    coluna,
-                    cellStyle={"textAlign": "center"},
-                    headerClass="ag-center-header"
+            mostrar_tabela(
+                  resumo,
+                 height=650
                 )
 
-            gridOptions = gb.build()
-
-            AgGrid(
-                resumo,
-                gridOptions=gridOptions,
-                fit_columns_on_grid_load=True,
-                height=650,
-                theme="streamlit",
-                allow_unsafe_jscode=True,
-            )
             # =================================
             # DETALHAR MATERIAL
             # =================================
@@ -1687,21 +1697,10 @@ if mostrar_mp:
 
                 ]
 
-                st.dataframe(
-
-                    detalhe[
-
-                        colunas_exibir
-
-                    ],
-
-                    use_container_width=True,
-
-                    hide_index=True,
-
-                    height=350
-
-                )
+                mostrar_tabela(
+                    detalhe[colunas_exibir],
+                     height=350
+                    )
 
             else:
 
@@ -3245,17 +3244,10 @@ if mostrar_base:
         "📋 Base Completa"
     )
 
-    st.dataframe(
-
-        df_final,
-
-        use_container_width=True,
-
-        hide_index=True,
-
-        height=500
-
-    )
+    mostrar_tabela(
+    df_final,
+    height=500
+)
 
 
 # ===================================
