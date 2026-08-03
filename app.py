@@ -1,6 +1,7 @@
 import io
 import re
 import json
+import math
 
 import streamlit as st
 import pandas as pd
@@ -11,6 +12,7 @@ from datetime import datetime, timedelta
 from equivalencias import EQUIVALENCIAS
 
 from st_aggrid import AgGrid, GridOptionsBuilder
+
 
 # ===================================
 # FUNÇÕES
@@ -27,7 +29,6 @@ def codigo_material(texto):
 
     texto = str(texto).upper().strip()
 
-   
     # Busca a equivalência cadastrada
     return EQUIVALENCIAS.get(texto, texto)
 
@@ -89,8 +90,19 @@ def formatar_numero_br(valor):
 
 
 # ===================================
+# CONFIGURAÇÃO DAS CHAPAS
+# ===================================
+
+LARGURA_CHAPA = 3.210
+ALTURA_CHAPA = 2.400
+
+AREA_CHAPA = LARGURA_CHAPA * ALTURA_CHAPA
+
+
+# ===================================
 # CONFIGURAÇÃO
 # ===================================
+
 st.set_page_config(
     page_title="Pedidos Em Aberto - Visualização",
     page_icon="📊",
@@ -98,8 +110,6 @@ st.set_page_config(
 )
 
 st.title("📊 Pedidos Em Aberto - Visualização")
-
-
 # ===================================
 # CSS
 # ===================================
@@ -1231,7 +1241,7 @@ if mostrar_mp:
                 "Primeira Falta"
             ] = primeira_falta
 
-            # =================================
+                       # =================================
             # COMPRA NECESSÁRIA
             # =================================
 
@@ -1249,6 +1259,67 @@ if mostrar_mp:
 
             )
 
+            # =================================
+            # COMPRA COM PERDA
+            # =================================
+
+            def calcular_compra_perda(linha):
+
+                compra = linha[
+                    "Compra Necessária"
+                ]
+
+                codigo = str(
+                    linha["Codigo"]
+                ).upper()
+
+                if codigo.startswith("LM"):
+
+                    return compra * 1.20
+
+                return compra * 1.10
+
+            resumo[
+                "Compra c/ Perda"
+            ] = (
+
+                resumo.apply(
+
+                    calcular_compra_perda,
+
+                    axis=1
+
+                )
+
+            )
+
+            # =================================
+            # QUANTIDADE DE CHAPAS
+            # =================================
+
+            resumo[
+                "Qtd Chapas"
+            ] = (
+
+                resumo[
+                    "Compra c/ Perda"
+                ]
+
+                .apply(
+
+                    lambda x:
+
+                    math.ceil(
+                        x / AREA_CHAPA
+                    )
+
+                    if x > 0
+
+                    else 0
+
+                )
+
+            )
             # =================================
             # STATUS
             # =================================
@@ -1283,7 +1354,9 @@ if mostrar_mp:
 
                 "Saldo",
 
-                "Compra Necessária"
+                "Compra Necessária",
+
+                "Compra c/ Perda"
 
             ]:
 
@@ -1294,7 +1367,6 @@ if mostrar_mp:
                     .round(2)
 
                 )
-
             # =================================
             # FORMATAÇÃO DAS DATAS
             # =================================
@@ -1453,6 +1525,10 @@ if mostrar_mp:
                         "Primeira Falta",
 
                         "Compra Necessária",
+
+                        "Compra c/ Perda",
+
+                        "Qtd Chapas",
 
                         "Status"
 
