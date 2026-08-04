@@ -609,7 +609,7 @@ def resumo_otimizacao(
 
             )
 
-        linhas.append(
+                linhas.append(
 
             {
 
@@ -621,34 +621,60 @@ def resumo_otimizacao(
 
                 ),
 
-                "Área Utilizada": utilizadas,
+                "Área Utilizada": round(
 
-                "Área Total": area,
+                    utilizadas / 1000000,
 
-                "Aproveitamento (%)":
+                    2
 
-                    round(
+                ),
+
+                "Área Total": round(
+
+                    area / 1000000,
+
+                    2
+
+                ),
+
+                "Desperdício Total": round(
+
+                    (
+
+                        area -
 
                         utilizadas
 
-                        /
-
-                        area
-
-                        *
-
-                        100,
-
-                        2
-
                     )
 
-                    if area
+                    /
 
-                    else 0
+                    1000000,
+
+                    2
+
+                ),
+
+                "Aproveitamento (%)": round(
+
+                    utilizadas
+
+                    /
+
+                    area
+
+                    *
+
+                    100,
+
+                    2
+
+                )
+
+                if area
+
+                else 0
 
             }
 
         )
-
-    return linhas
