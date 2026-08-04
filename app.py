@@ -787,7 +787,7 @@ if mostrar_mp:
 
         estoque = (
             df_consolidador
-            .iloc[:, [1, 2, 16]]
+            .iloc[:, [1, 2, 18]]
             .copy()
         )
 
