@@ -1432,7 +1432,6 @@ if mostrar_mp:
                 ]
 
             )
-
             # =================================
             # COBERTURA
             # =================================
@@ -1441,137 +1440,61 @@ if mostrar_mp:
 
             primeira_falta = []
 
-            for _, linha in (
-                resumo.iterrows()
-            ):
+            for _, linha in resumo.iterrows():
 
-                codigo_atual = (
-                    linha["Codigo"]
-                )
+                codigo_atual = linha["Codigo"]
 
-                saldo_atual = (
-                    linha["Estoque"]
-                )
+                saldo_atual = linha["Estoque"]
 
                 tabela_material = (
-
                     consumo_data[
-
-                        consumo_data[
-                            "Codigo"
-                        ]
-
-                        ==
-
-                        codigo_atual
-
+                        consumo_data["Codigo"] == codigo_atual
                     ]
-
                     .copy()
-
                 )
 
-                if (
-                    "Previsão"
-                    in tabela_material.columns
-                ):
+                if "Previsão" in tabela_material.columns:
 
                     tabela_material = (
-
                         tabela_material
-
-                        .sort_values(
-
-                            "Previsão"
-
-                        )
-
+                        .sort_values("Previsão")
                     )
 
-                ultima_data_ok = (
-                    pd.NaT
-                )
+                ultima_data_ok = pd.NaT
 
-                primeira_data_sem = (
-                    pd.NaT
-                )
+                primeira_data_sem = pd.NaT
 
-                for _, item in (
-                    tabela_material
-                    .iterrows()
-                ):
+                for _, item in tabela_material.iterrows():
 
-                    consumo_dia = (
-                        item[
-                            "Consumo Dia"
-                        ]
-                    )
+                    consumo_dia = item["Consumo Dia"]
 
-                    if (
-                        saldo_atual
-                        >=
-                        consumo_dia
-                    ):
+                    if saldo_atual >= consumo_dia:
 
-                        saldo_atual = (
+                        saldo_atual -= consumo_dia
 
-                            saldo_atual
+                        if "Previsão" in item.index:
 
-                            -
-
-                            consumo_dia
-
-                        )
-
-                        if (
-                            "Previsão"
-                            in item.index
-                        ):
-
-                            ultima_data_ok = (
-
-                                item[
-                                    "Previsão"
-                                ]
-
-                            )
+                            ultima_data_ok = item["Previsão"]
 
                     else:
 
-                        if (
-                            "Previsão"
-                            in item.index
-                        ):
+                        if "Previsão" in item.index:
 
-                            primeira_data_sem = (
-
-                                item[
-                                    "Previsão"
-                                ]
-
-                            )
+                            primeira_data_sem = item["Previsão"]
 
                         break
 
                 produz_ate.append(
-
                     ultima_data_ok
-
                 )
 
                 primeira_falta.append(
-
                     primeira_data_sem
-
                 )
 
-            resumo[
-                "Produz até"
-            ] = produz_ate
+            resumo["Produz até"] = produz_ate
 
-            resumo[
-                "Primeira Falta"
-            ] = primeira_falta
+            resumo["Primeira Falta"] = primeira_falta
 
             # =================================
             # COMPRA NECESSÁRIA
