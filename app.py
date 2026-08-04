@@ -1,7 +1,6 @@
 import io
 import re
 import json
-import math
 
 import streamlit as st
 import pandas as pd
@@ -9,9 +8,16 @@ import plotly.express as px
 
 from io import BytesIO
 from datetime import datetime, timedelta
+
 from equivalencias import EQUIVALENCIAS
 
 from st_aggrid import AgGrid, GridOptionsBuilder
+
+from otimizador import (
+    Peca,
+    otimizar_lista,
+    resumo_otimizacao
+)
 
 
 # ===================================
@@ -1070,6 +1076,79 @@ if mostrar_mp:
                         "Altura"
 
                     ]
+
+                )
+
+            )
+                        # =====================================
+            # MONTA LISTA PARA OTIMIZAÇÃO
+            # =====================================
+
+            lista_otimizacao = []
+
+            for _, linha in pecas.iterrows():
+
+                lista_otimizacao.append(
+
+                    Peca(
+
+                        codigo=linha["Codigo"],
+
+                        largura=float(
+                            linha["Largura"]
+                        ),
+
+                        altura=float(
+                            linha["Altura"]
+                        ),
+
+                        pedido=str(
+                            linha.get(
+                                "Pedido",
+                                ""
+                            )
+                        ),
+
+                        cliente=str(
+                            linha.get(
+                                "Cliente",
+                                ""
+                            )
+                        ),
+
+                        pc=str(
+                            linha.get(
+                                "PC",
+                                ""
+                            )
+                        ),
+
+                        rota=str(
+                            linha.get(
+                                "Rota",
+                                ""
+                            )
+                        )
+
+                    )
+
+                )
+
+            resultado_otimizacao = (
+
+                otimizar_lista(
+
+                    lista_otimizacao
+
+                )
+
+            )
+
+            resumo_otimizado = pd.DataFrame(
+
+                resumo_otimizacao(
+
+                    resultado_otimizacao
 
                 )
 
