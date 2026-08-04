@@ -13,11 +13,10 @@ from equivalencias import EQUIVALENCIAS
 
 from st_aggrid import AgGrid, GridOptionsBuilder
 
-from otimizador import (
-    Peca,
-    otimizar_lista,
-    resumo_otimizacao
-)
+import otimizador
+
+st.write(dir(otimizador))
+st.stop()
 
 
 # ===================================
