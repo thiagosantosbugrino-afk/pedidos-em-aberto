@@ -86,11 +86,13 @@ class Chapa:
 
         ]
 
+
     # --------------------------------------------------
 
     def area_total(self):
 
         return self.largura * self.altura
+
 
     # --------------------------------------------------
 
@@ -100,31 +102,18 @@ class Chapa:
 
         for item in self.pecas:
 
-            if item.girada:
+            total += (
 
-                total += (
+                item.peca.largura
 
-                    item.peca.altura
+                *
 
-                    *
+                item.peca.altura
 
-                    item.peca.largura
-
-                )
-
-            else:
-
-                total += (
-
-                    item.peca.largura
-
-                    *
-
-                    item.peca.altura
-
-                )
+            )
 
         return total
+
 
     # --------------------------------------------------
 
@@ -139,9 +128,11 @@ class Chapa:
             self.area_total()
 
         ) * 100
-      # ======================================================
-# FUNÇÕES DA CHAPA
-# ======================================================
+
+
+    # ======================================================
+    # FUNÇÕES DA CHAPA
+    # ======================================================
 
     def cabe_no_espaco(
 
@@ -165,6 +156,7 @@ class Chapa:
 
         )
 
+
     # --------------------------------------------------
 
     def procurar_melhor_espaco(
@@ -184,8 +176,6 @@ class Chapa:
         girada = False
 
         for espaco in self.espacos:
-
-            # posição normal
 
             if self.cabe_no_espaco(
 
@@ -231,7 +221,6 @@ class Chapa:
 
                     girada = False
 
-            # posição girada
 
             if self.cabe_no_espaco(
 
@@ -277,6 +266,7 @@ class Chapa:
 
                     girada = True
 
+
         return (
 
             melhor,
@@ -284,7 +274,7 @@ class Chapa:
             girada
 
         )
-          # --------------------------------------------------
+            # --------------------------------------------------
 
     def inserir_peca(
 
@@ -306,9 +296,11 @@ class Chapa:
 
         )
 
+
         if espaco is None:
 
             return False
+
 
         if girada:
 
@@ -321,6 +313,7 @@ class Chapa:
             largura = peca.largura
 
             altura = peca.altura
+
 
         self.pecas.append(
 
@@ -338,11 +331,13 @@ class Chapa:
 
         )
 
+
         self.espacos.remove(
 
             espaco
 
         )
+
 
         sobra_direita = (
 
@@ -354,6 +349,7 @@ class Chapa:
 
         )
 
+
         sobra_baixo = (
 
             espaco.altura
@@ -363,6 +359,7 @@ class Chapa:
             altura
 
         )
+
 
         if sobra_direita > 0:
 
@@ -382,7 +379,8 @@ class Chapa:
 
             )
 
-                if sobra_baixo > 0:
+
+        if sobra_baixo > 0:
 
             self.espacos.append(
 
@@ -400,10 +398,15 @@ class Chapa:
 
             )
 
+
         self.limpar_espacos()
 
+
         return True
-          # --------------------------------------------------
+
+
+
+    # --------------------------------------------------
 
     def limpar_espacos(
 
@@ -413,6 +416,7 @@ class Chapa:
 
         novos = []
 
+
         for i, espaco1 in enumerate(
 
             self.espacos
@@ -420,6 +424,7 @@ class Chapa:
         ):
 
             contido = False
+
 
             for j, espaco2 in enumerate(
 
@@ -430,6 +435,7 @@ class Chapa:
                 if i == j:
 
                     continue
+
 
                 if (
 
@@ -461,6 +467,7 @@ class Chapa:
 
                     break
 
+
             if not contido:
 
                 novos.append(
@@ -469,10 +476,15 @@ class Chapa:
 
                 )
 
+
         self.espacos = novos
-      # ======================================================
+
+
+
+# ======================================================
 # OTIMIZAÇÃO DE UM MATERIAL
 # ======================================================
+
 
 def otimizar_material(
 
@@ -482,14 +494,16 @@ def otimizar_material(
 
 ):
 
-    # Ordena da maior para a menor
+
     pecas = sorted(
 
         pecas,
 
         key=lambda p: (
 
-            p.largura *
+            p.largura
+
+            *
 
             p.altura
 
@@ -499,11 +513,14 @@ def otimizar_material(
 
     )
 
+
     chapas = []
+
 
     for peca in pecas:
 
         colocada = False
+
 
         for chapa in chapas:
 
@@ -516,6 +533,7 @@ def otimizar_material(
                 colocada = True
 
                 break
+
 
         if not colocada:
 
@@ -533,10 +551,12 @@ def otimizar_material(
 
             )
 
+
     return chapas
-  # ======================================================
+    # ======================================================
 # OTIMIZA TODOS OS MATERIAIS
 # ======================================================
+
 
 def otimizar_lista(
 
@@ -545,6 +565,7 @@ def otimizar_lista(
 ):
 
     materiais = {}
+
 
     for peca in lista_pecas:
 
@@ -560,7 +581,9 @@ def otimizar_lista(
 
         )
 
+
     resultado = {}
+
 
     for codigo in materiais:
 
@@ -576,10 +599,15 @@ def otimizar_lista(
 
         )
 
+
     return resultado
-  # ======================================================
+
+
+
+# ======================================================
 # RESUMO
 # ======================================================
+
 
 def resumo_otimizacao(
 
@@ -589,13 +617,14 @@ def resumo_otimizacao(
 
     linhas = []
 
+
     for codigo, chapas in resultado.items():
 
-        aproveitamento = 0
+
+        utilizadas = 0
 
         area = 0
 
-        utilizadas = 0
 
         for chapa in chapas:
 
@@ -603,13 +632,9 @@ def resumo_otimizacao(
 
             area += chapa.area_total()
 
-            aproveitamento += (
 
-                chapa.aproveitamento()
 
-            )
-
-                linhas.append(
+        linhas.append(
 
             {
 
@@ -641,7 +666,9 @@ def resumo_otimizacao(
 
                     (
 
-                        area -
+                        area
+
+                        -
 
                         utilizadas
 
@@ -657,11 +684,15 @@ def resumo_otimizacao(
 
                 "Aproveitamento (%)": round(
 
-                    utilizadas
+                    (
 
-                    /
+                        utilizadas
 
-                    area
+                        /
+
+                        area
+
+                    )
 
                     *
 
@@ -678,3 +709,7 @@ def resumo_otimizacao(
             }
 
         )
+
+
+    return linhas
+        
