@@ -1836,7 +1836,7 @@ if mostrar_mp:
             # COLUNAS DA TABELA
             # =================================
 
-            resumo = (
+                        resumo = (
 
                 resumo[
 
@@ -1858,6 +1858,8 @@ if mostrar_mp:
 
                         "Compra Necessária",
 
+                        "Compra c/ Perda",
+
                         "Qtd Chapas",
 
                         "Aproveitamento (%)",
@@ -1871,7 +1873,6 @@ if mostrar_mp:
                 ]
 
             )
-
             resumo = (
 
                 resumo
@@ -1897,32 +1898,23 @@ if mostrar_mp:
                 )
 
             )
-                        # =====================================
+                                   # =====================================
             # JUNTA RESULTADO DA OTIMIZAÇÃO
             # =====================================
 
             if not resumo_otimizado.empty:
 
-                                resumo = resumo.merge(
+                resumo = resumo.merge(
 
                     resumo_otimizado[
-
                         [
-
                             "Codigo",
-
                             "Qtd Chapas",
-
                             "Área Total",
-
                             "Área Utilizada",
-
                             "Desperdício Total",
-
                             "Aproveitamento (%)"
-
                         ]
-
                     ],
 
                     on="Codigo",
@@ -1940,7 +1932,8 @@ if mostrar_mp:
                     .astype(int)
 
                 )
-                            resumo["Desperdício Total"] = (
+
+                resumo["Desperdício Total"] = (
 
                     resumo["Desperdício Total"]
 
@@ -1960,28 +1953,13 @@ if mostrar_mp:
 
                 )
 
-                resumo["Desperdício Total"] = (
-
-                    (
-
-                        resumo["Área Total"]
-
-                        -
-
-                        resumo["Área Utilizada"]
-
-                    )
-
-                    / 1000000
-
-                ).round(2)
-
             else:
 
                 resumo["Qtd Chapas"] = 0
 
                 resumo["Desperdício Total"] = 0
 
+                resumo["Aproveitamento (%)"] = 0
                        # =================================
             # TABELA
             # =================================
