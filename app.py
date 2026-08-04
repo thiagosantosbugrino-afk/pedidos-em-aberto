@@ -3585,86 +3585,30 @@ if mostrar_base:
         height=500
 
     )
-
-
-# ===================================
+    # ===================================
 # DOWNLOAD
 # ===================================
 
 st.markdown("---")
 
-st.subheader(
-    "📥 Exportar dados filtrados"
-)
+st.subheader("📥 Exportar dados filtrados")
 
 
-def to_excel(
-    dataframe
-):
-
+def to_excel(dataframe):
     output = BytesIO()
-
-    with pd.ExcelWriter(
-
-        output,
-
-        engine="openpyxl"
-
-    ) as writer:
-
-        dataframe.to_excel(
-
-            writer,
-
-            index=False,
-
-            sheet_name=(
-
-                "Base Filtrada"
-
-            )
-
-        )
-
-    return (
-        output.getvalue()
-    )
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        dataframe.to_excel(writer, index=False, sheet_name="Base Filtrada")
+    return output.getvalue()
 
 
-excel_file = (
-    to_excel(
-        df_final
-    )
-)
-
+excel_file = to_excel(df_final)
 
 st.download_button(
-
-    label=(
-
-        "📥 Baixar planilha "
-
-        "filtrada (Excel)"
-
-    ),
-
+    label="📥 Baixar planilha filtrada (Excel)",
     data=excel_file,
+    file_name="dados_filtrados.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
 
-    file_name=(
 
-        "dados_filtrados.xlsx"
-
-    ),
-
-    mime=(
-
-        "application/"
-
-        "vnd.openxmlformats-"
-
-        "officedocument."
-
-        "spreadsheetml.sheet"
-
-    )
 
