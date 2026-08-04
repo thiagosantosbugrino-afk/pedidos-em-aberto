@@ -1858,9 +1858,9 @@ if mostrar_mp:
 
                         "Compra Necessária",
 
-                        "Compra c/ Perda",
-
                         "Qtd Chapas",
+
+                        "Aproveitamento (%)",
 
                         "Desperdício Total",
 
@@ -1903,7 +1903,7 @@ if mostrar_mp:
 
             if not resumo_otimizado.empty:
 
-                resumo = resumo.merge(
+                                resumo = resumo.merge(
 
                     resumo_otimizado[
 
@@ -1915,7 +1915,11 @@ if mostrar_mp:
 
                             "Área Total",
 
-                            "Área Utilizada"
+                            "Área Utilizada",
+
+                            "Desperdício Total",
+
+                            "Aproveitamento (%)"
 
                         ]
 
@@ -1934,6 +1938,25 @@ if mostrar_mp:
                     .fillna(0)
 
                     .astype(int)
+
+                )
+                            resumo["Desperdício Total"] = (
+
+                    resumo["Desperdício Total"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
+                resumo["Aproveitamento (%)"] = (
+
+                    resumo["Aproveitamento (%)"]
+
+                    .fillna(0)
+
+                    .round(2)
 
                 )
 
