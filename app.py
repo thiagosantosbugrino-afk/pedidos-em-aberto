@@ -787,7 +787,7 @@ if mostrar_mp:
 
         estoque = (
             df_consolidador
-            .iloc[:, [1, 2, 18]]
+            .iloc[:, [1, 2, 16]]
             .copy()
         )
 
@@ -3668,4 +3668,3 @@ st.download_button(
 
     )
 
-)
