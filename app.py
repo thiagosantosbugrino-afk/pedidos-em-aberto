@@ -1366,9 +1366,14 @@ if mostrar_mp:
                     use_container_width=True,
                     hide_index=True
                 )
-            # =================================
+                       # =================================
             # RESUMO FINAL
             # =================================
+
+            # Padroniza códigos
+            consumo["Codigo"] = consumo["Codigo"].apply(codigo_material)
+            estoque["Codigo"] = estoque["Codigo"].apply(codigo_material)
+            resumo_otimizado["Codigo"] = resumo_otimizado["Codigo"].apply(codigo_material)
 
             # Merge consumo + estoque
             resumo = pd.merge(consumo, estoque, on="Codigo", how="left")
@@ -1398,8 +1403,10 @@ if mostrar_mp:
                 1 + (resumo["Desperdício Total"] / resumo["Área Total"])
             )
 
-            # Preenche valores nulos
+            # Preenche valores nulos e evita erro de chave
             resumo["Compra c/ Perda"] = resumo["Compra c/ Perda"].fillna(0)
+            if "Qtd Chapas" not in resumo.columns:
+                resumo["Qtd Chapas"] = 0
             resumo["Qtd Chapas"] = resumo["Qtd Chapas"].fillna(0).astype(int)
 
             # Ordena para exibição
