@@ -1572,39 +1572,28 @@ if mostrar_mp:
             )
 
             # =================================
-            # COMPRA COM PERDA
+            # COMPRA COM OTIMIZAÇÃO
             # =================================
 
-            def calcular_compra_perda(linha):
+            resumo[
+                "Compra Necessária"
+            ] = (
 
-                compra = linha[
-                    "Compra Necessária"
+                resumo[
+                    "Qtd Chapas"
                 ]
 
-                codigo = str(
-                    linha["Codigo"]
-                ).upper()
-
-                if codigo.startswith("LM"):
-
-                    return compra * 1.20
-
-                return compra * 1.10
+            )
 
             resumo[
                 "Compra c/ Perda"
             ] = (
 
-                resumo.apply(
-
-                    calcular_compra_perda,
-
-                    axis=1
-
-                )
+                resumo[
+                    "Qtd Chapas"
+                ]
 
             )
-
             # =================================
             # STATUS
             # =================================
