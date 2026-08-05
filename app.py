@@ -1911,7 +1911,9 @@ if mostrar_mp:
 
                 "Compra Necessária",
 
-                "Área Utilizada"
+                "Área Utilizada",
+
+                "Desperdício Total"
 
             ]
 
