@@ -1776,16 +1776,15 @@ if mostrar_mp:
                 ].sum()
 
             )
+                        col3.metric(
 
-            col3.metric(
+                "🧱 Total Chapas",
 
-                "📐 Total Chapas",
+                int(total_compra)
 
-                formatar_numero_br(
+            )
 
-                    total_compra
-
-                )
+           
 
             )
 
