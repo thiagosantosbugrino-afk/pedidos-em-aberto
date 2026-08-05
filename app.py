@@ -1990,6 +1990,45 @@ if mostrar_mp:
             ]
 
 
+            # =====================================
+            # ORDEM DAS COLUNAS DA TABELA
+            # =====================================
+
+            colunas_tabela = [
+
+                "Codigo",
+
+                "Descricao",
+
+                "Estoque",
+
+                "Consumo",
+
+                "Saldo",
+
+                "Produz até",
+
+                "Primeira Falta",
+
+                "Compra Necessária",
+
+                "Compra c/ Perda",
+
+                "Qtd Chapas",
+
+                "Área Total",
+
+                "Área Utilizada",
+
+                "Desperdício Total",
+
+                "Aproveitamento (%)",
+
+                "Status"
+
+            ]
+
+
             # 🔹 Colunas ocultas somente na visualização
             colunas_ocultas = [
 
@@ -2004,13 +2043,19 @@ if mostrar_mp:
             ]
 
 
-            tabela = tabela.drop(
+            colunas_exibir = [
 
-                columns=colunas_ocultas,
+                coluna
 
-                errors="ignore"
+                for coluna in colunas_tabela
 
-            )
+                if coluna not in colunas_ocultas
+
+            ]
+
+
+            # Mantém a ordem original e oculta somente as escolhidas
+            tabela = tabela[colunas_exibir]
 
 
             gb = GridOptionsBuilder.from_dataframe(tabela)
@@ -2055,7 +2100,7 @@ if mostrar_mp:
             # =====================================
             # DETALHAR MATERIAL
             # =====================================
-            
+                        
 
 
 
