@@ -42,6 +42,30 @@ class Peca:
 
         return self.largura * self.altura
 
+    @property
+    def distancia_minima(self):
+
+        codigo = str(self.codigo).upper()
+
+        if codigo.startswith("LM"):
+            return 30
+
+        numeros = "".join(c for c in codigo if c.isdigit())
+
+        if numeros:
+
+            espessura = int(numeros)
+
+            if espessura in (3, 4):
+                return 12
+
+            elif espessura in (6, 8):
+                return 20
+
+            elif espessura >= 10:
+                return 30
+
+        return 12
 
 # ==========================================================
 # ESPAÇO LIVRE
