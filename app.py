@@ -843,17 +843,13 @@ if mostrar_mp:
             )["Estoque"]
             .sum()
         )
-
-        # =====================================
+                # =====================================
         # CONSUMO DOS FILTROS
         # =====================================
 
         if (
-            "Produto"
-            not in df_final.columns
-            or
-            "M2 Vendido"
-            not in df_final.columns
+            "Produto" not in df_final.columns
+            or "M2 Vendido" not in df_final.columns
         ):
 
             st.error(
@@ -865,12 +861,7 @@ if mostrar_mp:
         else:
 
             consumo = (
-                df_final[
-                    [
-                        "Produto",
-                        "M2 Vendido"
-                    ]
-                ]
+                df_final[["Produto", "M2 Vendido"]]
                 .copy()
             )
 
@@ -883,9 +874,7 @@ if mostrar_mp:
 
             consumo["Consumo"] = (
                 pd.to_numeric(
-                    consumo[
-                        "M2 Vendido"
-                    ],
+                    consumo["M2 Vendido"],
                     errors="coerce"
                 )
                 .fillna(0)
@@ -898,6 +887,7 @@ if mostrar_mp:
                 ]
             )
 
+            # ✅ Consolida materiais iguais (ex: INC10)
             consumo = (
                 consumo
                 .groupby(
@@ -907,9 +897,15 @@ if mostrar_mp:
                 .sum()
             )
 
-            # =================================
-            # CONSUMO POR DATA
-            # =================================
+
+        # =====================================
+        # CONSUMO POR DATA
+        # =====================================
+        
+        
+        
+
+        
 
             colunas_detalhe = [
 
