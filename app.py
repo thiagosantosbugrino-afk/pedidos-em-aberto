@@ -1610,33 +1610,6 @@ if mostrar_mp:
             )
 
             # =================================
-            # QUANTIDADE DE CHAPAS
-            # =================================
-
-            resumo[
-                "Qtd Chapas"
-            ] = (
-
-                resumo[
-                    "Compra c/ Perda"
-                ]
-
-                .apply(
-
-                    lambda x:
-
-                    math.ceil(
-                        x / AREA_CHAPA
-                    )
-
-                    if x > 0
-
-                    else 0
-
-                )
-
-            )
-            # =================================
             # STATUS
             # =================================
 
