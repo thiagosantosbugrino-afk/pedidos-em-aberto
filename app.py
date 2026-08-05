@@ -1792,15 +1792,6 @@ if mostrar_mp:
             # JUNTA RESULTADO DA OTIMIZAÇÃO
             # =====================================
 
-            st.write("Resumo otimizado:")
-            st.write(resumo_otimizado)
-
-            st.write("Colunas resumo_otimizado:")
-            st.write(resumo_otimizado.columns.tolist())
-
-            st.write("Colunas resumo antes do merge:")
-            st.write(resumo.columns.tolist())
-
             if not resumo_otimizado.empty:
 
                 resumo = resumo.merge(
@@ -1821,9 +1812,6 @@ if mostrar_mp:
                     how="left"
 
                 )
-
-                st.write("Colunas após o merge:")
-                st.write(resumo.columns.tolist())
 
                 resumo["Qtd Chapas"] = (
 
@@ -1877,8 +1865,6 @@ if mostrar_mp:
 
             else:
 
-                st.warning("Resumo otimizado vazio.")
-
                 resumo["Qtd Chapas"] = 0
                 resumo["Área Total"] = 0
                 resumo["Área Utilizada"] = 0
@@ -1888,6 +1874,7 @@ if mostrar_mp:
             # =================================
             # COLUNAS DA TABELA
             # =================================
+                       
            
             resumo = (
 
