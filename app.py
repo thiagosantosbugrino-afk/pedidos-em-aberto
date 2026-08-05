@@ -1,6 +1,7 @@
 import io
 import re
 import json
+import math
 
 import streamlit as st
 import pandas as pd
@@ -1079,80 +1080,7 @@ if mostrar_mp:
                 )
 
             )
-                        # =====================================
-            # MONTA LISTA PARA OTIMIZAÇÃO
-            # =====================================
-
-            lista_otimizacao = []
-
-            for _, linha in pecas.iterrows():
-
-                lista_otimizacao.append(
-
-                    Peca(
-
-                        codigo=linha["Codigo"],
-
-                        largura=float(
-                            linha["Largura"]
-                        ),
-
-                        altura=float(
-                            linha["Altura"]
-                        ),
-
-                        pedido=str(
-                            linha.get(
-                                "Pedido",
-                                ""
-                            )
-                        ),
-
-                        cliente=str(
-                            linha.get(
-                                "Cliente",
-                                ""
-                            )
-                        ),
-
-                        pc=str(
-                            linha.get(
-                                "PC",
-                                ""
-                            )
-                        ),
-
-                        rota=str(
-                            linha.get(
-                                "Rota",
-                                ""
-                            )
-                        )
-
-                    )
-
-                )
-
-            resultado_otimizacao = (
-
-                otimizar_lista(
-
-                    lista_otimizacao
-
-                )
-
-            )
-
-            resumo_otimizado = pd.DataFrame(
-
-                resumo_otimizacao(
-
-                    resultado_otimizacao
-
-                )
-
-            )
-            # =================================
+                        # =================================
             # PREPARAÇÃO PARA O CORTE
             # =================================
 
@@ -1227,6 +1155,139 @@ if mostrar_mp:
             )
 
 
+            # =====================================
+            # MONTA LISTA PARA OTIMIZAÇÃO
+            # =====================================
+
+            lista_otimizacao = []
+
+            for _, linha in pecas.iterrows():
+
+                largura = float(
+                    linha["Largura Encaixe"]
+                )
+
+                altura = float(
+                    linha["Altura Encaixe"]
+                )
+
+                if altura > largura:
+
+                    largura, altura = altura, largura
+
+                lista_otimizacao.append(
+
+                    Peca(
+
+                        codigo=str(
+                            linha["Codigo"]
+                        ),
+
+                        largura=largura,
+
+                        altura=altura,
+
+                        pedido=str(
+                            linha.get(
+                                "Pedido",
+                                ""
+                            )
+                        ),
+
+                        cliente=str(
+                            linha.get(
+                                "Cliente",
+                                ""
+                            )
+                        ),
+
+                        pc=str(
+                            linha.get(
+                                "PC",
+                                ""
+                            )
+                        ),
+
+                        rota=str(
+                            linha.get(
+                                "Rota",
+                                ""
+                            )
+                        )
+
+                    )
+
+                )
+
+            # =====================================
+            # EXECUTA A OTIMIZAÇÃO
+            # =====================================
+
+            resultado_otimizacao = (
+                otimizar_lista(
+                    lista_otimizacao
+                )
+            )
+
+            resumo_otimizado = pd.DataFrame(
+                resumo_otimizacao(
+                    resultado_otimizacao
+                )
+            )
+
+            colunas = [
+
+                "Codigo",
+
+                "Qtd Chapas",
+
+                "Área Total",
+
+                "Área Utilizada",
+
+                "Desperdício Total",
+
+                "Aproveitamento (%)"
+
+            ]
+
+            for coluna in colunas:
+
+                if coluna not in resumo_otimizado.columns:
+
+                    resumo_otimizado[coluna] = 0
+
+            resumo_otimizado["Qtd Chapas"] = (
+                resumo_otimizado["Qtd Chapas"]
+                .fillna(0)
+                .astype(int)
+            )
+
+            resumo_otimizado["Área Total"] = (
+                resumo_otimizado["Área Total"]
+                .fillna(0)
+                .round(2)
+            )
+
+            resumo_otimizado["Área Utilizada"] = (
+                resumo_otimizado["Área Utilizada"]
+                .fillna(0)
+                .round(2)
+            )
+
+            resumo_otimizado["Desperdício Total"] = (
+                resumo_otimizado["Desperdício Total"]
+                .fillna(0)
+                .round(2)
+            )
+
+            resumo_otimizado["Aproveitamento (%)"] = (
+                resumo_otimizado["Aproveitamento (%)"]
+                .fillna(0)
+                .round(2)
+            )
+
+
             # =================================
             # TESTE DAS PEÇAS
             # =================================
@@ -1246,6 +1307,7 @@ if mostrar_mp:
             # =================================
             # AGRUPA PEÇAS POR MATERIAL
             # =================================
+            
 
             materiais_otimizacao = {}
 
@@ -1548,33 +1610,6 @@ if mostrar_mp:
             )
 
             # =================================
-            # QUANTIDADE DE CHAPAS
-            # =================================
-
-            resumo[
-                "Qtd Chapas"
-            ] = (
-
-                resumo[
-                    "Compra c/ Perda"
-                ]
-
-                .apply(
-
-                    lambda x:
-
-                    math.ceil(
-                        x / AREA_CHAPA
-                    )
-
-                    if x > 0
-
-                    else 0
-
-                )
-
-            )
-            # =================================
             # STATUS
             # =================================
 
@@ -1753,11 +1788,107 @@ if mostrar_mp:
                 )
 
             )
+                        # =====================================
+            # JUNTA RESULTADO DA OTIMIZAÇÃO
+            # =====================================
 
-                       # =================================
+            st.write("Resumo otimizado:")
+            st.write(resumo_otimizado)
+
+            st.write("Colunas resumo_otimizado:")
+            st.write(resumo_otimizado.columns.tolist())
+
+            st.write("Colunas resumo antes do merge:")
+            st.write(resumo.columns.tolist())
+
+            if not resumo_otimizado.empty:
+
+                resumo = resumo.merge(
+
+                    resumo_otimizado[
+                        [
+                            "Codigo",
+                            "Qtd Chapas",
+                            "Área Total",
+                            "Área Utilizada",
+                            "Desperdício Total",
+                            "Aproveitamento (%)"
+                        ]
+                    ],
+
+                    on="Codigo",
+
+                    how="left"
+
+                )
+
+                st.write("Colunas após o merge:")
+                st.write(resumo.columns.tolist())
+
+                resumo["Qtd Chapas"] = (
+
+                    resumo["Qtd Chapas"]
+
+                    .fillna(0)
+
+                    .astype(int)
+
+                )
+
+                resumo["Área Total"] = (
+
+                    resumo["Área Total"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
+                resumo["Área Utilizada"] = (
+
+                    resumo["Área Utilizada"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
+                resumo["Desperdício Total"] = (
+
+                    resumo["Desperdício Total"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
+                resumo["Aproveitamento (%)"] = (
+
+                    resumo["Aproveitamento (%)"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
+            else:
+
+                st.warning("Resumo otimizado vazio.")
+
+                resumo["Qtd Chapas"] = 0
+                resumo["Área Total"] = 0
+                resumo["Área Utilizada"] = 0
+                resumo["Desperdício Total"] = 0
+                resumo["Aproveitamento (%)"] = 0
+
+            # =================================
             # COLUNAS DA TABELA
             # =================================
-
+           
             resumo = (
 
                 resumo[
@@ -1784,9 +1915,13 @@ if mostrar_mp:
 
                         "Qtd Chapas",
 
-                        "Aproveitamento (%)",
+                        "Área Total",
+
+                        "Área Utilizada",
 
                         "Desperdício Total",
+
+                        "Aproveitamento (%)",
 
                         "Status"
 
@@ -1821,68 +1956,7 @@ if mostrar_mp:
                 )
 
             )
-                        # =====================================
-            # JUNTA RESULTADO DA OTIMIZAÇÃO
-            # =====================================
 
-            if not resumo_otimizado.empty:
-
-                resumo = resumo.merge(
-
-                    resumo_otimizado[
-                        [
-                            "Codigo",
-                            "Qtd Chapas",
-                            "Área Total",
-                            "Área Utilizada",
-                            "Desperdício Total",
-                            "Aproveitamento (%)"
-                        ]
-                    ],
-
-                    on="Codigo",
-
-                    how="left"
-
-                )
-
-                resumo["Qtd Chapas"] = (
-
-                    resumo["Qtd Chapas"]
-
-                    .fillna(0)
-
-                    .astype(int)
-
-                )
-
-                resumo["Desperdício Total"] = (
-
-                    resumo["Desperdício Total"]
-
-                    .fillna(0)
-
-                    .round(2)
-
-                )
-
-                resumo["Aproveitamento (%)"] = (
-
-                    resumo["Aproveitamento (%)"]
-
-                    .fillna(0)
-
-                    .round(2)
-
-                )
-
-            else:
-
-                resumo["Qtd Chapas"] = 0
-
-                resumo["Desperdício Total"] = 0
-
-                resumo["Aproveitamento (%)"] = 0
 
             
                        # =================================
