@@ -1867,50 +1867,65 @@ if mostrar_mp:
                 resumo["Desperdício Total"] = 0
                 resumo["Aproveitamento (%)"] = 0
 
-            # =================================
+            # =====================================
             # COLUNAS DA TABELA
-            # =================================
-                       
-           
-            resumo = (
+            # =====================================
 
-                resumo[
+            colunas_tabela = [
 
-                    [
+                "Codigo",
 
-                        "Codigo",
+                "Descricao",
 
-                        "Descricao",
+                "Estoque",
 
-                        "Estoque",
+                "Consumo",
 
-                        "Consumo",
+                "Saldo",
 
-                        "Saldo",
+                "Produz até",
 
-                        "Produz até",
+                "Primeira Falta",
 
-                        "Primeira Falta",
+                "Compra Necessária",
 
-                        "Compra Necessária",
+                "Compra c/ Perda",
 
-                        "Compra c/ Perda",
+                "Qtd Chapas",
 
-                        "Qtd Chapas",
+                "Área Total",
 
-                        "Área Total",
+                "Área Utilizada",
 
-                        "Área Utilizada",
+                "Desperdício Total",
 
-                        "Aproveitamento (%)",
+                "Aproveitamento (%)",
 
-                        "Status"
+                "Status"
 
-                    ]
+            ]
 
-                ]
 
-            )
+            # 🔹 Colunas ocultas somente na visualização
+            colunas_ocultas = [
+
+                "Compra Necessária",
+
+                "Área Utilizada"
+
+            ]
+
+
+            colunas_exibir = [
+
+                coluna
+
+                for coluna in colunas_tabela
+
+                if coluna not in colunas_ocultas
+
+            ]
+
 
             resumo = (
 
@@ -1939,10 +1954,20 @@ if mostrar_mp:
             )
 
 
-            
-                       # =================================
+            resumo = (
+
+                resumo[
+
+                    colunas_exibir
+
+                ]
+
+            )
+
+
+            # =====================================
             # TABELA
-            # =================================
+            # =====================================
 
             # Remove linhas totalmente vazias
             resumo = resumo.dropna(how="all")
