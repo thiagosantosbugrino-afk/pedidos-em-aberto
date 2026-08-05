@@ -1553,47 +1553,106 @@ if mostrar_mp:
 
             resumo["Primeira Falta"] = primeira_falta
 
+             # =====================================
+            # JUNTA RESULTADO DA OTIMIZAÇÃO
+            # =====================================
+
+            if not resumo_otimizado.empty:
+
+                resumo = resumo.merge(
+
+                    resumo_otimizado[
+                        [
+                            "Codigo",
+                            "Qtd Chapas",
+                            "Área Total",
+                            "Área Utilizada",
+                            "Desperdício Total",
+                            "Aproveitamento (%)"
+                        ]
+                    ],
+
+                    on="Codigo",
+
+                    how="left"
+
+                )
+
+                resumo["Qtd Chapas"] = (
+
+                    resumo["Qtd Chapas"]
+
+                    .fillna(0)
+
+                    .astype(int)
+
+                )
+
+                resumo["Área Total"] = (
+
+                    resumo["Área Total"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
+                resumo["Área Utilizada"] = (
+
+                    resumo["Área Utilizada"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
+                resumo["Desperdício Total"] = (
+
+                    resumo["Desperdício Total"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
+                resumo["Aproveitamento (%)"] = (
+
+                    resumo["Aproveitamento (%)"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
+            else:
+
+                resumo["Qtd Chapas"] = 0
+                resumo["Área Total"] = 0
+                resumo["Área Utilizada"] = 0
+                resumo["Desperdício Total"] = 0
+                resumo["Aproveitamento (%)"] = 0
+
             # =================================
             # COMPRA NECESSÁRIA
             # =================================
 
-            resumo[
-                "Compra Necessária"
-            ] = (
+            resumo["Compra Necessária"] = (
 
-                resumo["Saldo"]
-
-                .clip(
-                    upper=0
-                )
-
-                .abs()
+                resumo["Qtd Chapas"]
 
             )
 
-            # =================================
-            # COMPRA COM OTIMIZAÇÃO
-            # =================================
+            resumo["Compra c/ Perda"] = (
 
-            resumo[
-                "Compra Necessária"
-            ] = (
-
-                resumo[
-                    "Qtd Chapas"
-                ]
+                resumo["Qtd Chapas"]
 
             )
 
-            resumo[
-                "Compra c/ Perda"
-            ] = (
-
-                resumo[
-                    "Qtd Chapas"
-                ]
-
-            )
+            
             # =================================
             # STATUS
             # =================================
@@ -1773,88 +1832,7 @@ if mostrar_mp:
                 )
 
             )
-                        # =====================================
-            # JUNTA RESULTADO DA OTIMIZAÇÃO
-            # =====================================
-
-            if not resumo_otimizado.empty:
-
-                resumo = resumo.merge(
-
-                    resumo_otimizado[
-                        [
-                            "Codigo",
-                            "Qtd Chapas",
-                            "Área Total",
-                            "Área Utilizada",
-                            "Desperdício Total",
-                            "Aproveitamento (%)"
-                        ]
-                    ],
-
-                    on="Codigo",
-
-                    how="left"
-
-                )
-
-                resumo["Qtd Chapas"] = (
-
-                    resumo["Qtd Chapas"]
-
-                    .fillna(0)
-
-                    .astype(int)
-
-                )
-
-                resumo["Área Total"] = (
-
-                    resumo["Área Total"]
-
-                    .fillna(0)
-
-                    .round(2)
-
-                )
-
-                resumo["Área Utilizada"] = (
-
-                    resumo["Área Utilizada"]
-
-                    .fillna(0)
-
-                    .round(2)
-
-                )
-
-                resumo["Desperdício Total"] = (
-
-                    resumo["Desperdício Total"]
-
-                    .fillna(0)
-
-                    .round(2)
-
-                )
-
-                resumo["Aproveitamento (%)"] = (
-
-                    resumo["Aproveitamento (%)"]
-
-                    .fillna(0)
-
-                    .round(2)
-
-                )
-
-            else:
-
-                resumo["Qtd Chapas"] = 0
-                resumo["Área Total"] = 0
-                resumo["Área Utilizada"] = 0
-                resumo["Desperdício Total"] = 0
-                resumo["Aproveitamento (%)"] = 0
+                       
 
                        # =====================================
             # COLUNAS DA TABELA
