@@ -249,15 +249,55 @@ def otimizar_lista(lista_pecas: List[Peca]):
 # ==========================================================
 
 def resumo_otimizacao(resultado):
+
     linhas = []
+
     for codigo, chapas in resultado.items():
-        area_total = sum(chapa.area_total for chapa in chapas)
-        area_utilizada = sum(chapa.area_utilizada for chapa in chapas)
+
+        area_total = sum(
+            chapa.area_total
+            for chapa in chapas
+        )
+
+        area_utilizada = sum(
+            chapa.area_utilizada
+            for chapa in chapas
+        )
+
         desperdicio = area_total - area_utilizada
-        aproveitamento = (area_utilizada / area_total) * 100 if area_total else 0
+
+        aproveitamento = (
+            (area_utilizada / area_total) * 100
+            if area_total
+            else 0
+        )
 
         linhas.append({
+
             "Codigo": codigo,
+
             "Qtd Chapas": len(chapas),
-            "Área Total": round(area_total / 1_000_000, 2),
-            "Área Utilizada": round(area_utilizada / 1
+
+            "Área Total": round(
+                area_total / 1_000_000,
+                2
+            ),
+
+            "Área Utilizada": round(
+                area_utilizada / 1_000_000,
+                2
+            ),
+
+            "Desperdício": round(
+                desperdicio / 1_000_000,
+                2
+            ),
+
+            "Aproveitamento (%)": round(
+                aproveitamento,
+                2
+            )
+
+        })
+
+    return linhas
