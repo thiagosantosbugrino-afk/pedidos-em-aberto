@@ -29,13 +29,10 @@ def codigo_material(texto):
     Retorna o código padronizado do material
     utilizando a tabela de equivalências.
     """
-
     if pd.isna(texto):
         return None
 
     texto = str(texto).upper().strip()
-
-    # Busca a equivalência cadastrada
     return EQUIVALENCIAS.get(texto, texto)
 
 
@@ -44,35 +41,14 @@ def descricao_material(texto):
     Converte a descrição do consolidador
     em um nome mais amigável.
     """
-
     if pd.isna(texto):
         return ""
 
     texto = str(texto).upper().strip()
-
-    # Remove CHAPARIA
     texto = texto.replace("CHAPARIA", "")
-
-    # Remove medidas
-    texto = re.sub(
-        r"\d{4}\s*[Xx]\s*\d{4}",
-        "",
-        texto
-    )
-
-    # Remove espaços extras
-    texto = re.sub(
-        r"\s+",
-        " ",
-        texto
-    ).strip()
-
-    # Padroniza espessura
-    texto = re.sub(
-        r"\b0(\d)\s*MM\b",
-        r"\1 mm",
-        texto
-    )
+    texto = re.sub(r"\d{4}\s*[Xx]\s*\d{4}", "", texto)
+    texto = re.sub(r"\s+", " ", texto).strip()
+    texto = re.sub(r"\b0(\d)\s*MM\b", r"\1 mm", texto)
 
     return texto.upper()
 
@@ -83,7 +59,6 @@ def formatar_numero_br(valor):
     Exemplo:
     1234.50 -> 1.234,50
     """
-
     if pd.isna(valor):
         return ""
 
