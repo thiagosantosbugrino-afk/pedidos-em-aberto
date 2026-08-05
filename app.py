@@ -1,7 +1,6 @@
 import io
 import re
 import json
-import math
 
 import streamlit as st
 import pandas as pd
@@ -9,10 +8,16 @@ import plotly.express as px
 
 from io import BytesIO
 from datetime import datetime, timedelta
+
 from equivalencias import EQUIVALENCIAS
 
 from st_aggrid import AgGrid, GridOptionsBuilder
 
+from otimizador import (
+    Peca,
+    otimizar_lista,
+    resumo_otimizacao
+)
 
 # ===================================
 # FUNÇÕES
@@ -787,7 +792,7 @@ if mostrar_mp:
 
         estoque = (
             df_consolidador
-            .iloc[:, [1, 2, 18]]
+            .iloc[:, [1, 2, 16]]
             .copy()
         )
 
@@ -1074,6 +1079,160 @@ if mostrar_mp:
                 )
 
             )
+            
+            # =====================================
+            # MONTA LISTA PARA OTIMIZAÇÃO
+            # =====================================
+
+            lista_otimizacao = []
+
+            for _, linha in pecas.iterrows():
+
+                largura = float(
+                    linha["Largura Encaixe"]
+                )
+
+                altura = float(
+                    linha["Altura Encaixe"]
+                )
+
+                # Mantém a maior dimensão na largura
+                if altura > largura:
+
+                    largura, altura = altura, largura
+
+                lista_otimizacao.append(
+
+                    Peca(
+
+                        codigo=str(
+                            linha["Codigo"]
+                        ),
+
+                        largura=largura,
+
+                        altura=altura,
+
+                        pedido=str(
+                            linha.get(
+                                "Pedido",
+                                ""
+                            )
+                        ),
+
+                        cliente=str(
+                            linha.get(
+                                "Cliente",
+                                ""
+                            )
+                        ),
+
+                        pc=str(
+                            linha.get(
+                                "PC",
+                                ""
+                            )
+                        ),
+
+                        rota=str(
+                            linha.get(
+                                "Rota",
+                                ""
+                            )
+                        )
+
+                    )
+
+                )
+
+            # =====================================
+            # EXECUTA A OTIMIZAÇÃO
+            # =====================================
+
+            resultado_otimizacao = (
+                otimizar_lista(
+                    lista_otimizacao
+                )
+            )
+
+            resumo_otimizado = pd.DataFrame(
+                resumo_otimizacao(
+                    resultado_otimizacao
+                )
+            )
+
+            # Garante que todas as colunas existam
+            colunas = [
+
+                "Codigo",
+
+                "Qtd Chapas",
+
+                "Área Total",
+
+                "Área Utilizada",
+
+                "Desperdício Total",
+
+                "Aproveitamento (%)"
+
+            ]
+
+            for coluna in colunas:
+
+                if coluna not in resumo_otimizado.columns:
+
+                    resumo_otimizado[coluna] = 0
+
+            resumo_otimizado["Qtd Chapas"] = (
+
+                resumo_otimizado["Qtd Chapas"]
+
+                .fillna(0)
+
+                .astype(int)
+
+            )
+
+            resumo_otimizado["Área Total"] = (
+
+                resumo_otimizado["Área Total"]
+
+                .fillna(0)
+
+                .round(2)
+
+            )
+
+            resumo_otimizado["Área Utilizada"] = (
+
+                resumo_otimizado["Área Utilizada"]
+
+                .fillna(0)
+
+                .round(2)
+
+            )
+
+            resumo_otimizado["Desperdício Total"] = (
+
+                resumo_otimizado["Desperdício Total"]
+
+                .fillna(0)
+
+                .round(2)
+
+            )
+
+            resumo_otimizado["Aproveitamento (%)"] = (
+
+                resumo_otimizado["Aproveitamento (%)"]
+
+                .fillna(0)
+
+                .round(2)
+
+            )
             # =================================
             # PREPARAÇÃO PARA O CORTE
             # =================================
@@ -1353,7 +1512,6 @@ if mostrar_mp:
                 ]
 
             )
-
             # =================================
             # COBERTURA
             # =================================
@@ -1362,137 +1520,61 @@ if mostrar_mp:
 
             primeira_falta = []
 
-            for _, linha in (
-                resumo.iterrows()
-            ):
+            for _, linha in resumo.iterrows():
 
-                codigo_atual = (
-                    linha["Codigo"]
-                )
+                codigo_atual = linha["Codigo"]
 
-                saldo_atual = (
-                    linha["Estoque"]
-                )
+                saldo_atual = linha["Estoque"]
 
                 tabela_material = (
-
                     consumo_data[
-
-                        consumo_data[
-                            "Codigo"
-                        ]
-
-                        ==
-
-                        codigo_atual
-
+                        consumo_data["Codigo"] == codigo_atual
                     ]
-
                     .copy()
-
                 )
 
-                if (
-                    "Previsão"
-                    in tabela_material.columns
-                ):
+                if "Previsão" in tabela_material.columns:
 
                     tabela_material = (
-
                         tabela_material
-
-                        .sort_values(
-
-                            "Previsão"
-
-                        )
-
+                        .sort_values("Previsão")
                     )
 
-                ultima_data_ok = (
-                    pd.NaT
-                )
+                ultima_data_ok = pd.NaT
 
-                primeira_data_sem = (
-                    pd.NaT
-                )
+                primeira_data_sem = pd.NaT
 
-                for _, item in (
-                    tabela_material
-                    .iterrows()
-                ):
+                for _, item in tabela_material.iterrows():
 
-                    consumo_dia = (
-                        item[
-                            "Consumo Dia"
-                        ]
-                    )
+                    consumo_dia = item["Consumo Dia"]
 
-                    if (
-                        saldo_atual
-                        >=
-                        consumo_dia
-                    ):
+                    if saldo_atual >= consumo_dia:
 
-                        saldo_atual = (
+                        saldo_atual -= consumo_dia
 
-                            saldo_atual
+                        if "Previsão" in item.index:
 
-                            -
-
-                            consumo_dia
-
-                        )
-
-                        if (
-                            "Previsão"
-                            in item.index
-                        ):
-
-                            ultima_data_ok = (
-
-                                item[
-                                    "Previsão"
-                                ]
-
-                            )
+                            ultima_data_ok = item["Previsão"]
 
                     else:
 
-                        if (
-                            "Previsão"
-                            in item.index
-                        ):
+                        if "Previsão" in item.index:
 
-                            primeira_data_sem = (
-
-                                item[
-                                    "Previsão"
-                                ]
-
-                            )
+                            primeira_data_sem = item["Previsão"]
 
                         break
 
                 produz_ate.append(
-
                     ultima_data_ok
-
                 )
 
                 primeira_falta.append(
-
                     primeira_data_sem
-
                 )
 
-            resumo[
-                "Produz até"
-            ] = produz_ate
+            resumo["Produz até"] = produz_ate
 
-            resumo[
-                "Primeira Falta"
-            ] = primeira_falta
+            resumo["Primeira Falta"] = primeira_falta
 
             # =================================
             # COMPRA NECESSÁRIA
@@ -1753,7 +1835,7 @@ if mostrar_mp:
 
             )
 
-            # =================================
+                       # =================================
             # COLUNAS DA TABELA
             # =================================
 
@@ -1782,6 +1864,10 @@ if mostrar_mp:
                         "Compra c/ Perda",
 
                         "Qtd Chapas",
+
+                        "Aproveitamento (%)",
+
+                        "Desperdício Total",
 
                         "Status"
 
@@ -1816,7 +1902,70 @@ if mostrar_mp:
                 )
 
             )
+                        # =====================================
+            # JUNTA RESULTADO DA OTIMIZAÇÃO
+            # =====================================
 
+            if not resumo_otimizado.empty:
+
+                resumo = resumo.merge(
+
+                    resumo_otimizado[
+                        [
+                            "Codigo",
+                            "Qtd Chapas",
+                            "Área Total",
+                            "Área Utilizada",
+                            "Desperdício Total",
+                            "Aproveitamento (%)"
+                        ]
+                    ],
+
+                    on="Codigo",
+
+                    how="left"
+
+                )
+
+                resumo["Qtd Chapas"] = (
+
+                    resumo["Qtd Chapas"]
+
+                    .fillna(0)
+
+                    .astype(int)
+
+                )
+
+                resumo["Desperdício Total"] = (
+
+                    resumo["Desperdício Total"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
+                resumo["Aproveitamento (%)"] = (
+
+                    resumo["Aproveitamento (%)"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
+            else:
+
+                resumo["Qtd Chapas"] = 0
+
+                resumo["Desperdício Total"] = 0
+
+                resumo["Aproveitamento (%)"] = 0
+
+            
                        # =================================
             # TABELA
             # =================================
