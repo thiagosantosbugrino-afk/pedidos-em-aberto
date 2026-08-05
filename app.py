@@ -1740,7 +1740,7 @@ if mostrar_mp:
                 st.columns(5)
             )
 
-            col1.metric(
+                        col1.metric(
 
                 "📦 Materiais",
 
@@ -1753,39 +1753,20 @@ if mostrar_mp:
                 "🔴 Comprar",
 
                 int(
-
                     (
-                        resumo[
-                            "Saldo"
-                        ]
-
-                        < 0
-
+                        resumo["Saldo"] < 0
                     ).sum()
-
                 )
 
             )
 
-            total_compra = (
-
-                resumo[
-
-                    "Compra Necessária"
-
-                ].sum()
-
-            )
-                        col3.metric(
+            col3.metric(
 
                 "🧱 Total Chapas",
 
                 int(total_compra)
 
             )
-
-           
-
             )
 
             col4.metric(
