@@ -1779,7 +1779,7 @@ if mostrar_mp:
 
             col3.metric(
 
-                "📐 Total Comprar (m²)",
+                "📐 Total Chapas",
 
                 formatar_numero_br(
 
