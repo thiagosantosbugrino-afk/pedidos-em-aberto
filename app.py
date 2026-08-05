@@ -1867,7 +1867,7 @@ if mostrar_mp:
                 resumo["Desperdício Total"] = 0
                 resumo["Aproveitamento (%)"] = 0
 
-            # =====================================
+                       # =====================================
             # COLUNAS DA TABELA
             # =====================================
 
@@ -1914,9 +1914,8 @@ if mostrar_mp:
                 "Área Utilizada",
 
                 "Desperdício Total",
-                
+
                 "Codigo"
-                
 
             ]
 
@@ -1959,7 +1958,8 @@ if mostrar_mp:
             )
 
 
-            resumo = (
+            # 🔹 Cria uma cópia somente para exibição da tabela
+            resumo_tabela = (
 
                 resumo[
 
@@ -1970,23 +1970,30 @@ if mostrar_mp:
             )
 
 
-            # =====================================
+                        # =====================================
             # TABELA
             # =====================================
 
+            # Cria cópia somente para exibição
+            tabela = resumo.copy()
+
+
             # Remove linhas totalmente vazias
-            resumo = resumo.dropna(how="all")
+            tabela = tabela.dropna(how="all")
+
 
             # Remove materiais sem estoque, sem consumo e sem saldo
-            resumo = resumo[
-                (resumo["Estoque"] != 0)
+            tabela = tabela[
+                (tabela["Estoque"] != 0)
                 |
-                (resumo["Consumo"] != 0)
+                (tabela["Consumo"] != 0)
                 |
-                (resumo["Saldo"] != 0)
+                (tabela["Saldo"] != 0)
             ]
 
-            gb = GridOptionsBuilder.from_dataframe(resumo)
+
+            gb = GridOptionsBuilder.from_dataframe(tabela)
+
 
             gb.configure_default_column(
                 editable=False,
@@ -1999,26 +2006,34 @@ if mostrar_mp:
                 headerClass="ag-center-header"
             )
 
-            for coluna in resumo.columns:
+
+            for coluna in tabela.columns:
+
                 gb.configure_column(
                     coluna,
-                    cellStyle={"textAlign": "center"},
+                    cellStyle={
+                        "textAlign": "center"
+                    },
                     headerClass="ag-center-header"
                 )
 
+
             gridOptions = gb.build()
 
+
             AgGrid(
-                resumo,
+                tabela,
                 gridOptions=gridOptions,
                 fit_columns_on_grid_load=True,
                 height=650,
                 theme="streamlit",
                 allow_unsafe_jscode=True,
             )
-            # =================================
+
+
+            # =====================================
             # DETALHAR MATERIAL
-            # =================================
+            # =====================================
 
             st.markdown("---")
 
