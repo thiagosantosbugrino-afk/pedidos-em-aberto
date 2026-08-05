@@ -1902,8 +1902,6 @@ if mostrar_mp:
 
                         "Área Utilizada",
 
-                        "Desperdício Total",
-
                         "Aproveitamento (%)",
 
                         "Status"
