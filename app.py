@@ -1815,75 +1815,7 @@ if mostrar_mp:
                 )
 
             )
-
-                       # =================================
-            # COLUNAS DA TABELA
-            # =================================
-
-            resumo = (
-
-                resumo[
-
-                    [
-
-                        "Codigo",
-
-                        "Descricao",
-
-                        "Estoque",
-
-                        "Consumo",
-
-                        "Saldo",
-
-                        "Produz até",
-
-                        "Primeira Falta",
-
-                        "Compra Necessária",
-
-                        "Compra c/ Perda",
-
-                        "Qtd Chapas",
-
-                        "Aproveitamento (%)",
-
-                        "Desperdício Total",
-
-                        "Status"
-
-                    ]
-
-                ]
-
-            )
-
-            resumo = (
-
-                resumo
-
-                .sort_values(
-
-                    [
-
-                        "Compra Necessária",
-
-                        "Primeira Falta"
-
-                    ],
-
-                    ascending=[
-
-                        False,
-
-                        True
-
-                    ]
-
-                )
-
-            )
-                        # =====================================
+            # =====================================
             # JUNTA RESULTADO DA OTIMIZAÇÃO
             # =====================================
 
@@ -1918,6 +1850,26 @@ if mostrar_mp:
 
                 )
 
+                resumo["Área Total"] = (
+
+                    resumo["Área Total"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
+                resumo["Área Utilizada"] = (
+
+                    resumo["Área Utilizada"]
+
+                    .fillna(0)
+
+                    .round(2)
+
+                )
+
                 resumo["Desperdício Total"] = (
 
                     resumo["Desperdício Total"]
@@ -1941,10 +1893,82 @@ if mostrar_mp:
             else:
 
                 resumo["Qtd Chapas"] = 0
-
+                resumo["Área Total"] = 0
+                resumo["Área Utilizada"] = 0
                 resumo["Desperdício Total"] = 0
-
                 resumo["Aproveitamento (%)"] = 0
+                            # =================================
+            # COLUNAS DA TABELA
+            # =================================
+
+            resumo = (
+
+                resumo[
+
+                    [
+
+                        "Codigo",
+
+                        "Descricao",
+
+                        "Estoque",
+
+                        "Consumo",
+
+                        "Saldo",
+
+                        "Produz até",
+
+                        "Primeira Falta",
+
+                        "Compra Necessária",
+
+                        "Compra c/ Perda",
+
+                        "Qtd Chapas",
+
+                        "Área Total",
+
+                        "Área Utilizada",
+
+                        "Desperdício Total",
+
+                        "Aproveitamento (%)",
+
+                        "Status"
+
+                    ]
+
+                ]
+
+            )
+
+            resumo = (
+
+                resumo
+
+                .sort_values(
+
+                    [
+
+                        "Compra Necessária",
+
+                        "Primeira Falta"
+
+                    ],
+
+                    ascending=[
+
+                        False,
+
+                        True
+
+                    ]
+
+                )
+
+            )
+
 
             
                        # =================================
