@@ -1915,7 +1915,7 @@ if mostrar_mp:
 
                 "Desperdício Total",
                 
-                "Codigo",
+                "Codigo"
                 
 
             ]
