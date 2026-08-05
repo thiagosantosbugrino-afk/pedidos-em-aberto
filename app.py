@@ -29,10 +29,13 @@ def codigo_material(texto):
     Retorna o código padronizado do material
     utilizando a tabela de equivalências.
     """
+
     if pd.isna(texto):
         return None
 
     texto = str(texto).upper().strip()
+
+    # Busca a equivalência cadastrada
     return EQUIVALENCIAS.get(texto, texto)
 
 
@@ -41,14 +44,35 @@ def descricao_material(texto):
     Converte a descrição do consolidador
     em um nome mais amigável.
     """
+
     if pd.isna(texto):
         return ""
 
     texto = str(texto).upper().strip()
+
+    # Remove CHAPARIA
     texto = texto.replace("CHAPARIA", "")
-    texto = re.sub(r"\d{4}\s*[Xx]\s*\d{4}", "", texto)
-    texto = re.sub(r"\s+", " ", texto).strip()
-    texto = re.sub(r"\b0(\d)\s*MM\b", r"\1 mm", texto)
+
+    # Remove medidas
+    texto = re.sub(
+        r"\d{4}\s*[Xx]\s*\d{4}",
+        "",
+        texto
+    )
+
+    # Remove espaços extras
+    texto = re.sub(
+        r"\s+",
+        " ",
+        texto
+    ).strip()
+
+    # Padroniza espessura
+    texto = re.sub(
+        r"\b0(\d)\s*MM\b",
+        r"\1 mm",
+        texto
+    )
 
     return texto.upper()
 
@@ -59,6 +83,7 @@ def formatar_numero_br(valor):
     Exemplo:
     1234.50 -> 1.234,50
     """
+
     if pd.isna(valor):
         return ""
 
@@ -768,7 +793,7 @@ if mostrar_mp:
 
         estoque = (
             df_consolidador
-            .iloc[:, [1, 2, 18]]
+            .iloc[:, [1, 2, 16]]
             .copy()
         )
 
@@ -1341,53 +1366,129 @@ if mostrar_mp:
                     use_container_width=True,
                     hide_index=True
                 )
+                      
+                       
+
             # =================================
-            # RESUMO FINAL
+            # RESUMO
             # =================================
 
-            # Padroniza códigos
-            consumo["Codigo"] = consumo["Codigo"].apply(codigo_material)
-            estoque["Codigo"] = estoque["Codigo"].apply(codigo_material)
-            resumo_otimizado["Codigo"] = resumo_otimizado["Codigo"].apply(codigo_material)
+            # O merge começa pelo consumo.
+            # Portanto, aparecem somente os
+            # materiais usados pelos filtros.
 
-            # Merge consumo + estoque
-            resumo = pd.merge(consumo, estoque, on="Codigo", how="left")
+            resumo = pd.merge(
 
-            # Merge com resumo da otimização
-            resumo = pd.merge(resumo, resumo_otimizado, on="Codigo", how="left")
+                consumo,
 
-            # Ajusta colunas
-            resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
-            resumo["Estoque"] = resumo["Estoque"].fillna(0)
-            resumo["Consumo"] = resumo["Consumo"].fillna(0)
-            resumo["Saldo"] = resumo["Estoque"] - resumo["Consumo"]
+                estoque,
 
-            # Mostra somente materiais utilizados pelos filtros
-            resumo = resumo[resumo["Consumo"] > 0].copy()
+                on="Codigo",
 
-            # Remove possíveis cabeçalhos
-            resumo = resumo[
-                ~resumo["Codigo"].astype(str).str.contains("CODIG|CÓDIG", case=False, na=False)
-            ]
-            resumo = resumo[
-                ~resumo["Descricao"].astype(str).str.contains("DESCRI", case=False, na=False)
-            ]
+                how="left"
 
-            # Calcula Compra c/ Perda com base no desperdício real
-            resumo["Compra c/ Perda"] = resumo["Saldo"] * (
-                1 + (resumo["Desperdício Total"] / resumo["Área Total"])
             )
 
-            # Preenche valores nulos e evita erro de chave
-            resumo["Compra c/ Perda"] = resumo["Compra c/ Perda"].fillna(0)
-            if "Qtd Chapas" not in resumo.columns:
-                resumo["Qtd Chapas"] = 0
-            resumo["Qtd Chapas"] = resumo["Qtd Chapas"].fillna(0).astype(int)
+            resumo["Descricao"] = (
 
-            # Ordena para exibição
-            resumo = resumo.sort_values("Codigo").reset_index(drop=True)
+                resumo["Descricao"]
 
-                       
+                .fillna(
+
+                    resumo["Codigo"]
+
+                )
+
+            )
+
+            resumo["Estoque"] = (
+
+                resumo["Estoque"]
+
+                .fillna(0)
+
+            )
+
+            resumo["Consumo"] = (
+
+                resumo["Consumo"]
+
+                .fillna(0)
+
+            )
+
+            resumo["Saldo"] = (
+
+                resumo["Estoque"]
+
+                -
+
+                resumo["Consumo"]
+
+            )
+
+            # Mostra somente materiais
+            # utilizados pelos filtros.
+
+            resumo = (
+
+                resumo[
+
+                    resumo["Consumo"]
+
+                    > 0
+
+                ]
+
+                .copy()
+
+            )
+
+            # Remove possíveis cabeçalhos
+
+            resumo = (
+
+                resumo[
+
+                    ~resumo["Codigo"]
+
+                    .astype(str)
+
+                    .str.contains(
+
+                        "CODIG|CÓDIG",
+
+                        case=False,
+
+                        na=False
+
+                    )
+
+                ]
+
+            )
+
+            resumo = (
+
+                resumo[
+
+                    ~resumo["Descricao"]
+
+                    .astype(str)
+
+                    .str.contains(
+
+                        "DESCRI",
+
+                        case=False,
+
+                        na=False
+
+                    )
+
+                ]
+
+            )
             # =================================
             # COBERTURA
             # =================================
@@ -1766,69 +1867,52 @@ if mostrar_mp:
                 resumo["Desperdício Total"] = 0
                 resumo["Aproveitamento (%)"] = 0
 
-                       # =====================================
+            # =================================
             # COLUNAS DA TABELA
-            # =====================================
+            # =================================
+                       
+           
+            resumo = (
 
-            colunas_tabela = [
+                resumo[
 
-                "Codigo",
+                    [
 
-                "Descricao",
+                        "Codigo",
 
-                "Estoque",
+                        "Descricao",
 
-                "Consumo",
+                        "Estoque",
 
-                "Saldo",
+                        "Consumo",
 
-                "Produz até",
+                        "Saldo",
 
-                "Primeira Falta",
+                        "Produz até",
 
-                "Compra Necessária",
+                        "Primeira Falta",
 
-                "Compra c/ Perda",
+                        "Compra Necessária",
 
-                "Qtd Chapas",
+                        "Compra c/ Perda",
 
-                "Área Total",
+                        "Qtd Chapas",
 
-                "Área Utilizada",
+                        "Área Total",
 
-                "Desperdício Total",
+                        "Área Utilizada",
 
-                "Aproveitamento (%)",
+                        "Desperdício Total",
 
-                "Status"
+                        "Aproveitamento (%)",
 
-            ]
+                        "Status"
 
+                    ]
 
-            # 🔹 Colunas ocultas somente na visualização
-            colunas_ocultas = [
+                ]
 
-                "Compra Necessária",
-
-                "Área Utilizada",
-
-                "Desperdício Total",
-
-                "Codigo"
-
-            ]
-
-
-            colunas_exibir = [
-
-                coluna
-
-                for coluna in colunas_tabela
-
-                if coluna not in colunas_ocultas
-
-            ]
-
+            )
 
             resumo = (
 
@@ -1857,108 +1941,24 @@ if mostrar_mp:
             )
 
 
-            # 🔹 Cria uma cópia somente para exibição da tabela
-            resumo_tabela = (
-
-                resumo[
-
-                    colunas_exibir
-
-                ]
-
-            )
-                        # =====================================
+            
+                       # =================================
             # TABELA
-            # =====================================
-
-            # Cria cópia somente para exibição
-            tabela = resumo.copy()
-
+            # =================================
 
             # Remove linhas totalmente vazias
-            tabela = tabela.dropna(how="all")
-
+            resumo = resumo.dropna(how="all")
 
             # Remove materiais sem estoque, sem consumo e sem saldo
-            tabela = tabela[
-                (tabela["Estoque"] != 0)
+            resumo = resumo[
+                (resumo["Estoque"] != 0)
                 |
-                (tabela["Consumo"] != 0)
+                (resumo["Consumo"] != 0)
                 |
-                (tabela["Saldo"] != 0)
+                (resumo["Saldo"] != 0)
             ]
 
-
-            # =====================================
-            # ORDEM DAS COLUNAS DA TABELA
-            # =====================================
-
-            colunas_tabela = [
-
-                "Codigo",
-
-                "Descricao",
-
-                "Estoque",
-
-                "Consumo",
-
-                "Saldo",
-
-                "Produz até",
-
-                "Primeira Falta",
-
-                "Compra Necessária",
-
-                "Compra c/ Perda",
-
-                "Qtd Chapas",
-
-                "Área Total",
-
-                "Área Utilizada",
-
-                "Desperdício Total",
-
-                "Aproveitamento (%)",
-
-                "Status"
-
-            ]
-
-
-            # 🔹 Colunas ocultas somente na visualização
-            colunas_ocultas = [
-
-                "Compra Necessária",
-
-                "Área Utilizada",
-
-                "Desperdício Total",
-
-                "Codigo"
-
-            ]
-
-
-            colunas_exibir = [
-
-                coluna
-
-                for coluna in colunas_tabela
-
-                if coluna not in colunas_ocultas
-
-            ]
-
-
-            # Mantém a ordem original e oculta somente as escolhidas
-            tabela = tabela[colunas_exibir]
-
-
-            gb = GridOptionsBuilder.from_dataframe(tabela)
-
+            gb = GridOptionsBuilder.from_dataframe(resumo)
 
             gb.configure_default_column(
                 editable=False,
@@ -1971,37 +1971,26 @@ if mostrar_mp:
                 headerClass="ag-center-header"
             )
 
-
-            for coluna in tabela.columns:
-
+            for coluna in resumo.columns:
                 gb.configure_column(
                     coluna,
-                    cellStyle={
-                        "textAlign": "center"
-                    },
+                    cellStyle={"textAlign": "center"},
                     headerClass="ag-center-header"
                 )
 
-
             gridOptions = gb.build()
 
-
             AgGrid(
-                tabela,
+                resumo,
                 gridOptions=gridOptions,
                 fit_columns_on_grid_load=True,
                 height=650,
                 theme="streamlit",
                 allow_unsafe_jscode=True,
             )
-
-
-            # =====================================
+            # =================================
             # DETALHAR MATERIAL
-            # =====================================
-                        
-
-
+            # =================================
 
             st.markdown("---")
 
