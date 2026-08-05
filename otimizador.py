@@ -181,90 +181,175 @@ class Chapa:
 
     def cabe(
 
-        self,
+    self,
 
-        espaco: Espaco,
+    espaco: Espaco,
 
-        largura,
+    largura,
 
-        altura
+    altura,
 
-    ):
+    distancia
 
-        return (
+):
 
-            largura <= espaco.largura
+    # A peça precisa caber fisicamente
+    if largura > espaco.largura:
+        return False
 
-            and
+    if altura > espaco.altura:
+        return False
 
-            altura <= espaco.altura
+    sobra_direita = espaco.largura - largura
+    sobra_superior = espaco.altura - altura
 
-        )
-          # --------------------------------------------------
-    # PROCURA O MELHOR ESPAÇO (BEST FIT)
-    # --------------------------------------------------
+    # Lado direito
+    if sobra_direita != 0 and sobra_direita < distancia:
+        return False
 
-    def procurar_melhor_espaco(self, peca: Peca):
+    # Parte superior
+    if sobra_superior != 0 and sobra_superior < distancia:
+        return False
 
-        melhor = None
-        menor_sobra = None
-        girada = False
+    return True
+         # --------------------------------------------------
+# PROCURA O MELHOR ESPAÇO (BEST FIT)
+# --------------------------------------------------
 
-        for espaco in self.espacos:
+def procurar_melhor_espaco(self, peca: Peca):
 
-            # -----------------------------
-            # posição normal
-            # -----------------------------
+    melhor = None
+    melhor_girada = False
+    melhor_score = None
 
-            if self.cabe(
+    distancia = peca.distancia_minima
+
+    for espaco in self.espacos:
+
+        for girada in (False, True):
+
+            if girada:
+
+                largura = peca.altura
+                altura = peca.largura
+
+            else:
+
+                largura = peca.largura
+                altura = peca.altura
+
+            if not self.cabe(
+
                 espaco,
-                peca.largura,
-                peca.altura
+
+                largura,
+
+                altura,
+
+                distancia
+
             ):
 
-                sobra = (
-                    espaco.area
-                    -
-                    peca.area
-                )
+                continue
 
-                if (
-                    menor_sobra is None
-                    or
-                    sobra < menor_sobra
-                ):
+            sobra_direita = espaco.largura - largura
 
-                    melhor = espaco
-                    menor_sobra = sobra
-                    girada = False
+            sobra_superior = espaco.altura - altura
 
-            # -----------------------------
-            # posição girada
-            # -----------------------------
+            desperdicio = sobra_direita * sobra_superior
 
-            if self.cabe(
-                espaco,
-                peca.altura,
-                peca.largura
+            score = (
+
+                desperdicio,
+
+                sobra_direita + sobra_superior,
+
+                espaco.area
+
+            )
+
+            if (
+
+                melhor_score is None
+
+                or
+
+                score < melhor_score
+
             ):
 
-                sobra = (
-                    espaco.area
-                    -
-                    peca.area
-                )
+                melhor_score = score
 
-                if (
-                    menor_sobra is None
-                    or
-                    sobra < menor_sobra
-                ):
+                melhor = espaco
 
-                    melhor = espaco
-                    menor_sobra = sobra
-                    girada = True
+                melhor_girada = girada
 
-        return melhor, girada
+    return melhor, melhor_girada
+        # -----------------------------
+        # posição normal
+        # -----------------------------
+
+        if self.cabe(
+
+            espaco,
+
+            peca.largura,
+
+            peca.altura,
+
+            distancia
+
+        ):
+
+            sobra = espaco.area - peca.area
+
+            if (
+
+                menor_sobra is None
+
+                or
+
+                sobra < menor_sobra
+
+            ):
+
+                melhor = espaco
+                menor_sobra = sobra
+                girada = False
+
+        # -----------------------------
+        # posição girada
+        # -----------------------------
+
+        if self.cabe(
+
+            espaco,
+
+            peca.altura,
+
+            peca.largura,
+
+            distancia
+
+        ):
+
+            sobra = espaco.area - peca.area
+
+            if (
+
+                menor_sobra is None
+
+                or
+
+                sobra < menor_sobra
+
+            ):
+
+                melhor = espaco
+                menor_sobra = sobra
+                girada = True
+
+    return melhor, girada
 
     # --------------------------------------------------
     # INSERE A PEÇA
@@ -321,81 +406,68 @@ class Chapa:
         return True
 
     # --------------------------------------------------
-    # CORTE GUILHOTINADO
-    # --------------------------------------------------
+# CORTE GUILHOTINADO
+# --------------------------------------------------
 
-    def _gerar_sobras(
+def _gerar_sobras(
 
-        self,
+    self,
 
-        espaco,
+    espaco,
 
-        largura,
+    largura,
 
-        altura
+    altura
 
-    ):
+):
 
-        sobra_direita = (
+    sobra_direita = espaco.largura - largura
 
-            espaco.largura
-            -
-            largura
+    sobra_inferior = espaco.altura - altura
 
-        )
+    # -----------------------------
+    # Sobra da direita
+    # -----------------------------
 
-        sobra_inferior = (
+    if sobra_direita > 0:
 
-            espaco.altura
-            -
-            altura
+        self.espacos.append(
 
-        )
+            Espaco(
 
-        # -----------------------------
-        # sobra da direita
-        # -----------------------------
+                x=espaco.x + largura,
 
-        if sobra_direita >= MIN_SOBRA:
+                y=espaco.y,
 
-            self.espacos.append(
+                largura=sobra_direita,
 
-                Espaco(
-
-                    x=espaco.x + largura,
-
-                    y=espaco.y,
-
-                    largura=sobra_direita,
-
-                    altura=altura
-
-                )
+                altura=altura
 
             )
 
-        # -----------------------------
-        # sobra inferior
-        # -----------------------------
+        )
 
-        if sobra_inferior >= MIN_SOBRA:
+    # -----------------------------
+    # Sobra inferior
+    # -----------------------------
 
-            self.espacos.append(
+    if sobra_inferior > 0:
 
-                Espaco(
+        self.espacos.append(
 
-                    x=espaco.x,
+            Espaco(
 
-                    y=espaco.y + altura,
+                x=espaco.x,
 
-                    largura=espaco.largura,
+                y=espaco.y + altura,
 
-                    altura=sobra_inferior
+                largura=espaco.largura,
 
-                )
+                altura=sobra_inferior
 
             )
 
+        )
     # --------------------------------------------------
     # REMOVE SOBRAS CONTIDAS
     # --------------------------------------------------
@@ -457,7 +529,7 @@ class Chapa:
             )
 
         )
-      # ==========================================================
+        # ==========================================================
 # OTIMIZAÇÃO DE UM MATERIAL
 # ==========================================================
 
@@ -497,33 +569,42 @@ def otimizar_material(
     for peca in pecas:
 
         melhor_chapa = None
-
-        menor_desperdicio = None
-
-        # tenta encaixar em alguma chapa existente
+        melhor_score = None
 
         for chapa in chapas:
 
             espaco, girada = chapa.procurar_melhor_espaco(peca)
 
             if espaco is None:
-
                 continue
 
-            desperdicio = espaco.area - peca.area
+            largura = peca.altura if girada else peca.largura
+            altura = peca.largura if girada else peca.altura
+
+            sobra_direita = espaco.largura - largura
+            sobra_superior = espaco.altura - altura
+
+            score = (
+
+                sobra_direita * sobra_superior,
+
+                sobra_direita + sobra_superior,
+
+                espaco.area
+
+            )
 
             if (
 
-                menor_desperdicio is None
+                melhor_score is None
 
                 or
 
-                desperdicio < menor_desperdicio
+                score < melhor_score
 
             ):
 
-                menor_desperdicio = desperdicio
-
+                melhor_score = score
                 melhor_chapa = chapa
 
         if melhor_chapa is None:
@@ -543,7 +624,7 @@ def otimizar_material(
         )
 
     return chapas
-
+      
 
 # ==========================================================
 # OTIMIZA TODOS OS MATERIAIS
