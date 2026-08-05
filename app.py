@@ -793,7 +793,7 @@ if mostrar_mp:
 
         estoque = (
             df_consolidador
-            .iloc[:, [1, 2, 16]]
+            .iloc[:, [1, 2, 18]]
             .copy()
         )
 
@@ -1867,52 +1867,69 @@ if mostrar_mp:
                 resumo["Desperdício Total"] = 0
                 resumo["Aproveitamento (%)"] = 0
 
-            # =================================
+                       # =====================================
             # COLUNAS DA TABELA
-            # =================================
-                       
-           
-            resumo = (
+            # =====================================
 
-                resumo[
+            colunas_tabela = [
 
-                    [
+                "Codigo",
 
-                        "Codigo",
+                "Descricao",
 
-                        "Descricao",
+                "Estoque",
 
-                        "Estoque",
+                "Consumo",
 
-                        "Consumo",
+                "Saldo",
 
-                        "Saldo",
+                "Produz até",
 
-                        "Produz até",
+                "Primeira Falta",
 
-                        "Primeira Falta",
+                "Compra Necessária",
 
-                        "Compra Necessária",
+                "Compra c/ Perda",
 
-                        "Compra c/ Perda",
+                "Qtd Chapas",
 
-                        "Qtd Chapas",
+                "Área Total",
 
-                        "Área Total",
+                "Área Utilizada",
 
-                        "Área Utilizada",
+                "Desperdício Total",
 
-                        "Desperdício Total",
+                "Aproveitamento (%)",
 
-                        "Aproveitamento (%)",
+                "Status"
 
-                        "Status"
+            ]
 
-                    ]
 
-                ]
+            # 🔹 Colunas ocultas somente na visualização
+            colunas_ocultas = [
 
-            )
+                "Compra Necessária",
+
+                "Área Utilizada",
+
+                "Desperdício Total",
+
+                "Codigo"
+
+            ]
+
+
+            colunas_exibir = [
+
+                coluna
+
+                for coluna in colunas_tabela
+
+                if coluna not in colunas_ocultas
+
+            ]
+
 
             resumo = (
 
@@ -1941,24 +1958,108 @@ if mostrar_mp:
             )
 
 
-            
-                       # =================================
+            # 🔹 Cria uma cópia somente para exibição da tabela
+            resumo_tabela = (
+
+                resumo[
+
+                    colunas_exibir
+
+                ]
+
+            )
+                        # =====================================
             # TABELA
-            # =================================
+            # =====================================
+
+            # Cria cópia somente para exibição
+            tabela = resumo.copy()
+
 
             # Remove linhas totalmente vazias
-            resumo = resumo.dropna(how="all")
+            tabela = tabela.dropna(how="all")
+
 
             # Remove materiais sem estoque, sem consumo e sem saldo
-            resumo = resumo[
-                (resumo["Estoque"] != 0)
+            tabela = tabela[
+                (tabela["Estoque"] != 0)
                 |
-                (resumo["Consumo"] != 0)
+                (tabela["Consumo"] != 0)
                 |
-                (resumo["Saldo"] != 0)
+                (tabela["Saldo"] != 0)
             ]
 
-            gb = GridOptionsBuilder.from_dataframe(resumo)
+
+            # =====================================
+            # ORDEM DAS COLUNAS DA TABELA
+            # =====================================
+
+            colunas_tabela = [
+
+                "Codigo",
+
+                "Descricao",
+
+                "Estoque",
+
+                "Consumo",
+
+                "Saldo",
+
+                "Produz até",
+
+                "Primeira Falta",
+
+                "Compra Necessária",
+
+                "Compra c/ Perda",
+
+                "Qtd Chapas",
+
+                "Área Total",
+
+                "Área Utilizada",
+
+                "Desperdício Total",
+
+                "Aproveitamento (%)",
+
+                "Status"
+
+            ]
+
+
+            # 🔹 Colunas ocultas somente na visualização
+            colunas_ocultas = [
+
+                "Compra Necessária",
+
+                "Área Utilizada",
+
+                "Desperdício Total",
+
+                "Codigo"
+
+            ]
+
+
+            colunas_exibir = [
+
+                coluna
+
+                for coluna in colunas_tabela
+
+                if coluna not in colunas_ocultas
+
+            ]
+
+
+            # Mantém a ordem original e oculta somente as escolhidas
+            tabela = tabela[colunas_exibir]
+
+
+            gb = GridOptionsBuilder.from_dataframe(tabela)
+
 
             gb.configure_default_column(
                 editable=False,
@@ -1971,26 +2072,37 @@ if mostrar_mp:
                 headerClass="ag-center-header"
             )
 
-            for coluna in resumo.columns:
+
+            for coluna in tabela.columns:
+
                 gb.configure_column(
                     coluna,
-                    cellStyle={"textAlign": "center"},
+                    cellStyle={
+                        "textAlign": "center"
+                    },
                     headerClass="ag-center-header"
                 )
 
+
             gridOptions = gb.build()
 
+
             AgGrid(
-                resumo,
+                tabela,
                 gridOptions=gridOptions,
                 fit_columns_on_grid_load=True,
                 height=650,
                 theme="streamlit",
                 allow_unsafe_jscode=True,
             )
-            # =================================
+
+
+            # =====================================
             # DETALHAR MATERIAL
-            # =================================
+            # =====================================
+                        
+
+
 
             st.markdown("---")
 
