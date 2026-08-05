@@ -1079,161 +1079,7 @@ if mostrar_mp:
                 )
 
             )
-            
-            # =====================================
-            # MONTA LISTA PARA OTIMIZAÇÃO
-            # =====================================
-
-            lista_otimizacao = []
-
-            for _, linha in pecas.iterrows():
-
-                largura = float(
-                    linha["Largura Encaixe"]
-                )
-
-                altura = float(
-                    linha["Altura Encaixe"]
-                )
-
-                # Mantém a maior dimensão na largura
-                if altura > largura:
-
-                    largura, altura = altura, largura
-
-                lista_otimizacao.append(
-
-                    Peca(
-
-                        codigo=str(
-                            linha["Codigo"]
-                        ),
-
-                        largura=largura,
-
-                        altura=altura,
-
-                        pedido=str(
-                            linha.get(
-                                "Pedido",
-                                ""
-                            )
-                        ),
-
-                        cliente=str(
-                            linha.get(
-                                "Cliente",
-                                ""
-                            )
-                        ),
-
-                        pc=str(
-                            linha.get(
-                                "PC",
-                                ""
-                            )
-                        ),
-
-                        rota=str(
-                            linha.get(
-                                "Rota",
-                                ""
-                            )
-                        )
-
-                    )
-
-                )
-
-            # =====================================
-            # EXECUTA A OTIMIZAÇÃO
-            # =====================================
-
-            resultado_otimizacao = (
-                otimizar_lista(
-                    lista_otimizacao
-                )
-            )
-
-            resumo_otimizado = pd.DataFrame(
-                resumo_otimizacao(
-                    resultado_otimizacao
-                )
-            )
-
-            # Garante que todas as colunas existam
-            colunas = [
-
-                "Codigo",
-
-                "Qtd Chapas",
-
-                "Área Total",
-
-                "Área Utilizada",
-
-                "Desperdício Total",
-
-                "Aproveitamento (%)"
-
-            ]
-
-            for coluna in colunas:
-
-                if coluna not in resumo_otimizado.columns:
-
-                    resumo_otimizado[coluna] = 0
-
-            resumo_otimizado["Qtd Chapas"] = (
-
-                resumo_otimizado["Qtd Chapas"]
-
-                .fillna(0)
-
-                .astype(int)
-
-            )
-
-            resumo_otimizado["Área Total"] = (
-
-                resumo_otimizado["Área Total"]
-
-                .fillna(0)
-
-                .round(2)
-
-            )
-
-            resumo_otimizado["Área Utilizada"] = (
-
-                resumo_otimizado["Área Utilizada"]
-
-                .fillna(0)
-
-                .round(2)
-
-            )
-
-            resumo_otimizado["Desperdício Total"] = (
-
-                resumo_otimizado["Desperdício Total"]
-
-                .fillna(0)
-
-                .round(2)
-
-            )
-
-            resumo_otimizado["Aproveitamento (%)"] = (
-
-                resumo_otimizado["Aproveitamento (%)"]
-
-                .fillna(0)
-
-                .round(2)
-
-            )
-            # =================================
+                        # =================================
             # PREPARAÇÃO PARA O CORTE
             # =================================
 
@@ -1308,6 +1154,139 @@ if mostrar_mp:
             )
 
 
+            # =====================================
+            # MONTA LISTA PARA OTIMIZAÇÃO
+            # =====================================
+
+            lista_otimizacao = []
+
+            for _, linha in pecas.iterrows():
+
+                largura = float(
+                    linha["Largura Encaixe"]
+                )
+
+                altura = float(
+                    linha["Altura Encaixe"]
+                )
+
+                if altura > largura:
+
+                    largura, altura = altura, largura
+
+                lista_otimizacao.append(
+
+                    Peca(
+
+                        codigo=str(
+                            linha["Codigo"]
+                        ),
+
+                        largura=largura,
+
+                        altura=altura,
+
+                        pedido=str(
+                            linha.get(
+                                "Pedido",
+                                ""
+                            )
+                        ),
+
+                        cliente=str(
+                            linha.get(
+                                "Cliente",
+                                ""
+                            )
+                        ),
+
+                        pc=str(
+                            linha.get(
+                                "PC",
+                                ""
+                            )
+                        ),
+
+                        rota=str(
+                            linha.get(
+                                "Rota",
+                                ""
+                            )
+                        )
+
+                    )
+
+                )
+
+            # =====================================
+            # EXECUTA A OTIMIZAÇÃO
+            # =====================================
+
+            resultado_otimizacao = (
+                otimizar_lista(
+                    lista_otimizacao
+                )
+            )
+
+            resumo_otimizado = pd.DataFrame(
+                resumo_otimizacao(
+                    resultado_otimizacao
+                )
+            )
+
+            colunas = [
+
+                "Codigo",
+
+                "Qtd Chapas",
+
+                "Área Total",
+
+                "Área Utilizada",
+
+                "Desperdício Total",
+
+                "Aproveitamento (%)"
+
+            ]
+
+            for coluna in colunas:
+
+                if coluna not in resumo_otimizado.columns:
+
+                    resumo_otimizado[coluna] = 0
+
+            resumo_otimizado["Qtd Chapas"] = (
+                resumo_otimizado["Qtd Chapas"]
+                .fillna(0)
+                .astype(int)
+            )
+
+            resumo_otimizado["Área Total"] = (
+                resumo_otimizado["Área Total"]
+                .fillna(0)
+                .round(2)
+            )
+
+            resumo_otimizado["Área Utilizada"] = (
+                resumo_otimizado["Área Utilizada"]
+                .fillna(0)
+                .round(2)
+            )
+
+            resumo_otimizado["Desperdício Total"] = (
+                resumo_otimizado["Desperdício Total"]
+                .fillna(0)
+                .round(2)
+            )
+
+            resumo_otimizado["Aproveitamento (%)"] = (
+                resumo_otimizado["Aproveitamento (%)"]
+                .fillna(0)
+                .round(2)
+            )
+
+
             # =================================
             # TESTE DAS PEÇAS
             # =================================
@@ -1327,6 +1306,7 @@ if mostrar_mp:
             # =================================
             # AGRUPA PEÇAS POR MATERIAL
             # =================================
+            
 
             materiais_otimizacao = {}
 
