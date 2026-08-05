@@ -1366,129 +1366,47 @@ if mostrar_mp:
                     use_container_width=True,
                     hide_index=True
                 )
-                      
-                       
-
             # =================================
-            # RESUMO
+            # RESUMO FINAL
             # =================================
 
-            # O merge começa pelo consumo.
-            # Portanto, aparecem somente os
-            # materiais usados pelos filtros.
+            # Merge consumo + estoque
+            resumo = pd.merge(consumo, estoque, on="Codigo", how="left")
 
-            resumo = pd.merge(
+            # Merge com resumo da otimização
+            resumo = pd.merge(resumo, resumo_otimizado, on="Codigo", how="left")
 
-                consumo,
+            # Ajusta colunas
+            resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
+            resumo["Estoque"] = resumo["Estoque"].fillna(0)
+            resumo["Consumo"] = resumo["Consumo"].fillna(0)
+            resumo["Saldo"] = resumo["Estoque"] - resumo["Consumo"]
 
-                estoque,
-
-                on="Codigo",
-
-                how="left"
-
-            )
-
-            resumo["Descricao"] = (
-
-                resumo["Descricao"]
-
-                .fillna(
-
-                    resumo["Codigo"]
-
-                )
-
-            )
-
-            resumo["Estoque"] = (
-
-                resumo["Estoque"]
-
-                .fillna(0)
-
-            )
-
-            resumo["Consumo"] = (
-
-                resumo["Consumo"]
-
-                .fillna(0)
-
-            )
-
-            resumo["Saldo"] = (
-
-                resumo["Estoque"]
-
-                -
-
-                resumo["Consumo"]
-
-            )
-
-            # Mostra somente materiais
-            # utilizados pelos filtros.
-
-            resumo = (
-
-                resumo[
-
-                    resumo["Consumo"]
-
-                    > 0
-
-                ]
-
-                .copy()
-
-            )
+            # Mostra somente materiais utilizados pelos filtros
+            resumo = resumo[resumo["Consumo"] > 0].copy()
 
             # Remove possíveis cabeçalhos
+            resumo = resumo[
+                ~resumo["Codigo"].astype(str).str.contains("CODIG|CÓDIG", case=False, na=False)
+            ]
+            resumo = resumo[
+                ~resumo["Descricao"].astype(str).str.contains("DESCRI", case=False, na=False)
+            ]
 
-            resumo = (
-
-                resumo[
-
-                    ~resumo["Codigo"]
-
-                    .astype(str)
-
-                    .str.contains(
-
-                        "CODIG|CÓDIG",
-
-                        case=False,
-
-                        na=False
-
-                    )
-
-                ]
-
+            # Calcula Compra c/ Perda com base no desperdício real
+            resumo["Compra c/ Perda"] = resumo["Saldo"] * (
+                1 + (resumo["Desperdício Total"] / resumo["Área Total"])
             )
 
-            resumo = (
+            # Preenche valores nulos
+            resumo["Compra c/ Perda"] = resumo["Compra c/ Perda"].fillna(0)
+            resumo["Qtd Chapas"] = resumo["Qtd Chapas"].fillna(0).astype(int)
 
-                resumo[
+            # Ordena para exibição
+            resumo = resumo.sort_values("Codigo").reset_index(drop=True)
 
-                    ~resumo["Descricao"]
-
-                    .astype(str)
-
-                    .str.contains(
-
-                        "DESCRI",
-
-                        case=False,
-
-                        na=False
-
-                    )
-
-                ]
-
-            )
+                      
+                    
             # =================================
             # COBERTURA
             # =================================
