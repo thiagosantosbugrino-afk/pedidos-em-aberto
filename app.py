@@ -1913,7 +1913,10 @@ if mostrar_mp:
 
                 "Área Utilizada",
 
-                "Desperdício Total"
+                "Desperdício Total",
+                
+                "Codigo",
+                
 
             ]
 
