@@ -12,37 +12,6 @@ ALTURA_CHAPA = 2400
 
 AREA_CHAPA = LARGURA_CHAPA * ALTURA_CHAPA
 
-def cabe(
-
-    self,
-
-    espaco: Espaco,
-
-    largura,
-
-    altura,
-
-    distancia
-
-):
-
-    sobra_direita = espaco.largura - largura
-    sobra_superior = espaco.altura - altura
-
-    # Não cabe fisicamente
-    if sobra_direita < 0 or sobra_superior < 0:
-        return False
-
-    # Direita
-    if sobra_direita != 0 and sobra_direita < distancia:
-        return False
-
-    # Parte superior
-    if sobra_superior != 0 and sobra_superior < distancia:
-        return False
-
-    return True
-
 
 # ==========================================================
 # PEÇA
@@ -50,7 +19,6 @@ def cabe(
 
 @dataclass
 class Peca:
-
     codigo: str
 
     largura: float
@@ -135,8 +103,7 @@ class Posicionamento:
 
     girada: bool
 
-
-# ==========================================================
+    # ==========================================================
 # CHAPA
 # ==========================================================
 
@@ -145,7 +112,6 @@ class Chapa:
     def __init__(self):
 
         self.largura = LARGURA_CHAPA
-
         self.altura = ALTURA_CHAPA
 
         self.pecas: List[Posicionamento] = []
@@ -174,11 +140,8 @@ class Chapa:
     def area_utilizada(self):
 
         return sum(
-
             p.largura * p.altura
-
             for p in self.pecas
-
         )
 
     # --------------------------------------------------
@@ -194,131 +157,90 @@ class Chapa:
     def aproveitamento(self):
 
         if self.area_total == 0:
-
             return 0
 
         return (
-
             self.area_utilizada
-
             / self.area_total
-
         ) * 100
 
     # --------------------------------------------------
 
     def cabe(
+        self,
+        espaco: Espaco,
+        largura,
+        altura,
+        distancia
+    ):
 
-    self,
+        if largura > espaco.largura:
+            return False
 
-    espaco: Espaco,
+        if altura > espaco.altura:
+            return False
 
-    largura,
+        sobra_direita = espaco.largura - largura
+        sobra_superior = espaco.altura - altura
 
-    altura,
+        if sobra_direita != 0 and sobra_direita < distancia:
+            return False
 
-    distancia
+        if sobra_superior != 0 and sobra_superior < distancia:
+            return False
 
-):
+        return True
 
-    # A peça precisa caber fisicamente
-    if largura > espaco.largura:
-        return False
+    # --------------------------------------------------
+    # PROCURA O MELHOR ESPAÇO (BEST FIT)
+    # --------------------------------------------------
 
-    if altura > espaco.altura:
-        return False
+    def procurar_melhor_espaco(self, peca: Peca):
 
-    sobra_direita = espaco.largura - largura
-    sobra_superior = espaco.altura - altura
+        melhor = None
+        menor_sobra = None
+        girada = False
 
-    # Lado direito
-    if sobra_direita != 0 and sobra_direita < distancia:
-        return False
+        distancia = peca.distancia_minima
 
-    # Parte superior
-    if sobra_superior != 0 and sobra_superior < distancia:
-        return False
+        for espaco in self.espacos:
 
-    return True
-         # --------------------------------------------------
-# PROCURA O MELHOR ESPAÇO (BEST FIT)
-# --------------------------------------------------
+            # Posição normal
 
-def procurar_melhor_espaco(self, peca: Peca):
-
-    melhor = None
-    menor_sobra = None
-    girada = False
-
-    distancia = peca.distancia_minima
-
-    for espaco in self.espacos:
-
-        # ---------------------------------
-        # Posição normal
-        # ---------------------------------
-
-        if self.cabe(
-
-            espaco,
-
-            peca.largura,
-
-            peca.altura,
-
-            distancia
-
-        ):
-
-            sobra = espaco.area - peca.area
-
-            if (
-
-                menor_sobra is None
-
-                or
-
-                sobra < menor_sobra
-
+            if self.cabe(
+                espaco,
+                peca.largura,
+                peca.altura,
+                distancia
             ):
 
-                melhor = espaco
-                menor_sobra = sobra
-                girada = False
+                sobra = espaco.area - peca.area
 
-        # ---------------------------------
-        # Posição girada
-        # ---------------------------------
+                if menor_sobra is None or sobra < menor_sobra:
 
-        if self.cabe(
+                    melhor = espaco
+                    menor_sobra = sobra
+                    girada = False
 
-            espaco,
+            # Posição girada
 
-            peca.altura,
-
-            peca.largura,
-
-            distancia
-
-        ):
-
-            sobra = espaco.area - peca.area
-
-            if (
-
-                menor_sobra is None
-
-                or
-
-                sobra < menor_sobra
-
+            if self.cabe(
+                espaco,
+                peca.altura,
+                peca.largura,
+                distancia
             ):
 
-                melhor = espaco
-                menor_sobra = sobra
-                girada = True
+                sobra = espaco.area - peca.area
 
-    return melhor, girada
+                if menor_sobra is None or sobra < menor_sobra:
+
+                    melhor = espaco
+                    menor_sobra = sobra
+                    girada = True
+
+        return melhor, girada
+
     # --------------------------------------------------
     # INSERE A PEÇA
     # --------------------------------------------------
@@ -328,7 +250,6 @@ def procurar_melhor_espaco(self, peca: Peca):
         espaco, girada = self.procurar_melhor_espaco(peca)
 
         if espaco is None:
-
             return False
 
         if girada:
@@ -344,19 +265,12 @@ def procurar_melhor_espaco(self, peca: Peca):
         self.pecas.append(
 
             Posicionamento(
-
                 peca=peca,
-
                 x=espaco.x,
-
                 y=espaco.y,
-
                 largura=largura,
-
                 altura=altura,
-
                 girada=girada
-
             )
 
         )
@@ -374,23 +288,84 @@ def procurar_melhor_espaco(self, peca: Peca):
         return True
 
     # --------------------------------------------------
-# CORTE GUILHOTINADO
-# --------------------------------------------------
+    # CORTE GUILHOTINADO
+    # --------------------------------------------------
 
-def _gerar_sobras(
+    def _gerar_sobras(
+        self,
+        espaco,
+        largura,
+        altura
+    ):
 
-    self,
+        sobra_direita = espaco.largura - largura
+        sobra_inferior = espaco.altura - altura
 
-    espaco,
+        area_vertical = sobra_direita * altura
+        area_horizontal = sobra_inferior * espaco.largura
 
-    largura,
+        # Corte vertical
 
-    altura
+        if area_vertical <= area_horizontal:
 
-):
+            if sobra_direita > 0:
 
-    sobra_direita = espaco.largura - largura
-    sobra_inferior = espaco.altura - altura
+                self.espacos.append(
+
+                    Espaco(
+                        x=espaco.x + largura,
+                        y=espaco.y,
+                        largura=sobra_direita,
+                        altura=altura
+                    )
+
+                )
+
+            if sobra_inferior > 0:
+
+                self.espacos.append(
+
+                    Espaco(
+                        x=espaco.x,
+                        y=espaco.y + altura,
+                        largura=espaco.largura,
+                        altura=sobra_inferior
+                    )
+
+                )
+
+        # Corte horizontal
+
+        else:
+
+            if sobra_inferior > 0:
+
+                self.espacos.append(
+
+                    Espaco(
+                        x=espaco.x,
+                        y=espaco.y + altura,
+                        largura=largura,
+                        altura=sobra_inferior
+                    )
+
+                )
+
+            if sobra_direita > 0:
+
+                self.espacos.append(
+
+                    Espaco(
+                        x=espaco.x + largura,
+                        y=espaco.y,
+                        largura=sobra_direita,
+                        altura=espaco.altura
+                    )
+
+                )
+
+
+
 
     # --------------------------------------------------
     # Escolhe automaticamente a melhor direção do corte
