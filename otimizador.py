@@ -247,75 +247,16 @@ class Chapa:
 def procurar_melhor_espaco(self, peca: Peca):
 
     melhor = None
-    melhor_girada = False
-    melhor_score = None
+    menor_sobra = None
+    girada = False
 
     distancia = peca.distancia_minima
 
     for espaco in self.espacos:
 
-        for girada in (False, True):
-
-            if girada:
-
-                largura = peca.altura
-                altura = peca.largura
-
-            else:
-
-                largura = peca.largura
-                altura = peca.altura
-
-            if not self.cabe(
-
-                espaco,
-
-                largura,
-
-                altura,
-
-                distancia
-
-            ):
-
-                continue
-
-            sobra_direita = espaco.largura - largura
-
-            sobra_superior = espaco.altura - altura
-
-            desperdicio = sobra_direita * sobra_superior
-
-            score = (
-
-                desperdicio,
-
-                sobra_direita + sobra_superior,
-
-                espaco.area
-
-            )
-
-            if (
-
-                melhor_score is None
-
-                or
-
-                score < melhor_score
-
-            ):
-
-                melhor_score = score
-
-                melhor = espaco
-
-                melhor_girada = girada
-
-    return melhor, melhor_girada
-        # -----------------------------
-        # posição normal
-        # -----------------------------
+        # ---------------------------------
+        # Posição normal
+        # ---------------------------------
 
         if self.cabe(
 
@@ -345,9 +286,9 @@ def procurar_melhor_espaco(self, peca: Peca):
                 menor_sobra = sobra
                 girada = False
 
-        # -----------------------------
-        # posição girada
-        # -----------------------------
+        # ---------------------------------
+        # Posição girada
+        # ---------------------------------
 
         if self.cabe(
 
@@ -378,7 +319,6 @@ def procurar_melhor_espaco(self, peca: Peca):
                 girada = True
 
     return melhor, girada
-
     # --------------------------------------------------
     # INSERE A PEÇA
     # --------------------------------------------------
@@ -450,52 +390,98 @@ def _gerar_sobras(
 ):
 
     sobra_direita = espaco.largura - largura
-
     sobra_inferior = espaco.altura - altura
 
-    # -----------------------------
-    # Sobra da direita
-    # -----------------------------
+    # --------------------------------------------------
+    # Escolhe automaticamente a melhor direção do corte
+    # --------------------------------------------------
 
-    if sobra_direita > 0:
+    area_vertical = sobra_direita * altura
+    area_horizontal = sobra_inferior * espaco.largura
 
-        self.espacos.append(
+    # --------------------------------------------------
+    # Primeiro corte na vertical
+    # --------------------------------------------------
 
-            Espaco(
+    if area_vertical <= area_horizontal:
 
-                x=espaco.x + largura,
+        if sobra_direita > 0:
 
-                y=espaco.y,
+            self.espacos.append(
 
-                largura=sobra_direita,
+                Espaco(
 
-                altura=altura
+                    x=espaco.x + largura,
 
-            )
+                    y=espaco.y,
 
-        )
+                    largura=sobra_direita,
 
-    # -----------------------------
-    # Sobra inferior
-    # -----------------------------
+                    altura=altura
 
-    if sobra_inferior > 0:
-
-        self.espacos.append(
-
-            Espaco(
-
-                x=espaco.x,
-
-                y=espaco.y + altura,
-
-                largura=espaco.largura,
-
-                altura=sobra_inferior
+                )
 
             )
 
-        )
+        if sobra_inferior > 0:
+
+            self.espacos.append(
+
+                Espaco(
+
+                    x=espaco.x,
+
+                    y=espaco.y + altura,
+
+                    largura=espaco.largura,
+
+                    altura=sobra_inferior
+
+                )
+
+            )
+
+    # --------------------------------------------------
+    # Primeiro corte na horizontal
+    # --------------------------------------------------
+
+    else:
+
+        if sobra_inferior > 0:
+
+            self.espacos.append(
+
+                Espaco(
+
+                    x=espaco.x,
+
+                    y=espaco.y + altura,
+
+                    largura=largura,
+
+                    altura=sobra_inferior
+
+                )
+
+            )
+
+        if sobra_direita > 0:
+
+            self.espacos.append(
+
+                Espaco(
+
+                    x=espaco.x + largura,
+
+                    y=espaco.y,
+
+                    largura=sobra_direita,
+
+                    altura=espaco.altura
+
+                )
+
+            )
     # --------------------------------------------------
     # REMOVE SOBRAS CONTIDAS
     # --------------------------------------------------
