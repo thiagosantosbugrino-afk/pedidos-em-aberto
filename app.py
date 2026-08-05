@@ -1968,8 +1968,6 @@ if mostrar_mp:
                 ]
 
             )
-
-
                         # =====================================
             # TABELA
             # =====================================
@@ -1990,6 +1988,29 @@ if mostrar_mp:
                 |
                 (tabela["Saldo"] != 0)
             ]
+
+
+            # 🔹 Colunas ocultas somente na visualização
+            colunas_ocultas = [
+
+                "Compra Necessária",
+
+                "Área Utilizada",
+
+                "Desperdício Total",
+
+                "Codigo"
+
+            ]
+
+
+            tabela = tabela.drop(
+
+                columns=colunas_ocultas,
+
+                errors="ignore"
+
+            )
 
 
             gb = GridOptionsBuilder.from_dataframe(tabela)
@@ -2034,6 +2055,9 @@ if mostrar_mp:
             # =====================================
             # DETALHAR MATERIAL
             # =====================================
+            
+
+
 
             st.markdown("---")
 
