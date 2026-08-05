@@ -249,56 +249,32 @@ def otimizar_lista(lista_pecas: List[Peca]):
 # ==========================================================
 
 def resumo_otimizacao(resultado):
-
     linhas = []
 
     for codigo, chapas in resultado.items():
+        # área efetivamente utilizada pelas peças
+        area_utilizada = sum(chapa.area_utilizada for chapa in chapas)
 
-        area_total = sum(
-            chapa.area_total
-            for chapa in chapas
-        )
+        # desperdício calculado pela otimização
+        desperdicio_total = sum(chapa.desperdicio for chapa in chapas)
 
-        area_utilizada = sum(
-            chapa.area_utilizada
-            for chapa in chapas
-        )
+        # área total = utilizada + desperdício
+        area_total = area_utilizada + desperdicio_total
 
-        desperdicio = area_total - area_utilizada
-
+        # aproveitamento percentual
         aproveitamento = (
-            (area_utilizada / area_total) * 100
-            if area_total
-            else 0
+            (area_utilizada / area_total) * 100 if area_total > 0 else 0
         )
 
         linhas.append({
-
             "Codigo": codigo,
-
             "Qtd Chapas": len(chapas),
-
-            "Área Total": round(
-                area_total / 1_000_000,
-                2
-            ),
-
-            "Área Utilizada": round(
-                area_utilizada / 1_000_000,
-                2
-            ),
-
-            "Desperdício": round(
-                desperdicio / 1_000_000,
-                2
-            ),
-
-            "Aproveitamento (%)": round(
-                aproveitamento,
-                2
-            )
-
+            "Área Total": round(area_total / 1_000_000, 2),
+            "Área Utilizada": round(area_utilizada / 1_000_000, 2),
+            "Desperdício Total": round(desperdicio_total / 1_000_000, 2),
+            "Aproveitamento (%)": round(aproveitamento, 2)
         })
 
+    # ordena pelo código do material
+    linhas.sort(key=lambda x: x["Codigo"])
     return linhas
-      
