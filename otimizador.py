@@ -12,8 +12,36 @@ ALTURA_CHAPA = 2400
 
 AREA_CHAPA = LARGURA_CHAPA * ALTURA_CHAPA
 
-# Sobras menores que isso são descartadas
-MIN_SOBRA = 80
+def cabe(
+
+    self,
+
+    espaco: Espaco,
+
+    largura,
+
+    altura,
+
+    distancia
+
+):
+
+    sobra_direita = espaco.largura - largura
+    sobra_superior = espaco.altura - altura
+
+    # Não cabe fisicamente
+    if sobra_direita < 0 or sobra_superior < 0:
+        return False
+
+    # Direita
+    if sobra_direita != 0 and sobra_direita < distancia:
+        return False
+
+    # Parte superior
+    if sobra_superior != 0 and sobra_superior < distancia:
+        return False
+
+    return True
 
 
 # ==========================================================
