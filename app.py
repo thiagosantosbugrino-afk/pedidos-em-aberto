@@ -1366,7 +1366,7 @@ if mostrar_mp:
                     use_container_width=True,
                     hide_index=True
                 )
-                       # =================================
+            # =================================
             # RESUMO FINAL
             # =================================
 
@@ -1412,8 +1412,7 @@ if mostrar_mp:
             # Ordena para exibição
             resumo = resumo.sort_values("Codigo").reset_index(drop=True)
 
-                      
-                    
+                       
             # =================================
             # COBERTURA
             # =================================
