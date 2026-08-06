@@ -1690,18 +1690,13 @@ if mostrar_mp:
 
             # 🔹 Colunas ocultas somente na visualização
             colunas_ocultas = [
-
                 "Compra Necessária",
-
                 "Área Utilizada",
-
-                "Compra c/ Perda",
-
                 "Desperdício Total",
-
-                "Codigo"
-
+                "Codigo",
+                "Qtd Chapas"  # agora oculta o total bruto
             ]
+
 
 
             colunas_exibir = [
