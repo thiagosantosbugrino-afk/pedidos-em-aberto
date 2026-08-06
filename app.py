@@ -1851,8 +1851,6 @@ if mostrar_mp:
 
                 "Compra Necessária",
 
-                "Compra c/ Perda",
-
                 "Qtd Chapas",
 
                 "Área Total",
