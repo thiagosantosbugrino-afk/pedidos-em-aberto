@@ -1268,26 +1268,7 @@ if mostrar_mp:
             )
 
             # =================================
-            # EXIBE RESUMO OTIMIZADO
-            # =================================
-
-            with st.expander("📋 Resumo da Otimização"):
-                # Lista de colunas visíveis (oculta "Compra c/ Perda" apenas na visualização)
-                colunas_visiveis = [
-                    "Codigo",
-                    "Qtd Chapas",
-                    "Área Total",
-                    "Área Utilizada",
-                    "Desperdício Total",
-                    "Aproveitamento (%)"
-                ]
-
-                st.dataframe(
-                    resumo_otimizado[colunas_visiveis],
-                    use_container_width=True,
-                    hide_index=True
-                )
-            
+           
             # =================================
             # TESTE DAS PEÇAS
             # =================================
@@ -1825,104 +1806,56 @@ if mostrar_mp:
             # =====================================
 
             colunas_tabela = [
-
                 "Codigo",
-
                 "Descricao",
-
                 "Estoque",
-
                 "Consumo",
-
                 "Saldo",
-
                 "Produz até",
-
                 "Primeira Falta",
-
                 "Compra Necessária",
-
                 "Compra c/ Perda",
-
                 "Qtd Chapas",
-
                 "Área Total",
-
                 "Área Utilizada",
-
                 "Desperdício Total",
-
                 "Aproveitamento (%)",
-
                 "Status"
-
             ]
-
 
             # 🔹 Colunas ocultas somente na visualização
             colunas_ocultas = [
-
                 "Compra Necessária",
-
                 "Área Utilizada",
-
-                "Compra c/ Perda",
-
+                "Compra c/ Perda",   # 👈 aqui você garante que não aparece
                 "Desperdício Total",
-
                 "Codigo"
-
             ]
-
 
             colunas_exibir = [
-
                 coluna
-
                 for coluna in colunas_tabela
-
-                if coluna not in colunas_ocultas
-
+                if coluna in resumo.columns and coluna not in colunas_ocultas
             ]
 
-
-            resumo = (
-
-                resumo
-
-                .sort_values(
-
-                    [
-
-                        "Compra Necessária",
-
-                        "Primeira Falta"
-
-                    ],
-
-                    ascending=[
-
-                        False,
-
-                        True
-
-                    ]
-
-                )
-
+            resumo = resumo.sort_values(
+                ["Compra Necessária", "Primeira Falta"],
+                ascending=[False, True]
             )
-
 
             # 🔹 Cria uma cópia somente para exibição da tabela
-            resumo_tabela = (
+            resumo_tabela = resumo[colunas_exibir]
 
-                resumo[
+            # =====================================
+            # TABELA
+            # =====================================
 
-                    colunas_exibir
-
-                ]
-
+            st.dataframe(
+                resumo_tabela,
+                use_container_width=True,
+                hide_index=True
             )
+
                         # =====================================
             # TABELA
             # =====================================
