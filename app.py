@@ -1732,7 +1732,7 @@ if mostrar_mp:
 
                 )
 
-            # =================================
+                        # =================================
             # INDICADORES DA MP
             # =================================
 
@@ -1767,11 +1767,11 @@ if mostrar_mp:
 
             )
 
-            total_compra = (
+            total_compra = int(
 
                 resumo[
 
-                    "Compra Necessária"
+                    "Qtd Chapas"
 
                 ].sum()
 
@@ -1779,13 +1779,9 @@ if mostrar_mp:
 
             col3.metric(
 
-                "📐 Total Chapas",
+                "🧱 Total Chapas",
 
-                formatar_numero_br(
-
-                    total_compra
-
-                )
+                total_compra
 
             )
 
@@ -1832,9 +1828,8 @@ if mostrar_mp:
                 )
 
             )
-                       
 
-                       # =====================================
+            # =====================================
             # COLUNAS DA TABELA
             # =====================================
 
