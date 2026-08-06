@@ -1214,43 +1214,27 @@ if mostrar_mp:
                     )
 
                 )
-
-            # =====================================
+                            # =================================
             # EXECUTA A OTIMIZAÇÃO
-            # =====================================
+            # =================================
 
-            resultado_otimizacao = (
-                otimizar_lista(
-                    lista_otimizacao
-                )
-            )
+            resultado_otimizacao = otimizar_lista(lista_otimizacao)
 
             resumo_otimizado = pd.DataFrame(
-                resumo_otimizacao(
-                    resultado_otimizacao
-                )
+                resumo_otimizacao(resultado_otimizacao)
             )
 
             colunas = [
-
                 "Codigo",
-
                 "Qtd Chapas",
-
                 "Área Total",
-
                 "Área Utilizada",
-
                 "Desperdício Total",
-
                 "Aproveitamento (%)"
-
             ]
 
             for coluna in colunas:
-
                 if coluna not in resumo_otimizado.columns:
-
                     resumo_otimizado[coluna] = 0
 
             resumo_otimizado["Qtd Chapas"] = (
@@ -1283,7 +1267,27 @@ if mostrar_mp:
                 .round(2)
             )
 
+            # =================================
+            # EXIBE RESUMO OTIMIZADO
+            # =================================
 
+            with st.expander("📋 Resumo da Otimização"):
+                # Lista de colunas visíveis (oculta "Compra c/ Perda" apenas na visualização)
+                colunas_visiveis = [
+                    "Codigo",
+                    "Qtd Chapas",
+                    "Área Total",
+                    "Área Utilizada",
+                    "Desperdício Total",
+                    "Aproveitamento (%)"
+                ]
+
+                st.dataframe(
+                    resumo_otimizado[colunas_visiveis],
+                    use_container_width=True,
+                    hide_index=True
+                )
+            
             # =================================
             # TESTE DAS PEÇAS
             # =================================
@@ -1850,6 +1854,8 @@ if mostrar_mp:
                 "Primeira Falta",
 
                 "Compra Necessária",
+
+                "Compra c/ Perda",
 
                 "Qtd Chapas",
 
