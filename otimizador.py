@@ -811,19 +811,41 @@ def otimizar_material(
 
             )
 
+            menor_sobra = min(
+
+                sobra_direita,
+
+                sobra_superior
+
+            )
+
+            maior_sobra = max(
+
+                sobra_direita,
+
+                sobra_superior
+
+            )
+
             score = (
 
-                sobra_direita
+                espaco.area
 
-                *
+                -
 
-                sobra_superior,
+                (
 
-                sobra_direita
+                    largura
 
-                +
+                    *
 
-                sobra_superior,
+                    altura
+
+                ),
+
+                menor_sobra,
+
+                maior_sobra,
 
                 espaco.area
 
@@ -865,7 +887,6 @@ def otimizar_material(
 # ==========================================================
 # OTIMIZA TODOS OS MATERIAIS
 # ==========================================================
-
 def otimizar_lista(
 
     lista_pecas: List[Peca]
