@@ -1076,7 +1076,7 @@ if mostrar_mp:
                 )
 
             )
-                        # =================================
+            # =================================
             # PREPARAÇÃO PARA O CORTE
             # =================================
 
@@ -1086,70 +1086,17 @@ if mostrar_mp:
 
             # Área da peça em m²
             pecas["Área"] = (
-                pecas["Largura Corte"]
-                *
-                pecas["Altura Corte"]
+                pecas["Largura Corte"] * pecas["Altura Corte"]
             ) / 1000000
-
-
-            # =================================
-            # DISTÂNCIA MÍNIMA
-            # =================================
-
-            def distancia_minima(codigo):
-
-                codigo = str(codigo).upper()
-
-                if codigo.startswith("LM"):
-                    return 30
-
-                numeros = re.findall(
-                    r"\d+",
-                    codigo
-                )
-
-                if numeros:
-
-                    espessura = int(
-                        numeros[0]
-                    )
-
-                    if espessura in [3, 4]:
-                        return 12
-
-                    elif espessura in [6, 8]:
-                        return 20
-
-                    elif espessura >= 10:
-                        return 30
-
-                return 12
-
-
-            pecas["Distância"] = (
-                pecas["Codigo"]
-                .apply(
-                    distancia_minima
-                )
-            )
-
 
             # =================================
             # TAMANHO UTILIZADO NO ENCAIXE
             # =================================
+            # ⚠️ Agora não somamos mais a distância mínima aqui.
+            # O cálculo de distância mínima será feito apenas no otimizador.py
 
-            pecas["Largura Encaixe"] = (
-                pecas["Largura Corte"]
-                +
-                pecas["Distância"]
-            )
-
-            pecas["Altura Encaixe"] = (
-                pecas["Altura Corte"]
-                +
-                pecas["Distância"]
-            )
-
+            pecas["Largura Encaixe"] = pecas["Largura Corte"]
+            pecas["Altura Encaixe"] = pecas["Altura Corte"]
 
             # =====================================
             # MONTA LISTA PARA OTIMIZAÇÃO
@@ -1158,62 +1105,25 @@ if mostrar_mp:
             lista_otimizacao = []
 
             for _, linha in pecas.iterrows():
-
-                largura = float(
-                    linha["Largura Encaixe"]
-                )
-
-                altura = float(
-                    linha["Altura Encaixe"]
-                )
+                largura = float(linha["Largura Encaixe"])
+                altura = float(linha["Altura Encaixe"])
 
                 if altura > largura:
-
                     largura, altura = altura, largura
 
                 lista_otimizacao.append(
-
                     Peca(
-
-                        codigo=str(
-                            linha["Codigo"]
-                        ),
-
+                        codigo=str(linha["Codigo"]),
                         largura=largura,
-
                         altura=altura,
-
-                        pedido=str(
-                            linha.get(
-                                "Pedido",
-                                ""
-                            )
-                        ),
-
-                        cliente=str(
-                            linha.get(
-                                "Cliente",
-                                ""
-                            )
-                        ),
-
-                        pc=str(
-                            linha.get(
-                                "PC",
-                                ""
-                            )
-                        ),
-
-                        rota=str(
-                            linha.get(
-                                "Rota",
-                                ""
-                            )
-                        )
-
+                        pedido=str(linha.get("Pedido", "")),
+                        cliente=str(linha.get("Cliente", "")),
+                        pc=str(linha.get("PC", "")),
+                        rota=str(linha.get("Rota", ""))
                     )
-
                 )
+
+                       
                             # =================================
             # EXECUTA A OTIMIZAÇÃO
             # =================================
