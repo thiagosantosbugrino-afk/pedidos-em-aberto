@@ -1456,6 +1456,30 @@ if mostrar_mp:
                 ]
 
             )
+                        # =================================
+            # EXIBE TABELA FINAL (oculta "Compra c/ Perda")
+            # =================================
+
+            colunas_visiveis = [
+                "Descricao",
+                "Estoque",
+                "Consumo",
+                "Saldo",
+                "Produz até",
+                "Primeira Falta",
+                "Qtd Chapas",
+                "Área Total",
+                "Aproveitamento (%)",
+                "Status"
+            ]
+
+            st.dataframe(
+                resumo[colunas_visiveis],
+                use_container_width=True,
+                hide_index=True
+            )
+
+            
             # =================================
             # COBERTURA
             # =================================
