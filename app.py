@@ -1531,26 +1531,25 @@ if mostrar_mp:
 
             
             # =================================
-            # STATUS
+            # STATUS (corrigido por chapas)
             # =================================
 
-            resumo["Status"] = (
+            AREA_CHAPA = 3.210 * 2.400  # área de uma chapa em m²
 
-                resumo["Saldo"]
+            # Calcula chapas disponíveis e necessárias
+            resumo["Chapas Estoque"] = resumo["Estoque"] / AREA_CHAPA
+            resumo["Chapas Necessárias"] = resumo["Qtd Chapas"]
 
-                .apply(
-
-                    lambda valor:
-
+            # Define status comparando chapas
+            resumo["Status"] = resumo.apply(
+                lambda linha: (
                     "🟢 OK"
-
-                    if valor >= 0
-
+                    if linha["Chapas Estoque"] >= linha["Chapas Necessárias"]
                     else "🔴 Comprar"
-
-                )
-
+                ),
+                axis=1
             )
+
 
             # =================================
             # ARREDONDAMENTO
