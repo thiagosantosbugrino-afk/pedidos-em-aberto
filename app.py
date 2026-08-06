@@ -1649,44 +1649,27 @@ if mostrar_mp:
                 )
             )
 
-            # =====================================
+                        # =====================================
             # COLUNAS DA TABELA
             # =====================================
 
             colunas_tabela = [
-
                 "Codigo",
-
                 "Descricao",
-
                 "Estoque",
-
                 "Consumo",
-
                 "Saldo",
-
                 "Produz até",
-
                 "Primeira Falta",
-
                 "Compra Necessária",
-
                 "Compra c/ Perda",
-
                 "Qtd Chapas",
-
                 "Área Total",
-
                 "Área Utilizada",
-
                 "Desperdício Total",
-
                 "Aproveitamento (%)",
-
                 "Status"
-
             ]
-
 
             # 🔹 Colunas ocultas somente na visualização
             colunas_ocultas = [
@@ -1694,60 +1677,29 @@ if mostrar_mp:
                 "Área Utilizada",
                 "Desperdício Total",
                 "Codigo",
-                "Qtd Chapas"  # agora oculta o total bruto
+                "Qtd Chapas"  # oculta o total bruto de chapas
             ]
-
-
 
             colunas_exibir = [
-
                 coluna
-
                 for coluna in colunas_tabela
-
                 if coluna not in colunas_ocultas
-
             ]
 
-
             resumo = (
-
                 resumo
-
                 .sort_values(
-
                     [
-
                         "Compra Necessária",
-
                         "Primeira Falta"
-
                     ],
-
                     ascending=[
-
                         False,
-
                         True
-
                     ]
-
                 )
-
             )
-
-
-            # 🔹 Cria uma cópia somente para exibição da tabela
-            resumo_tabela = (
-
-                resumo[
-
-                    colunas_exibir
-
-                ]
-
-            )
-                        # =====================================
+            # =====================================
             # TABELA
             # =====================================
 
