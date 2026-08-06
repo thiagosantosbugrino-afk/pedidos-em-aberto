@@ -1875,6 +1875,8 @@ if mostrar_mp:
 
                 "Área Utilizada",
 
+                "Compra c/ Perda",
+
                 "Desperdício Total",
 
                 "Codigo"
