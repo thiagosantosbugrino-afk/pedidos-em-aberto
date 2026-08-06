@@ -1608,101 +1608,42 @@ if mostrar_mp:
 
                 )
 
-                        # =================================
-            # INDICADORES DA MP
-            # =================================
+            # =====================================
+            # INDICADORES DA MP (corrigido)
+            # =====================================
 
-            col1, col2, col3, col4, col5 = (
-                st.columns(5)
-            )
+            col1, col2, col3, col4, col5 = st.columns(5)
 
             col1.metric(
-
                 "📦 Materiais",
-
                 len(resumo)
-
             )
 
             col2.metric(
-
                 "🔴 Comprar",
-
                 int(
-
-                    (
-                        resumo[
-                            "Saldo"
-                        ]
-
-                        < 0
-
-                    ).sum()
-
+                    (resumo["Status"] == "🔴 Comprar").sum()
                 )
-
             )
 
-            total_compra = int(
-
-                resumo[
-
-                    "Qtd Chapas"
-
-                ].sum()
-
-            )
-
+            total_compra = int(resumo["Qtd Chapas"].sum())
             col3.metric(
-
                 "🧱 Total Chapas",
-
                 total_compra
-
             )
 
             col4.metric(
-
                 "⚠️ Falta Material",
-
                 int(
-
-                    (
-
-                        resumo[
-
-                            "Primeira Falta"
-
-                        ]
-
-                        != ""
-
-                    ).sum()
-
+                    (resumo["Primeira Falta"] != "").sum()
                 )
-
             )
 
             col5.metric(
-
                 "🟢 OK",
-
                 int(
-
-                    (
-
-                        resumo[
-
-                            "Saldo"
-
-                        ]
-
-                        >= 0
-
-                    ).sum()
-
+                    (resumo["Status"] == "🟢 OK").sum()
                 )
-
             )
 
             # =====================================
