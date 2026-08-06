@@ -1514,20 +1514,23 @@ if mostrar_mp:
                 resumo["Aproveitamento (%)"] = 0
 
             # =================================
-            # COMPRA NECESSÁRIA
+            # COMPRA NECESSÁRIA (corrigido)
             # =================================
 
+            AREA_CHAPA = 3.210 * 2.400  # área de uma chapa em m²
+
+            # Calcula quantas chapas há em estoque
+            resumo["Chapas Estoque"] = resumo["Estoque"] / AREA_CHAPA
+
+            # Compra Necessária = chapas que faltam após descontar o estoque
             resumo["Compra Necessária"] = (
+                resumo["Qtd Chapas"] - resumo["Chapas Estoque"]
+            ).clip(lower=0).round(0).astype(int)
 
-                resumo["Qtd Chapas"]
-
-            )
-
+            # Compra c/ Perda = chapas necessárias considerando desperdício total
             resumo["Compra c/ Perda"] = (
-
-                resumo["Qtd Chapas"]
-
-            )
+                (resumo["Área Total"] - resumo["Estoque"]) / AREA_CHAPA
+            ).clip(lower=0).round(0).astype(int)
 
             
             # =================================
