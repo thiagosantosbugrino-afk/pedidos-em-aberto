@@ -1288,6 +1288,26 @@ if mostrar_mp:
                 resumo_otimizado["Aproveitamento (%)"] = resumo_otimizado["Aproveitamento (%)"].fillna(0).round(2)
 
                 return resumo_otimizado
+            # =================================
+            # BOTÃO PARA APLICAR MEDIDA PERSONALIZADA
+            # =================================
+
+            st.sidebar.markdown("---")
+            st.sidebar.subheader("📐 Medida personalizada da chapa")
+
+            largura_nova = st.sidebar.number_input("Largura da chapa (mm)", value=3210)
+            altura_nova = st.sidebar.number_input("Altura da chapa (mm)", value=2400)
+
+            if st.sidebar.button("Aplicar medida personalizada"):
+                resumo_personalizado = otimizar_chapas(lista_otimizacao, largura_nova, altura_nova)
+
+                st.subheader("📋 Resumo da Otimização com Medida Personalizada")
+                st.dataframe(
+                    resumo_personalizado,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
 
 
 
