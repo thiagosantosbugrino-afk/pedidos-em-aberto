@@ -1243,7 +1243,7 @@ if mostrar_mp:
                 materiais_otimizacao[codigo] = tabela
                 
 
-            # =================================
+                        # =================================
             # FUNÇÃO DE OTIMIZAÇÃO COM MEDIDA PERSONALIZADA
             # =================================
 
@@ -1255,19 +1255,16 @@ if mostrar_mp:
                 Codigo, Qtd Chapas, Área Total, Área Utilizada,
                 Desperdício Total, Aproveitamento (%)
                 """
-                # Chama o otimizador com as medidas personalizadas
                 resultado_otimizacao = otimizar_lista(
                     lista_otimizacao,
                     largura_chapa,
                     altura_chapa
                 )
 
-                # Gera o resumo usando o otimizador real
                 resumo_otimizado = pd.DataFrame(
                     resumo_otimizacao(resultado_otimizacao)
                 )
 
-                # Garante que todas as colunas existam
                 colunas = [
                     "Codigo",
                     "Qtd Chapas",
@@ -1280,7 +1277,6 @@ if mostrar_mp:
                     if coluna not in resumo_otimizado.columns:
                         resumo_otimizado[coluna] = 0
 
-                # Ajusta tipos e arredondamentos
                 resumo_otimizado["Qtd Chapas"] = resumo_otimizado["Qtd Chapas"].fillna(0).astype(int)
                 resumo_otimizado["Área Total"] = resumo_otimizado["Área Total"].fillna(0).round(2)
                 resumo_otimizado["Área Utilizada"] = resumo_otimizado["Área Utilizada"].fillna(0).round(2)
@@ -1288,28 +1284,27 @@ if mostrar_mp:
                 resumo_otimizado["Aproveitamento (%)"] = resumo_otimizado["Aproveitamento (%)"].fillna(0).round(2)
 
                 return resumo_otimizado
+
+
             # =================================
             # BOTÃO PARA APLICAR MEDIDA PERSONALIZADA
             # =================================
 
-            st.sidebar.markdown("---")
-            st.sidebar.subheader("📐 Medida personalizada da chapa")
+            st.markdown("---")
+            st.subheader("📐 Edição Manual de Medidas de Chapa")
 
-            largura_nova = st.sidebar.number_input("Largura da chapa (mm)", value=3210)
-            altura_nova = st.sidebar.number_input("Altura da chapa (mm)", value=2400)
+            largura_nova = st.number_input("Largura da chapa (mm)", value=3210)
+            altura_nova = st.number_input("Altura da chapa (mm)", value=2400)
 
-            if st.sidebar.button("Aplicar medida personalizada"):
+            if st.button("Aplicar medida personalizada"):
                 resumo_personalizado = otimizar_chapas(lista_otimizacao, largura_nova, altura_nova)
 
-                st.subheader("📋 Resumo da Otimização com Medida Personalizada")
+                st.success("✅ Medida personalizada aplicada e otimização refeita!")
                 st.dataframe(
                     resumo_personalizado,
                     use_container_width=True,
                     hide_index=True
                 )
-
-
-
 
 
             # =================================
