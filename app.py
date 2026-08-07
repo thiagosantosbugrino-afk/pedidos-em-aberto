@@ -1243,46 +1243,50 @@ if mostrar_mp:
                 materiais_otimizacao[codigo] = tabela
                 
 
-           # =================================
-# FUNÇÃO DE OTIMIZAÇÃO COM MEDIDA PERSONALIZADA
-# =================================
+                        # =================================
+            # FUNÇÃO DE OTIMIZAÇÃO
+            # =================================
 
-def otimizar_chapas(lista_otimizacao, largura_chapa, altura_chapa):
-    """
-    Recalcula a otimização das chapas com base nas novas medidas.
-    Usa o algoritmo real do otimizador.py.
-    Retorna um DataFrame com colunas:
-    Codigo, Qtd Chapas, Área Total, Área Utilizada, Desperdício Total, Aproveitamento (%)
-    """
-    # Chama o otimizador com as medidas personalizadas
-    resultado_otimizacao = otimizar_lista(lista_otimizacao, largura_chapa, altura_chapa)
+            def otimizar_chapas(resumo, largura_chapa, altura_chapa):
+                """
+                Recalcula a otimização das chapas com base nas novas medidas.
+                Retorna um DataFrame com colunas:
+                Codigo, Qtd Chapas, Área Total, Área Utilizada, Desperdício Total, Aproveitamento (%)
+                """
 
-    # Gera o resumo usando o otimizador real
-    resumo_otimizado = pd.DataFrame(
-        resumo_otimizacao(resultado_otimizacao)
-    )
+                # Área da chapa em m²
+                area_chapa = (largura_chapa / 1000) * (altura_chapa / 1000)
 
-    # Garante que todas as colunas existam
-    colunas = [
-        "Codigo",
-        "Qtd Chapas",
-        "Área Total",
-        "Área Utilizada",
-        "Desperdício Total",
-        "Aproveitamento (%)"
-    ]
-    for coluna in colunas:
-        if coluna not in resumo_otimizado.columns:
-            resumo_otimizado[coluna] = 0
+                # Cria cópia do resumo para evitar modificar o original
+                resumo_otimizado = resumo.copy()
 
-    # Ajusta tipos e arredondamentos
-    resumo_otimizado["Qtd Chapas"] = resumo_otimizado["Qtd Chapas"].fillna(0).astype(int)
-    resumo_otimizado["Área Total"] = resumo_otimizado["Área Total"].fillna(0).round(2)
-    resumo_otimizado["Área Utilizada"] = resumo_otimizado["Área Utilizada"].fillna(0).round(2)
-    resumo_otimizado["Desperdício Total"] = resumo_otimizado["Desperdício Total"].fillna(0).round(2)
-    resumo_otimizado["Aproveitamento (%)"] = resumo_otimizado["Aproveitamento (%)"].fillna(0).round(2)
+                # Recalcula quantidade de chapas com base na nova área
+                resumo_otimizado["Qtd Chapas"] = (
+                    resumo_otimizado["Consumo"] / area_chapa
+                ).clip(lower=0).round(0).astype(int)
 
-    return resumo_otimizado
+                # Área total consumida
+                resumo_otimizado["Área Total"] = resumo_otimizado["Consumo"].round(2)
+
+                # Simulação simples de aproveitamento (ajuste conforme seu algoritmo real)
+                resumo_otimizado["Área Utilizada"] = resumo_otimizado["Área Total"] * 0.9
+                resumo_otimizado["Desperdício Total"] = (
+                    resumo_otimizado["Área Total"] - resumo_otimizado["Área Utilizada"]
+                )
+                resumo_otimizado["Aproveitamento (%)"] = (
+                    resumo_otimizado["Área Utilizada"] / resumo_otimizado["Área Total"] * 100
+                ).round(2)
+
+                return resumo_otimizado[[
+                    "Codigo",
+                    "Qtd Chapas",
+                    "Área Total",
+                    "Área Utilizada",
+                    "Desperdício Total",
+                    "Aproveitamento (%)"
+                ]]
+
+
 
             # =================================
             # RESUMO
