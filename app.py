@@ -1212,13 +1212,10 @@ if mostrar_mp:
                     hide_index=True,
                     height=300
                 )
-
-
-            # =================================
+                            # =================================
             # AGRUPA PEÇAS POR MATERIAL
             # =================================
             
-
             materiais_otimizacao = {}
 
             for codigo in sorted(
@@ -1244,12 +1241,51 @@ if mostrar_mp:
                 )
 
                 materiais_otimizacao[codigo] = tabela
+                
 
-
-                       # =================================
-            # RESUMO
+            # =================================
+            # FUNÇÃO DE OTIMIZAÇÃO
             # =================================
 
+            def otimizar_chapas(consumo_data, largura_chapa, altura_chapa):
+                """
+                Recalcula a otimização das chapas com base nas novas medidas.
+                Retorna um DataFrame com colunas:
+                Codigo, Qtd Chapas, Área Total, Área Utilizada, Desperdício Total, Aproveitamento (%)
+                """
+
+                # Área da chapa em m²
+                area_chapa = (largura_chapa / 1000) * (altura_chapa / 1000)
+
+                # Agrupa consumo por material
+                resumo_otimizado = consumo_data.groupby("Codigo", as_index=False).agg({
+                    "Consumo": "sum"
+                })
+
+                # Calcula quantidade de chapas necessárias
+                resumo_otimizado["Qtd Chapas"] = (
+                    resumo_otimizado["Consumo"] / area_chapa
+                ).clip(lower=0).round(0).astype(int)
+
+                # Área total consumida
+                resumo_otimizado["Área Total"] = resumo_otimizado["Consumo"].round(2)
+
+                # Simulação simples de aproveitamento (ajuste conforme seu algoritmo real)
+                resumo_otimizado["Área Utilizada"] = resumo_otimizado["Área Total"] * 0.9
+                resumo_otimizado["Desperdício Total"] = (
+                    resumo_otimizado["Área Total"] - resumo_otimizado["Área Utilizada"]
+                )
+                resumo_otimizado["Aproveitamento (%)"] = (
+                    resumo_otimizado["Área Utilizada"] / resumo_otimizado["Área Total"] * 100
+                ).round(2)
+
+                return resumo_otimizado
+
+
+            # =================================
+            # RESUMO
+            # =================================
+            
             # O merge começa pelo consumo.
             # Portanto, aparecem somente os
             # materiais usados pelos filtros.
@@ -1272,6 +1308,10 @@ if mostrar_mp:
             # Remove possíveis cabeçalhos
             resumo = resumo[~resumo["Codigo"].astype(str).str.contains("CODIG|CÓDIG", case=False, na=False)]
             resumo = resumo[~resumo["Descricao"].astype(str).str.contains("DESCRI", case=False, na=False)]
+
+
+
+            
 
             # =================================
             # COBERTURA
