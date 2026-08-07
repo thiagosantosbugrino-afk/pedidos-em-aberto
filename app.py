@@ -1124,7 +1124,7 @@ if mostrar_mp:
                 )
 
                        
-                            # =================================
+            # =================================
             # EXECUTA A OTIMIZAÇÃO
             # =================================
 
@@ -1243,11 +1243,11 @@ if mostrar_mp:
                 materiais_otimizacao[codigo] = tabela
                 
 
-            # =================================
+                        # =================================
             # FUNÇÃO DE OTIMIZAÇÃO
             # =================================
 
-            def otimizar_chapas(consumo_data, largura_chapa, altura_chapa):
+            def otimizar_chapas(resumo, largura_chapa, altura_chapa):
                 """
                 Recalcula a otimização das chapas com base nas novas medidas.
                 Retorna um DataFrame com colunas:
@@ -1257,12 +1257,10 @@ if mostrar_mp:
                 # Área da chapa em m²
                 area_chapa = (largura_chapa / 1000) * (altura_chapa / 1000)
 
-                # Agrupa consumo por material
-                resumo_otimizado = consumo_data.groupby("Codigo", as_index=False).agg({
-                    "Consumo": "sum"
-                })
+                # Cria cópia do resumo para evitar modificar o original
+                resumo_otimizado = resumo.copy()
 
-                # Calcula quantidade de chapas necessárias
+                # Recalcula quantidade de chapas com base na nova área
                 resumo_otimizado["Qtd Chapas"] = (
                     resumo_otimizado["Consumo"] / area_chapa
                 ).clip(lower=0).round(0).astype(int)
@@ -1279,7 +1277,15 @@ if mostrar_mp:
                     resumo_otimizado["Área Utilizada"] / resumo_otimizado["Área Total"] * 100
                 ).round(2)
 
-                return resumo_otimizado
+                return resumo_otimizado[[
+                    "Codigo",
+                    "Qtd Chapas",
+                    "Área Total",
+                    "Área Utilizada",
+                    "Desperdício Total",
+                    "Aproveitamento (%)"
+                ]]
+
 
 
             # =================================
