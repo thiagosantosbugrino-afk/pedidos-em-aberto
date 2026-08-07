@@ -1581,109 +1581,65 @@ if mostrar_mp:
                 allow_unsafe_jscode=True,
             )
             # =====================================
-            # ✏️ EDIÇÃO MANUAL DE MEDIDAS DE CHAPA
-            # =====================================
+# ✏️ EDIÇÃO MANUAL DE MEDIDAS DE CHAPA
+# =====================================
 
-            st.markdown("---")
-            mostrar_edicao = st.checkbox("✏️ Edição Manual de Medidas de Chapa")
+st.markdown("---")
+mostrar_edicao = st.checkbox("✏️ Edição Manual de Medidas de Chapa")
 
-            if mostrar_edicao:
-                if "medidas_personalizadas" not in st.session_state:
-                    st.session_state["medidas_personalizadas"] = {}
+if mostrar_edicao:
+    # Inputs de seleção de material e medidas
+    materiais = (resumo["Codigo"] + " - " + resumo["Descricao"]).tolist()
+    material_edicao = st.selectbox("Selecione o material para editar medida", sorted(materiais))
+    codigo_edicao = material_edicao.split(" - ")[0]
 
-                if not resumo.empty:
-                    materiais = (
-                        resumo["Codigo"] + " - " + resumo["Descricao"]
-                    ).tolist()
+    largura_nova = st.number_input("Largura da chapa (mm)", min_value=1000, max_value=6000, value=3210, step=10)
+    altura_nova = st.number_input("Altura da chapa (mm)", min_value=1000, max_value=6000, value=2400, step=10)
 
-                    material_edicao = st.selectbox(
-                        "Selecione o material para editar medida",
-                        sorted(materiais)
-                    )
+    area_nova = (largura_nova / 1000) * (altura_nova / 1000)
+    st.caption(f"Área da chapa personalizada: {area_nova:.2f} m²")
 
-                    codigo_edicao = material_edicao.split(" - ")[0]
+    if st.button("💾 Aplicar medida personalizada"):
+        st.session_state["medidas_personalizadas"][codigo_edicao] = {
+            "largura": largura_nova,
+            "altura": altura_nova,
+            "area": area_nova
+        }
 
-                    largura_padrao = 3210
-                    altura_padrao = 2400
+        # 🔁 Reexecuta o otimizador REAL com a nova medida da chapa
+        resultado_otimizacao = otimizar_lista(
+            lista_otimizacao,
+            largura_nova,
+            altura_nova
+        )
 
-                    largura_atual = st.session_state["medidas_personalizadas"].get(
-                        codigo_edicao, {}
-                    ).get("largura", largura_padrao)
+        resumo_otimizado = pd.DataFrame(
+            resumo_otimizacao(resultado_otimizacao)
+        )
 
-                    altura_atual = st.session_state["medidas_personalizadas"].get(
-                        codigo_edicao, {}
-                    ).get("altura", altura_padrao)
+        resumo = resumo.drop(
+            columns=[
+                "Qtd Chapas",
+                "Área Total",
+                "Área Utilizada",
+                "Desperdício Total",
+                "Aproveitamento (%)"
+            ],
+            errors="ignore"
+        ).merge(
+            resumo_otimizado,
+            on="Codigo",
+            how="left"
+        )
 
-                    largura_nova = st.number_input(
-                        "Largura da chapa (mm)",
-                        min_value=1000,
-                        max_value=6000,
-                        value=int(largura_atual),
-                        step=10
-                    )
+        st.success(
+            f"Medida personalizada aplicada e otimização refeita para {material_edicao}!"
+        )
 
-                    altura_nova = st.number_input(
-                        "Altura da chapa (mm)",
-                        min_value=1000,
-                        max_value=3210,
-                        value=int(altura_atual),
-                        step=10
-                    )
+    if st.button("🧹 Limpar alterações"):
+        st.session_state["medidas_personalizadas"] = {}
+        st.success("Todas as medidas personalizadas foram limpas!")
 
-                    area_nova = (largura_nova / 1000) * (altura_nova / 1000)
-                    st.caption(f"Área da chapa personalizada: {area_nova:.2f} m²")
-
-                    if st.button("💾 Aplicar medida personalizada"):
-                        st.session_state["medidas_personalizadas"][codigo_edicao] = {
-                            "largura": largura_nova,
-                            "altura": altura_nova,
-                            "area": area_nova
-                        }
-
-                        # Atualiza área e cálculos derivados
-                        resumo.loc[resumo["Codigo"] == codigo_edicao, "Área Chapa"] = area_nova
-                        resumo.loc[resumo["Codigo"] == codigo_edicao, "Chapas Estoque"] = (
-                            resumo.loc[resumo["Codigo"] == codigo_edicao, "Estoque"] / area_nova
-                        )
-
-                        resumo.loc[resumo["Codigo"] == codigo_edicao, "Compra Necessária"] = (
-                            resumo.loc[resumo["Codigo"] == codigo_edicao, "Qtd Chapas"]
-                            - resumo.loc[resumo["Codigo"] == codigo_edicao, "Chapas Estoque"]
-                        ).clip(lower=0).round(0).astype(int)
-
-                        resumo.loc[resumo["Codigo"] == codigo_edicao, "Compra c/ Perda"] = (
-                            (resumo.loc[resumo["Codigo"] == codigo_edicao, "Área Total"]
-                             - resumo.loc[resumo["Codigo"] == codigo_edicao, "Estoque"])
-                            / area_nova
-                        ).clip(lower=0).round(0).astype(int)
-
-                    # 🔁 Reexecuta o otimizador com a nova medida
-                    resumo_otimizado = otimizar_chapas(resumo, largura_nova, altura_nova)
-
-                    resumo = resumo.drop(
-                        columns=[
-                            "Qtd Chapas",
-                            "Área Total",
-                            "Área Utilizada",
-                            "Desperdício Total",
-                            "Aproveitamento (%)"
-                        ],
-                        errors="ignore"
-                    ).merge(
-                        resumo_otimizado,
-                        on="Codigo",
-                        how="left"
-                    )
-
-                    st.success(f"Medida personalizada aplicada e otimização refeita para {material_edicao}!")
-
-
-                    # Botão para limpar alterações logo abaixo do aplicar
-                    if st.button("🧹 Limpar alterações"):
-                        st.session_state["medidas_personalizadas"] = {}
-                        st.success("Todas as medidas personalizadas foram limpas!")
-                else:
-                    st.info("Nenhum material disponível para edição.")
 
                         
             # =====================================
