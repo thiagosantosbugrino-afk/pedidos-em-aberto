@@ -176,7 +176,7 @@ class Chapa:
         self.espacos: List[Espaco] = [
             Espaco(0, 0, self.largura, self.altura)
         ]
-        # área total da chapa personalizada
+        # ✅ Define a área total da chapa personalizada
         self.area_total = self.largura * self.altura
 
     @property
@@ -192,6 +192,7 @@ class Chapa:
         if self.area_total == 0:
             return 0
         return (self.area_utilizada / self.area_total) * 100
+
 
     # --------------------------------------------------
 
