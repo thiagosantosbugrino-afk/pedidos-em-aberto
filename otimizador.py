@@ -169,30 +169,29 @@ class Posicionamento:
 # ==========================================================
 
 class Chapa:
-
-    def __init__(self):
-
-        self.largura = LARGURA_CHAPA
-
-        self.altura = ALTURA_CHAPA
-
+    def __init__(self, largura_chapa=LARGURA_CHAPA, altura_chapa=ALTURA_CHAPA):
+        self.largura = largura_chapa
+        self.altura = altura_chapa
         self.pecas: List[Posicionamento] = []
-
         self.espacos: List[Espaco] = [
-
-            Espaco(
-
-                0,
-
-                0,
-
-                self.largura,
-
-                self.altura
-
-            )
-
+            Espaco(0, 0, self.largura, self.altura)
         ]
+        # área total da chapa personalizada
+        self.area_total = self.largura * self.altura
+
+    @property
+    def area_utilizada(self):
+        return sum(p.largura * p.altura for p in self.pecas)
+
+    @property
+    def desperdicio(self):
+        return self.area_total - self.area_utilizada
+
+    @property
+    def aproveitamento(self):
+        if self.area_total == 0:
+            return 0
+        return (self.area_utilizada / self.area_total) * 100
 
     # --------------------------------------------------
 
@@ -730,322 +729,119 @@ class Chapa:
 # ==========================================================
 
 def otimizar_material(
-
     codigo: str,
-
-    pecas: List[Peca]
-
+    pecas: List[Peca],
+    largura_chapa=LARGURA_CHAPA,
+    altura_chapa=ALTURA_CHAPA
 ):
-
     pecas = sorted(
-
         pecas,
-
         key=lambda p: (
-
             p.area,
-
-            max(
-
-                p.largura_corte,
-
-                p.altura_corte
-
-            )
-
+            max(p.largura_corte, p.altura_corte)
         ),
-
         reverse=True
-
     )
 
     chapas: List[Chapa] = []
 
     for peca in pecas:
-
         melhor_chapa = None
-
         melhor_score = None
 
         for chapa in chapas:
-
-            espaco, girada = chapa.procurar_melhor_espaco(
-
-                peca
-
-            )
-
+            espaco, girada = chapa.procurar_melhor_espaco(peca)
             if espaco is None:
-
                 continue
 
             if girada:
-
                 largura = peca.altura_corte
-
                 altura = peca.largura_corte
-
             else:
-
                 largura = peca.largura_corte
-
                 altura = peca.altura_corte
 
-            sobra_direita = (
+            sobra_direita = espaco.largura - largura
+            sobra_superior = espaco.altura - altura
 
-                espaco.largura
-
-                -
-
-                largura
-
-            )
-
-            sobra_superior = (
-
-                espaco.altura
-
-                -
-
-                altura
-
-            )
-
-            menor_sobra = min(
-
-                sobra_direita,
-
-                sobra_superior
-
-            )
-
-            maior_sobra = max(
-
-                sobra_direita,
-
-                sobra_superior
-
-            )
+            menor_sobra = min(sobra_direita, sobra_superior)
+            maior_sobra = max(sobra_direita, sobra_superior)
 
             score = (
-
-                espaco.area
-
-                -
-
-                (
-
-                    largura
-
-                    *
-
-                    altura
-
-                ),
-
+                espaco.area - (largura * altura),
                 menor_sobra,
-
                 maior_sobra,
-
                 espaco.area
-
             )
 
-            if (
-
-                melhor_score is None
-
-                or
-
-                score < melhor_score
-
-            ):
-
+            if melhor_score is None or score < melhor_score:
                 melhor_score = score
-
                 melhor_chapa = chapa
 
         if melhor_chapa is None:
+            # 🔧 Agora cria a chapa com largura/altura personalizadas
+            melhor_chapa = Chapa(largura_chapa, altura_chapa)
+            chapas.append(melhor_chapa)
 
-            melhor_chapa = Chapa()
-
-            chapas.append(
-
-                melhor_chapa
-
-            )
-
-        melhor_chapa.inserir_peca(
-
-            peca
-
-        )
+        melhor_chapa.inserir_peca(peca)
 
     return chapas
-
-
 # ==========================================================
 # OTIMIZA TODOS OS MATERIAIS
 # ==========================================================
+
 def otimizar_lista(
-
-    lista_pecas: List[Peca]
-
+    lista_pecas: List[Peca],
+    largura_chapa=LARGURA_CHAPA,
+    altura_chapa=ALTURA_CHAPA
 ):
-
     materiais: Dict[str, List[Peca]] = {}
 
     for peca in lista_pecas:
-
-        materiais.setdefault(
-
-            peca.codigo,
-
-            []
-
-        ).append(
-
-            peca
-
-        )
+        materiais.setdefault(peca.codigo, []).append(peca)
 
     resultado = {}
 
-    for codigo in sorted(
-
-        materiais.keys()
-
-    ):
-
+    for codigo in sorted(materiais.keys()):
+        # 🔧 Agora repassa largura/altura para otimizar_material
         resultado[codigo] = otimizar_material(
-
             codigo,
-
-            materiais[codigo]
-
+            materiais[codigo],
+            largura_chapa,
+            altura_chapa
         )
 
     return resultado
-
-
 # ==========================================================
 # RESUMO
 # ==========================================================
 
-def resumo_otimizacao(
-
-    resultado
-
-):
-
+def resumo_otimizacao(resultado):
     linhas = []
 
     for codigo, chapas in resultado.items():
+        qtd_chapas = len(chapas)
 
-        qtd_chapas = len(
+        # 🔧 Agora usa a área da chapa realmente criada
+        area_total = qtd_chapas * chapas[0].area_total if chapas else 0
 
-            chapas
+        area_utilizada = sum(chapa.area_utilizada for chapa in chapas)
+        desperdicio = area_total - area_utilizada
+        aproveitamento = (area_utilizada / area_total * 100) if area_total > 0 else 0
 
-        )
+        linhas.append({
+            "Codigo": codigo,
+            "Qtd Chapas": qtd_chapas,
+            "Área Total": round(area_total / 1_000_000, 2),
+            "Área Utilizada": round(area_utilizada / 1_000_000, 2),
+            "Desperdício Total": round(desperdicio / 1_000_000, 2),
+            "Aproveitamento (%)": round(aproveitamento, 2)
+        })
 
-        area_total = (
-
-            qtd_chapas
-
-            *
-
-            AREA_CHAPA
-
-        )
-
-        area_utilizada = sum(
-
-            chapa.area_utilizada
-
-            for chapa in chapas
-
-        )
-
-        desperdicio = (
-
-            area_total
-
-            -
-
-            area_utilizada
-
-        )
-
-        aproveitamento = (
-
-            (
-
-                area_utilizada
-
-                /
-
-                area_total
-
-            )
-
-            *
-
-            100
-
-            if area_total > 0
-
-            else 0
-
-        )
-
-        linhas.append(
-
-            {
-
-                "Codigo": codigo,
-
-                "Qtd Chapas": qtd_chapas,
-
-                "Área Total": round(
-
-                    area_total / 1_000_000,
-
-                    2
-
-                ),
-
-                "Área Utilizada": round(
-
-                    area_utilizada / 1_000_000,
-
-                    2
-
-                ),
-
-                "Desperdício Total": round(
-
-                    desperdicio / 1_000_000,
-
-                    2
-
-                ),
-
-                "Aproveitamento (%)": round(
-
-                    aproveitamento,
-
-                    2
-
-                )
-
-            }
-
-        )
-
-    linhas.sort(
-
-        key=lambda x: x["Codigo"]
-
-    )
-
+    linhas.sort(key=lambda x: x["Codigo"])
     return linhas
+
+
+
+
+   
