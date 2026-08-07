@@ -1571,7 +1571,7 @@ if mostrar_mp:
                     largura_nova = st.number_input(
                         "Largura da chapa (mm)",
                         min_value=1000,
-                        max_value=4000,
+                        max_value=6000,
                         value=int(largura_atual),
                         step=10
                     )
@@ -1579,7 +1579,7 @@ if mostrar_mp:
                     altura_nova = st.number_input(
                         "Altura da chapa (mm)",
                         min_value=1000,
-                        max_value=3000,
+                        max_value=3210,
                         value=int(altura_atual),
                         step=10
                     )
