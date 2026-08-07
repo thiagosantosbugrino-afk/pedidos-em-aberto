@@ -1454,8 +1454,7 @@ if mostrar_mp:
                     (resumo["Status"] == "🟢 OK").sum()
                 )
             )
-
-                                  # =====================================
+                        # =====================================
             # COLUNAS DA TABELA
             # =====================================
 
@@ -1467,12 +1466,9 @@ if mostrar_mp:
                 "Saldo",
                 "Produz até",
                 "Primeira Falta",
-                "Compra Necessária",
+                "Chapas Otimizadas",  # nova coluna
                 "Compra c/ Perda",
-                "Qtd Chapas",
                 "Área Total",
-                "Área Utilizada",
-                "Desperdício Total",
                 "Aproveitamento (%)",
                 "Status"
             ]
@@ -1483,7 +1479,7 @@ if mostrar_mp:
                 "Área Utilizada",
                 "Desperdício Total",
                 "Codigo",
-                "Qtd Chapas"  # oculta o total bruto de chapas
+                "Qtd Chapas"  # oculta o total bruto
             ]
 
             colunas_exibir = [
@@ -1540,6 +1536,7 @@ if mostrar_mp:
             )
 
 
+                                  
             # =====================================
             # DETALHAR MATERIAL
             # =====================================
