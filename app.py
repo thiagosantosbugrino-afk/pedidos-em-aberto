@@ -1246,7 +1246,7 @@ if mostrar_mp:
                 materiais_otimizacao[codigo] = tabela
 
 
-            # =================================
+                       # =================================
             # RESUMO
             # =================================
 
@@ -1255,258 +1255,75 @@ if mostrar_mp:
             # materiais usados pelos filtros.
 
             resumo = pd.merge(
-
                 consumo,
-
                 estoque,
-
                 on="Codigo",
-
                 how="left"
-
             )
 
-            resumo["Descricao"] = (
+            resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
+            resumo["Estoque"] = resumo["Estoque"].fillna(0)
+            resumo["Consumo"] = resumo["Consumo"].fillna(0)
+            resumo["Saldo"] = resumo["Estoque"] - resumo["Consumo"]
 
-                resumo["Descricao"]
-
-                .fillna(
-
-                    resumo["Codigo"]
-
-                )
-
-            )
-
-            resumo["Estoque"] = (
-
-                resumo["Estoque"]
-
-                .fillna(0)
-
-            )
-
-            resumo["Consumo"] = (
-
-                resumo["Consumo"]
-
-                .fillna(0)
-
-            )
-
-            resumo["Saldo"] = (
-
-                resumo["Estoque"]
-
-                -
-
-                resumo["Consumo"]
-
-            )
-
-            # Mostra somente materiais
-            # utilizados pelos filtros.
-
-            resumo = (
-
-                resumo[
-
-                    resumo["Consumo"]
-
-                    > 0
-
-                ]
-
-                .copy()
-
-            )
+            # Mostra somente materiais utilizados pelos filtros.
+            resumo = resumo[resumo["Consumo"] > 0].copy()
 
             # Remove possíveis cabeçalhos
+            resumo = resumo[~resumo["Codigo"].astype(str).str.contains("CODIG|CÓDIG", case=False, na=False)]
+            resumo = resumo[~resumo["Descricao"].astype(str).str.contains("DESCRI", case=False, na=False)]
 
-            resumo = (
-
-                resumo[
-
-                    ~resumo["Codigo"]
-
-                    .astype(str)
-
-                    .str.contains(
-
-                        "CODIG|CÓDIG",
-
-                        case=False,
-
-                        na=False
-
-                    )
-
-                ]
-
-            )
-
-            resumo = (
-
-                resumo[
-
-                    ~resumo["Descricao"]
-
-                    .astype(str)
-
-                    .str.contains(
-
-                        "DESCRI",
-
-                        case=False,
-
-                        na=False
-
-                    )
-
-                ]
-
-            )
             # =================================
             # COBERTURA
             # =================================
-
             produz_ate = []
-
             primeira_falta = []
 
             for _, linha in resumo.iterrows():
-
                 codigo_atual = linha["Codigo"]
-
                 saldo_atual = linha["Estoque"]
 
-                tabela_material = (
-                    consumo_data[
-                        consumo_data["Codigo"] == codigo_atual
-                    ]
-                    .copy()
-                )
-
+                tabela_material = consumo_data[consumo_data["Codigo"] == codigo_atual].copy()
                 if "Previsão" in tabela_material.columns:
-
-                    tabela_material = (
-                        tabela_material
-                        .sort_values("Previsão")
-                    )
+                    tabela_material = tabela_material.sort_values("Previsão")
 
                 ultima_data_ok = pd.NaT
-
                 primeira_data_sem = pd.NaT
 
                 for _, item in tabela_material.iterrows():
-
                     consumo_dia = item["Consumo Dia"]
-
                     if saldo_atual >= consumo_dia:
-
                         saldo_atual -= consumo_dia
-
                         if "Previsão" in item.index:
-
                             ultima_data_ok = item["Previsão"]
-
                     else:
-
                         if "Previsão" in item.index:
-
                             primeira_data_sem = item["Previsão"]
-
                         break
 
-                produz_ate.append(
-                    ultima_data_ok
-                )
-
-                primeira_falta.append(
-                    primeira_data_sem
-                )
+                produz_ate.append(ultima_data_ok)
+                primeira_falta.append(primeira_data_sem)
 
             resumo["Produz até"] = produz_ate
-
             resumo["Primeira Falta"] = primeira_falta
 
-             # =====================================
+            # =====================================
             # JUNTA RESULTADO DA OTIMIZAÇÃO
             # =====================================
-
             if not resumo_otimizado.empty:
-
                 resumo = resumo.merge(
-
                     resumo_otimizado[
-                        [
-                            "Codigo",
-                            "Qtd Chapas",
-                            "Área Total",
-                            "Área Utilizada",
-                            "Desperdício Total",
-                            "Aproveitamento (%)"
-                        ]
+                        ["Codigo", "Qtd Chapas", "Área Total", "Área Utilizada", "Desperdício Total", "Aproveitamento (%)"]
                     ],
-
                     on="Codigo",
-
                     how="left"
-
                 )
-
-                resumo["Qtd Chapas"] = (
-
-                    resumo["Qtd Chapas"]
-
-                    .fillna(0)
-
-                    .astype(int)
-
-                )
-
-                resumo["Área Total"] = (
-
-                    resumo["Área Total"]
-
-                    .fillna(0)
-
-                    .round(2)
-
-                )
-
-                resumo["Área Utilizada"] = (
-
-                    resumo["Área Utilizada"]
-
-                    .fillna(0)
-
-                    .round(2)
-
-                )
-
-                resumo["Desperdício Total"] = (
-
-                    resumo["Desperdício Total"]
-
-                    .fillna(0)
-
-                    .round(2)
-
-                )
-
-                resumo["Aproveitamento (%)"] = (
-
-                    resumo["Aproveitamento (%)"]
-
-                    .fillna(0)
-
-                    .round(2)
-
-                )
-
+                resumo["Qtd Chapas"] = resumo["Qtd Chapas"].fillna(0).astype(int)
+                resumo["Área Total"] = resumo["Área Total"].fillna(0).round(2)
+                resumo["Área Utilizada"] = resumo["Área Utilizada"].fillna(0).round(2)
+                resumo["Desperdício Total"] = resumo["Desperdício Total"].fillna(0).round(2)
+                resumo["Aproveitamento (%)"] = resumo["Aproveitamento (%)"].fillna(0).round(2)
             else:
-
                 resumo["Qtd Chapas"] = 0
                 resumo["Área Total"] = 0
                 resumo["Área Utilizada"] = 0
@@ -1514,42 +1331,31 @@ if mostrar_mp:
                 resumo["Aproveitamento (%)"] = 0
 
             # =================================
-            # COMPRA NECESSÁRIA (corrigido)
+            # CHAPAS OTIMIZADAS + COMPRA NECESSÁRIA
             # =================================
-
             AREA_CHAPA = 3.210 * 2.400  # área de uma chapa em m²
 
-            # Calcula quantas chapas há em estoque
+            # Chapas otimizadas = total calculado pela otimização
+            resumo["Chapas Otimizadas"] = resumo["Qtd Chapas"]
+
+            # Chapas em estoque
             resumo["Chapas Estoque"] = resumo["Estoque"] / AREA_CHAPA
 
-            # Compra Necessária = chapas que faltam após descontar o estoque
+            # Compra Necessária = chapas faltantes após descontar estoque
             resumo["Compra Necessária"] = (
-                resumo["Qtd Chapas"] - resumo["Chapas Estoque"]
+                resumo["Chapas Otimizadas"] - resumo["Chapas Estoque"]
             ).clip(lower=0).round(0).astype(int)
 
-            # Compra c/ Perda = chapas necessárias considerando desperdício total
+            # Compra c/ Perda = chapas faltantes considerando desperdício total
             resumo["Compra c/ Perda"] = (
                 (resumo["Área Total"] - resumo["Estoque"]) / AREA_CHAPA
             ).clip(lower=0).round(0).astype(int)
 
-            
             # =================================
             # STATUS (corrigido por chapas)
             # =================================
-
-            AREA_CHAPA = 3.210 * 2.400  # área de uma chapa em m²
-
-            # Calcula chapas disponíveis e necessárias
-            resumo["Chapas Estoque"] = resumo["Estoque"] / AREA_CHAPA
-            resumo["Chapas Necessárias"] = resumo["Qtd Chapas"]
-
-            # Define status comparando chapas
             resumo["Status"] = resumo.apply(
-                lambda linha: (
-                    "🟢 OK"
-                    if linha["Chapas Estoque"] >= linha["Chapas Necessárias"]
-                    else "🔴 Comprar"
-                ),
+                lambda linha: "🟢 OK" if linha["Chapas Estoque"] >= linha["Chapas Otimizadas"] else "🔴 Comprar",
                 axis=1
             )
 
