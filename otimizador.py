@@ -144,27 +144,25 @@ class Espaco:
             self.altura
 
         )
-
-
-# ==========================================================
+        # ==========================================================
 # POSICIONAMENTO
 # ==========================================================
 
 @dataclass
 class Posicionamento:
-
     peca: Peca
-
     x: float
-
     y: float
-
     largura: float
-
     altura: float
-
     girada: bool
-    class Chapa:
+
+
+# ==========================================================
+# CHAPA
+# ==========================================================
+
+class Chapa:
     def __init__(self, largura_chapa=LARGURA_CHAPA, altura_chapa=ALTURA_CHAPA):
         self.largura = largura_chapa
         self.altura = altura_chapa
@@ -172,7 +170,6 @@ class Posicionamento:
         self.espacos: List[Espaco] = [
             Espaco(0, 0, self.largura, self.altura)
         ]
-        # ✅ Define a área total da chapa personalizada
         self.area_total = self.largura * self.altura
 
     @property
@@ -188,6 +185,8 @@ class Posicionamento:
         if self.area_total == 0:
             return 0
         return (self.area_utilizada / self.area_total) * 100
+
+    # ... resto da classe continua igual (cabe, procurar_melhor_espaco, inserir_peca, etc.)
 
 
 
