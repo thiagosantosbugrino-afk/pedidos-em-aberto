@@ -812,7 +812,7 @@ def otimizar_lista(
         )
 
     return resultado
-# ==========================================================
+    # ==========================================================
 # RESUMO
 # ==========================================================
 
@@ -822,7 +822,7 @@ def resumo_otimizacao(resultado):
     for codigo, chapas in resultado.items():
         qtd_chapas = len(chapas)
 
-        # 🔧 Agora usa a área da chapa realmente criada
+        # 🔧 Usa a área da chapa realmente criada (com largura/altura personalizadas)
         area_total = qtd_chapas * chapas[0].area_total if chapas else 0
 
         area_utilizada = sum(chapa.area_utilizada for chapa in chapas)
