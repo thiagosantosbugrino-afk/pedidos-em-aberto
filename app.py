@@ -1574,7 +1574,7 @@ if mostrar_mp:
                 theme="streamlit",
                 allow_unsafe_jscode=True,
             )
-                                   # =====================================
+            # =====================================
             # ✏️ EDIÇÃO MANUAL DE MEDIDAS DE CHAPA
             # =====================================
 
@@ -1651,20 +1651,26 @@ if mostrar_mp:
                             / area_nova
                         ).clip(lower=0).round(0).astype(int)
 
-                        # 🔁 Reexecuta o otimizador com a nova medida
-                        resumo_otimizado = otimizar_chapas(consumo_data, largura_nova, altura_nova)
+                    # 🔁 Reexecuta o otimizador com a nova medida
+                    resumo_otimizado = otimizar_chapas(resumo, largura_nova, altura_nova)
 
-                        resumo = resumo.drop(
-                            columns=["Qtd Chapas", "Área Total", "Área Utilizada",
-                                     "Desperdício Total", "Aproveitamento (%)"],
-                            errors="ignore"
-                        ).merge(
-                            resumo_otimizado,
-                            on="Codigo",
-                            how="left"
-                        )
+                    resumo = resumo.drop(
+                        columns=[
+                            "Qtd Chapas",
+                            "Área Total",
+                            "Área Utilizada",
+                            "Desperdício Total",
+                            "Aproveitamento (%)"
+                        ],
+                        errors="ignore"
+                    ).merge(
+                        resumo_otimizado,
+                        on="Codigo",
+                        how="left"
+                    )
 
-                        st.success(f"Medida personalizada aplicada e otimização refeita para {material_edicao}!")
+                    st.success(f"Medida personalizada aplicada e otimização refeita para {material_edicao}!")
+
 
                     # Botão para limpar alterações logo abaixo do aplicar
                     if st.button("🧹 Limpar alterações"):
