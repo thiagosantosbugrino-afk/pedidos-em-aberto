@@ -1535,6 +1535,104 @@ if mostrar_mp:
                 allow_unsafe_jscode=True,
             )
 
+                        # =====================================
+            # EDIÇÃO MANUAL DE MEDIDAS DE CHAPA (com salvamento)
+            # =====================================
+
+            st.markdown("---")
+            st.subheader("✏️ Edição Manual de Medidas de Chapa")
+
+            if "medidas_personalizadas" not in st.session_state:
+                st.session_state["medidas_personalizadas"] = {}
+
+            if not resumo.empty:
+                materiais = (
+                    resumo["Codigo"] + " - " + resumo["Descricao"]
+                ).tolist()
+
+                material_edicao = st.selectbox(
+                    "Selecione o material para editar medida",
+                    sorted(materiais)
+                )
+
+                codigo_edicao = material_edicao.split(" - ")[0]
+
+                largura_padrao = 3210.0
+                altura_padrao = 2400.0
+
+                largura_atual = st.session_state["medidas_personalizadas"].get(
+                    codigo_edicao, {}
+                ).get("largura", largura_padrao)
+
+                altura_atual = st.session_state["medidas_personalizadas"].get(
+                    codigo_edicao, {}
+                ).get("altura", altura_padrao)
+
+                largura_nova = st.number_input(
+                    "Largura da chapa (mm)",
+                    min_value=1000.0,
+                    max_value=4000.0,
+                    value=largura_atual,
+                    step=10.0
+                )
+
+                altura_nova = st.number_input(
+                    "Altura da chapa (mm)",
+                    min_value=1000.0,
+                    max_value=3000.0,
+                    value=altura_atual,
+                    step=10.0
+                )
+
+                area_nova = (largura_nova / 1000) * (altura_nova / 1000)
+                st.caption(f"Área da chapa personalizada: {area_nova:.2f} m²")
+
+                if st.button("💾 Aplicar medida personalizada"):
+                    st.session_state["medidas_personalizadas"][codigo_edicao] = {
+                        "largura": largura_nova,
+                        "altura": altura_nova,
+                        "area": area_nova
+                    }
+
+                    resumo.loc[
+                        resumo["Codigo"] == codigo_edicao, "Área Chapa"
+                    ] = area_nova
+
+                    resumo.loc[
+                        resumo["Codigo"] == codigo_edicao, "Chapas Estoque"
+                    ] = resumo.loc[
+                        resumo["Codigo"] == codigo_edicao, "Estoque"
+                    ] / area_nova
+
+                    resumo.loc[
+                        resumo["Codigo"] == codigo_edicao, "Compra Necessária"
+                    ] = (
+                        resumo.loc[
+                            resumo["Codigo"] == codigo_edicao, "Qtd Chapas"
+                        ]
+                        - resumo.loc[
+                            resumo["Codigo"] == codigo_edicao, "Chapas Estoque"
+                        ]
+                    ).clip(lower=0).round(0).astype(int)
+
+                    resumo.loc[
+                        resumo["Codigo"] == codigo_edicao, "Compra c/ Perda"
+                    ] = (
+                        (resumo.loc[
+                            resumo["Codigo"] == codigo_edicao, "Área Total"
+                        ]
+                        - resumo.loc[
+                            resumo["Codigo"] == codigo_edicao, "Estoque"
+                        ])
+                        / area_nova
+                    ).clip(lower=0).round(0).astype(int)
+
+                    st.success(f"Medida personalizada aplicada para {material_edicao}!")
+
+            else:
+                st.info("Nenhum material disponível para edição.")
+
+
 
                                   
             # =====================================
