@@ -144,7 +144,7 @@ class Espaco:
             self.altura
 
         )
-        # ==========================================================
+# ==========================================================
 # POSICIONAMENTO
 # ==========================================================
 
@@ -156,8 +156,6 @@ class Posicionamento:
     largura: float
     altura: float
     girada: bool
-
-
 # ==========================================================
 # CHAPA
 # ==========================================================
@@ -167,9 +165,7 @@ class Chapa:
         self.largura = largura_chapa
         self.altura = altura_chapa
         self.pecas: List[Posicionamento] = []
-        self.espacos: List[Espaco] = [
-            Espaco(0, 0, self.largura, self.altura)
-        ]
+        self.espacos: List[Espaco] = [Espaco(0, 0, self.largura, self.altura)]
         self.area_total = self.largura * self.altura
 
     @property
@@ -186,421 +182,118 @@ class Chapa:
             return 0
         return (self.area_utilizada / self.area_total) * 100
 
-    # ... resto da classe continua igual (cabe, procurar_melhor_espaco, inserir_peca, etc.)
-
-
-
-
     # --------------------------------------------------
-
-    def procurar_melhor_espaco(
-
-        self,
-
-        peca: Peca
-
-    ):
-
-        melhor = None
-
-        girada = False
-
-        melhor_score = None
-
-        distancia = (
-
-            peca.distancia_minima
-
-        )
-
-        for espaco in self.espacos:
-
-            for rotacionada in (
-
-                False,
-
-                True
-
-            ):
-
-                if rotacionada:
-
-                    largura = (
-
-                        peca.altura_corte
-
-                    )
-
-                    altura = (
-
-                        peca.largura_corte
-
-                    )
-
-                else:
-
-                    largura = (
-
-                        peca.largura_corte
-
-                    )
-
-                    altura = (
-
-                        peca.altura_corte
-
-                    )
-
-                if not self.cabe(
-
-                    espaco,
-
-                    largura,
-
-                    altura,
-
-                    distancia
-
-                ):
-
-                    continue
-
-                sobra_direita = (
-
-                    espaco.largura
-
-                    -
-
-                    largura
-
-                )
-
-                sobra_superior = (
-
-                    espaco.altura
-
-                    -
-
-                    altura
-
-                )
-
-                score = (
-
-                    sobra_direita * sobra_superior,
-
-                    sobra_direita + sobra_superior,
-
-                    espaco.area
-
-                )
-
-                if (
-
-                    melhor_score is None
-
-                    or
-
-                    score < melhor_score
-
-                ):
-
-                    melhor_score = score
-
-                    melhor = espaco
-
-                    girada = rotacionada
-
-        return (
-
-            melhor,
-
-            girada
-
-        )
-            # --------------------------------------------------
-
-    def inserir_peca(
-
-        self,
-
-        peca: Peca
-
-    ):
-
-        espaco, girada = self.procurar_melhor_espaco(
-
-            peca
-
-        )
-
-        if espaco is None:
-
+    def cabe(self, espaco: Espaco, largura, altura, distancia):
+        if largura > espaco.largura or altura > espaco.altura:
             return False
 
-        if girada:
+        sobra_direita = espaco.largura - largura
+        sobra_superior = espaco.altura - altura
 
-            largura = peca.altura_corte
-
-            altura = peca.largura_corte
-
-        else:
-
-            largura = peca.largura_corte
-
-            altura = peca.altura_corte
-
-        self.pecas.append(
-
-            Posicionamento(
-
-                peca,
-
-                espaco.x,
-
-                espaco.y,
-
-                largura,
-
-                altura,
-
-                girada
-
-            )
-
-        )
-
-        self.espacos.remove(
-
-            espaco
-
-        )
-
-        self._gerar_sobras(
-
-            espaco,
-
-            largura,
-
-            altura
-
-        )
-
-        self._limpar_espacos()
+        if sobra_direita != 0 and sobra_direita < distancia:
+            return False
+        if sobra_superior != 0 and sobra_superior < distancia:
+            return False
 
         return True
 
     # --------------------------------------------------
-
-    def _gerar_sobras(
-
-        self,
-
-        espaco,
-
-        largura,
-
-        altura
-
-    ):
-
-        sobra_direita = (
-
-            espaco.largura
-
-            -
-
-            largura
-
-        )
-
-        sobra_superior = (
-
-            espaco.altura
-
-            -
-
-            altura
-
-        )
-
-        perda_vertical = (
-
-            sobra_direita
-
-            *
-
-            altura
-
-        )
-
-        perda_horizontal = (
-
-            sobra_superior
-
-            *
-
-            espaco.largura
-
-        )
-
-        if perda_vertical <= perda_horizontal:
-
-            if sobra_direita > 0:
-
-                self.espacos.append(
-
-                    Espaco(
-
-                        espaco.x + largura,
-
-                        espaco.y,
-
-                        sobra_direita,
-
-                        altura
-
-                    )
-
-                )
-
-            if sobra_superior > 0:
-
-                self.espacos.append(
-
-                    Espaco(
-
-                        espaco.x,
-
-                        espaco.y + altura,
-
-                        espaco.largura,
-
-                        sobra_superior
-
-                    )
-
-                )
-
-        else:
-
-            if sobra_superior > 0:
-
-                self.espacos.append(
-
-                    Espaco(
-
-                        espaco.x,
-
-                        espaco.y + altura,
-
-                        largura,
-
-                        sobra_superior
-
-                    )
-
-                )
-
-            if sobra_direita > 0:
-
-                self.espacos.append(
-
-                    Espaco(
-
-                        espaco.x + largura,
-
-                        espaco.y,
-
-                        sobra_direita,
-
-                        espaco.altura
-
-                    )
-
-                )
-
-    # --------------------------------------------------
-
-    def _limpar_espacos(
-
-        self
-
-    ):
-
-        novos = []
-
-        for i, espaco1 in enumerate(
-
-            self.espacos
-
-        ):
-
-            contido = False
-
-            for j, espaco2 in enumerate(
-
-                self.espacos
-
-            ):
-
-                if i == j:
-
+    def procurar_melhor_espaco(self, peca: Peca):
+        melhor = None
+        girada = False
+        melhor_score = None
+        distancia = peca.distancia_minima
+
+        for espaco in self.espacos:
+            for rotacionada in (False, True):
+                if rotacionada:
+                    largura = peca.altura_corte
+                    altura = peca.largura_corte
+                else:
+                    largura = peca.largura_corte
+                    altura = peca.altura_corte
+
+                if not self.cabe(espaco, largura, altura, distancia):
                     continue
 
-                if (
+                sobra_direita = espaco.largura - largura
+                sobra_superior = espaco.altura - altura
 
-                    espaco1.x >= espaco2.x
-
-                    and
-
-                    espaco1.y >= espaco2.y
-
-                    and
-
-                    espaco1.x + espaco1.largura
-
-                    <=
-
-                    espaco2.x + espaco2.largura
-
-                    and
-
-                    espaco1.y + espaco1.altura
-
-                    <=
-
-                    espaco2.y + espaco2.altura
-
-                ):
-
-                    contido = True
-
-                    break
-
-            if not contido:
-
-                novos.append(
-
-                    espaco1
-
+                score = (
+                    sobra_direita * sobra_superior,
+                    sobra_direita + sobra_superior,
+                    espaco.area
                 )
 
-        self.espacos = sorted(
+                if melhor_score is None or score < melhor_score:
+                    melhor_score = score
+                    melhor = espaco
+                    girada = rotacionada
 
-            novos,
+        return melhor, girada
 
-            key=lambda e: (
+    # --------------------------------------------------
+    def inserir_peca(self, peca: Peca):
+        espaco, girada = self.procurar_melhor_espaco(peca)
+        if espaco is None:
+            return False
 
-                e.y,
+        if girada:
+            largura = peca.altura_corte
+            altura = peca.largura_corte
+        else:
+            largura = peca.largura_corte
+            altura = peca.altura_corte
 
-                e.x,
+        self.pecas.append(Posicionamento(peca, espaco.x, espaco.y, largura, altura, girada))
+        self.espacos.remove(espaco)
+        self._gerar_sobras(espaco, largura, altura)
+        self._limpar_espacos()
+        return True
 
-                e.area
+    # --------------------------------------------------
+    def _gerar_sobras(self, espaco, largura, altura):
+        sobra_direita = espaco.largura - largura
+        sobra_superior = espaco.altura - altura
+        perda_vertical = sobra_direita * altura
+        perda_horizontal = sobra_superior * espaco.largura
 
-            )
+        if perda_vertical <= perda_horizontal:
+            if sobra_direita > 0:
+                self.espacos.append(Espaco(espaco.x + largura, espaco.y, sobra_direita, altura))
+            if sobra_superior > 0:
+                self.espacos.append(Espaco(espaco.x, espaco.y + altura, espaco.largura, sobra_superior))
+        else:
+            if sobra_superior > 0:
+                self.espacos.append(Espaco(espaco.x, espaco.y + altura, largura, sobra_superior))
+            if sobra_direita > 0:
+                self.espacos.append(Espaco(espaco.x + largura, espaco.y, sobra_direita, espaco.altura))
 
-        )
+    # --------------------------------------------------
+    def _limpar_espacos(self):
+        novos = []
+        for i, espaco1 in enumerate(self.espacos):
+            contido = False
+            for j, espaco2 in enumerate(self.espacos):
+                if i == j:
+                    continue
+                if (
+                    espaco1.x >= espaco2.x
+                    and espaco1.y >= espaco2.y
+                    and espaco1.x + espaco1.largura <= espaco2.x + espaco2.largura
+                    and espaco1.y + espaco1.altura <= espaco2.y + espaco2.altura
+                ):
+                    contido = True
+                    break
+            if not contido:
+                novos.append(espaco1)
+
+        self.espacos = sorted(novos, key=lambda e: (e.y, e.x, e.area))
+
+
+
+
+
 
 # ==========================================================
 # OTIMIZAÇÃO DE UM MATERIAL
