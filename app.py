@@ -1535,24 +1535,13 @@ if mostrar_mp:
                 allow_unsafe_jscode=True,
             )
                         # =====================================
-            # EDIÇÃO MANUAL DE MEDIDAS DE CHAPA (com tique e limpeza)
+            # ✏️ EDIÇÃO MANUAL DE MEDIDAS DE CHAPA (com tique e limpeza)
             # =====================================
 
             st.markdown("---")
-            st.subheader("⚙️ Ferramentas Extras")
-
-            # Checkbox para mostrar/ocultar a edição manual
-            mostrar_edicao = st.checkbox("✏️ Mostrar Edição Manual de Medidas de Chapa")
-
-            # Botão para limpar todas as medidas personalizadas
-            if st.button("🧹 Limpar alterações"):
-                st.session_state["medidas_personalizadas"] = {}
-                st.success("Todas as medidas personalizadas foram limpas!")
+            mostrar_edicao = st.checkbox("✏️ Edição Manual de Medidas de Chapa")
 
             if mostrar_edicao:
-                st.markdown("---")
-                st.subheader("✏️ Edição Manual de Medidas de Chapa")
-
                 if "medidas_personalizadas" not in st.session_state:
                     st.session_state["medidas_personalizadas"] = {}
 
@@ -1622,11 +1611,15 @@ if mostrar_mp:
                         ).clip(lower=0).round(0).astype(int)
 
                         st.success(f"Medida personalizada aplicada para {material_edicao}!")
+
+                    # Botão para limpar alterações logo abaixo do botão de salvar
+                    if st.button("🧹 Limpar alterações"):
+                        st.session_state["medidas_personalizadas"] = {}
+                        st.success("Todas as medidas personalizadas foram limpas!")
                 else:
                     st.info("Nenhum material disponível para edição.")
 
-            
-                       
+                        
             # =====================================
             # DETALHAR MATERIAL
             # =====================================
