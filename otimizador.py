@@ -164,11 +164,7 @@ class Posicionamento:
     altura: float
 
     girada: bool
-# ==========================================================
-# CHAPA
-# ==========================================================
-
-class Chapa:
+    class Chapa:
     def __init__(self, largura_chapa=LARGURA_CHAPA, altura_chapa=ALTURA_CHAPA):
         self.largura = largura_chapa
         self.altura = altura_chapa
@@ -194,125 +190,7 @@ class Chapa:
         return (self.area_utilizada / self.area_total) * 100
 
 
-    # --------------------------------------------------
 
-    @property
-    def area_total(self):
-
-        return AREA_CHAPA
-
-    # --------------------------------------------------
-
-    @property
-    def area_utilizada(self):
-
-        return sum(
-
-            p.largura * p.altura
-
-            for p in self.pecas
-
-        )
-
-    # --------------------------------------------------
-
-    @property
-    def desperdicio(self):
-
-        return self.area_total - self.area_utilizada
-
-    # --------------------------------------------------
-
-    @property
-    def aproveitamento(self):
-
-        if self.area_total == 0:
-
-            return 0
-
-        return (
-
-            self.area_utilizada
-
-            /
-
-            self.area_total
-
-        ) * 100
-
-    # --------------------------------------------------
-
-    def cabe(
-
-        self,
-
-        espaco: Espaco,
-
-        largura,
-
-        altura,
-
-        distancia
-
-    ):
-
-        if (
-
-            largura > espaco.largura
-
-            or
-
-            altura > espaco.altura
-
-        ):
-
-            return False
-
-        sobra_direita = (
-
-            espaco.largura
-
-            -
-
-            largura
-
-        )
-
-        sobra_superior = (
-
-            espaco.altura
-
-            -
-
-            altura
-
-        )
-
-        if (
-
-            sobra_direita != 0
-
-            and
-
-            sobra_direita < distancia
-
-        ):
-
-            return False
-
-        if (
-
-            sobra_superior != 0
-
-            and
-
-            sobra_superior < distancia
-
-        ):
-
-            return False
-
-        return True
 
     # --------------------------------------------------
 
