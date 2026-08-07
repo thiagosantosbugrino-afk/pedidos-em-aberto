@@ -1625,7 +1625,7 @@ if mostrar_mp:
                     altura_nova = st.number_input(
                         "Altura da chapa (mm)",
                         min_value=1000,
-                        max_value=3210,
+                        max_value=6000,
                         value=int(altura_atual),
                         step=10
                     )
@@ -1640,52 +1640,42 @@ if mostrar_mp:
                             "area": area_nova
                         }
 
-                        # Atualiza área e cálculos derivados
-                        resumo.loc[resumo["Codigo"] == codigo_edicao, "Área Chapa"] = area_nova
-                        resumo.loc[resumo["Codigo"] == codigo_edicao, "Chapas Estoque"] = (
-                            resumo.loc[resumo["Codigo"] == codigo_edicao, "Estoque"] / area_nova
+                        # 🔁 Reexecuta o otimizador REAL com a nova medida da chapa
+                        resultado_otimizacao = otimizar_lista(
+                            lista_otimizacao,
+                            largura_nova,
+                            altura_nova
                         )
 
-                        resumo.loc[resumo["Codigo"] == codigo_edicao, "Compra Necessária"] = (
-                            resumo.loc[resumo["Codigo"] == codigo_edicao, "Qtd Chapas"]
-                            - resumo.loc[resumo["Codigo"] == codigo_edicao, "Chapas Estoque"]
-                        ).clip(lower=0).round(0).astype(int)
+                        resumo_otimizado = pd.DataFrame(
+                            resumo_otimizacao(resultado_otimizacao)
+                        )
 
-                        resumo.loc[resumo["Codigo"] == codigo_edicao, "Compra c/ Perda"] = (
-                            (resumo.loc[resumo["Codigo"] == codigo_edicao, "Área Total"]
-                             - resumo.loc[resumo["Codigo"] == codigo_edicao, "Estoque"])
-                            / area_nova
-                        ).clip(lower=0).round(0).astype(int)
+                        resumo = resumo.drop(
+                            columns=[
+                                "Qtd Chapas",
+                                "Área Total",
+                                "Área Utilizada",
+                                "Desperdício Total",
+                                "Aproveitamento (%)"
+                            ],
+                            errors="ignore"
+                        ).merge(
+                            resumo_otimizado,
+                            on="Codigo",
+                            how="left"
+                        )
 
-                    # 🔁 Reexecuta o otimizador com a nova medida
-                    resumo_otimizado = otimizar_chapas(resumo, largura_nova, altura_nova)
+                        st.success(
+                            f"Medida personalizada aplicada e otimização refeita para {material_edicao}!"
+                        )
 
-                    resumo = resumo.drop(
-                        columns=[
-                            "Qtd Chapas",
-                            "Área Total",
-                            "Área Utilizada",
-                            "Desperdício Total",
-                            "Aproveitamento (%)"
-                        ],
-                        errors="ignore"
-                    ).merge(
-                        resumo_otimizado,
-                        on="Codigo",
-                        how="left"
-                    )
-
-                    st.success(f"Medida personalizada aplicada e otimização refeita para {material_edicao}!")
-
-
-                    # Botão para limpar alterações logo abaixo do aplicar
                     if st.button("🧹 Limpar alterações"):
                         st.session_state["medidas_personalizadas"] = {}
                         st.success("Todas as medidas personalizadas foram limpas!")
                 else:
                     st.info("Nenhum material disponível para edição.")
 
-                        
             # =====================================
             # DETALHAR MATERIAL
             # =====================================
