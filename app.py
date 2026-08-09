@@ -1887,8 +1887,6 @@ if mostrar_mp:
             /
             resumo["Área Chapa"]
         )
-
-
                     # =================================
             # QTD CHAPAS A COMPRAR
             # =================================
@@ -1917,9 +1915,6 @@ if mostrar_mp:
             # COMPRA NECESSÁRIA
             # =================================
 
-            # Converte a quantidade de chapas
-            # que precisa ser comprada em m².
-
             resumo["Compra Necessária"] = (
                 resumo["Qtd Chapas a Comprar"]
                 *
@@ -1930,9 +1925,6 @@ if mostrar_mp:
             # =================================
             # COMPRA COM PERDA
             # =================================
-
-            # Área total das chapas utilizadas
-            # na otimização, descontando o estoque.
 
             resumo["Compra c/ Perda"] = (
                 (
@@ -1950,9 +1942,6 @@ if mostrar_mp:
             # =================================
             # PERCENTUAL DE PERDA
             # =================================
-
-            # Percentual de desperdício gerado
-            # pela otimização.
 
             resumo["% Perda"] = (
                 (
@@ -2078,6 +2067,13 @@ if mostrar_mp:
                 )
             )
 
+
+            # =====================================
+            # COLUNAS DA TABELA
+            # =====================================
+
+
+                    
 
             # =====================================
             # COLUNAS DA TABELA
