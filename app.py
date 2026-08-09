@@ -3919,6 +3919,8 @@ st.download_button(
 
     ),
 
+    key="download_planilha_filtrada",
+
     data=excel_file,
 
     file_name=(
