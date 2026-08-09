@@ -997,14 +997,11 @@ if materiais_disponiveis:
             f"Material selecionado: "
             f"**{material_selecionado}**"
         )
-
-
-   # =================================
+        # =================================
 # MEDIDAS DA CHAPA
 # =================================
 
 col1, col2 = st.columns(2)
-
 
 with col1:
 
@@ -1020,7 +1017,6 @@ with col1:
             f"{material_selecionado}"
         )
     )
-
 
 with col2:
 
@@ -1048,6 +1044,8 @@ st.write(
     f"{nova_altura} mm"
 )
 
+
+  
     # =================================
     # SALVAR
     # =================================
