@@ -1045,42 +1045,39 @@ st.write(
 )
 
 
-  
-    # =================================
-    # SALVAR
-    # =================================
+# =================================
+# SALVAR
+# =================================
 
-    if st.button(
-        "💾 Salvar medida deste material",
-        type="primary"
-    ):
+if st.button(
+    "💾 Salvar medida deste material",
+    type="primary"
+):
 
-        configuracao_chapas[
-            material_selecionado
-        ] = {
+    configuracao_chapas[
+        material_selecionado
+    ] = {
 
-            "largura": float(
-                nova_largura
-            ),
+        "largura": int(
+            nova_largura
+        ),
 
-            "altura": float(
-                nova_altura
-            )
-
-        }
-
-
-        salvar_configuracao_chapas(
-            configuracao_chapas
+        "altura": int(
+            nova_altura
         )
 
+    }
 
-        st.success(
-            f"✅ Medida salva para o material "
-            f"**{material_selecionado}**: "
-            f"{nova_largura:.0f} × "
-            f"{nova_altura:.0f} mm"
-        )
+    salvar_configuracao_chapas(
+        configuracao_chapas
+    )
+
+    st.success(
+        f"✅ Medida salva para o material "
+        f"**{material_selecionado}**: "
+        f"{nova_largura} × "
+        f"{nova_altura} mm"
+    )
 
 
 else:
@@ -1089,8 +1086,7 @@ else:
         "Nenhum material foi encontrado "
         "nas planilhas carregadas."
     )
-
-
+        
 # =====================================
 # VISÃO MATÉRIA-PRIMA
 # =====================================
