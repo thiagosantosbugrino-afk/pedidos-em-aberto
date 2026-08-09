@@ -2085,49 +2085,43 @@ if mostrar_mp:
                 "Saldo",
                 "Produz até",
                 "Primeira Falta",
-                "Compra Necessária",
+                "Qtd Chapas Otimizadas",
                 "Compra c/ Perda",
-                "Qtd Chapas",
-                "Área Total",
-                "Área Utilizada",
-                "Desperdício Total",
-                "Aproveitamento (%)",
+                "Qtd Chapas a Comprar",
+                "Compra Necessária",
+                "% Perda",
                 "Status"
             ]
+
+
+            # =====================================
+            # QTD CHAPAS OTIMIZADAS
+            # =====================================
+
+            resumo["Qtd Chapas Otimizadas"] = (
+                resumo["Chapas Otimizadas"]
+            )
 
 
             # =====================================
             # COLUNAS OCULTAS
             # =====================================
 
-            # Mantemos visíveis:
-            # Codigo
-            # Descricao
-            # Estoque
-            # Consumo
-            # Saldo
-            # Produz até
-            # Primeira Falta
-            # Compra Necessária
-            # Compra c/ Perda
-            # Qtd Chapas
-            # Status
-
             colunas_ocultas = [
-                "Área Total",
-                "Área Utilizada",
-                "Desperdício Total",
-                "Aproveitamento (%)"
+                "Codigo",
+                "Compra Necessária"
             ]
 
+
+            # =====================================
+            # COLUNAS QUE SERÃO EXIBIDAS
+            # =====================================
 
             colunas_exibir = [
                 coluna
                 for coluna in colunas_tabela
-                if coluna
-                not in colunas_ocultas
+                if coluna not in colunas_ocultas
             ]
-
 
             # =====================================
             # PREPARA TABELA
