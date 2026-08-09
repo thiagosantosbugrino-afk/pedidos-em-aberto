@@ -1467,7 +1467,7 @@ if mostrar_mp:
                 )
 
                        
-                    # =================================
+                            # =================================
         # EXECUTA A OTIMIZAÇÃO
         # =================================
 
@@ -1526,30 +1526,36 @@ if mostrar_mp:
             .fillna(0)
             .round(2)
         )
-            # =================================
-            # EXIBE RESUMO OTIMIZADO
-            # =================================
 
-            with st.expander("📋 Resumo da Otimização"):
-                # Lista de colunas visíveis (oculta "Compra c/ Perda" apenas na visualização)
-                colunas_visiveis = [
-                    "Codigo",
-                    "Qtd Chapas",
-                    "Área Total",
-                    "Área Utilizada",
-                    "Desperdício Total",
-                    "Aproveitamento (%)"
-                ]
+        # =================================
+        # EXIBE RESUMO OTIMIZADO
+        # =================================
 
-                st.dataframe(
-                    resumo_otimizado[colunas_visiveis],
-                    use_container_width=True,
-                    hide_index=True
-                )
-            
-            # =================================
-            # TESTE DAS PEÇAS
-            # =================================
+        with st.expander("📋 Resumo da Otimização"):
+
+            # Lista de colunas visíveis
+            # (oculta "Compra c/ Perda" apenas na visualização)
+
+            colunas_visiveis = [
+                "Codigo",
+                "Qtd Chapas",
+                "Área Total",
+                "Área Utilizada",
+                "Desperdício Total",
+                "Aproveitamento (%)"
+            ]
+
+            st.dataframe(
+                resumo_otimizado[
+                    colunas_visiveis
+                ],
+                use_container_width=True,
+                hide_index=True
+            )
+
+        # =================================
+        # TESTE DAS PEÇAS
+        # =================================
 
             with st.expander(
                 "🧪 Teste das Peças"
