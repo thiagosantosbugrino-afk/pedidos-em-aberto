@@ -2272,7 +2272,8 @@ if mostrar_mp:
                     colunas_exibir = [
                         coluna
                         for coluna in colunas_exibir
-                        if coluna in detalhe.columns
+                        if coluna
+                        in detalhe.columns
                     ]
 
                     st.dataframe(
@@ -2282,10 +2283,7 @@ if mostrar_mp:
                         use_container_width=True,
                         hide_index=True
                     )
-
-
-            
-
+                        
             # =================================
             # EXPORTAÇÃO DA MP
             # =================================
