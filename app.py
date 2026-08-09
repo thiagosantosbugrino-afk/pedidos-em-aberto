@@ -1051,7 +1051,8 @@ st.write(
 
 if st.button(
     "💾 Salvar medida deste material",
-    type="primary"
+    type="primary",
+    key="salvar_medida_material"
 ):
 
     configuracao_chapas[
@@ -1095,7 +1096,8 @@ st.markdown("---")
 
 mostrar_mp = st.checkbox(
     "🪵 Mostrar Matéria-Prima",
-    value=False
+    value=False,
+    key="mostrar_materia_prima"
 )
 
 
@@ -1200,6 +1202,7 @@ if mostrar_mp:
                 "ou M2 Vendido não foram "
                 "encontradas."
             )
+            st.stop()
 
         else:
 
@@ -1319,6 +1322,26 @@ if mostrar_mp:
             for coluna in colunas_pecas
             if coluna in df_final.columns
         ]
+
+        colunas_pecas_obrigatorias = [
+            "Produto",
+            "Largura",
+            "Altura"
+        ]
+
+        colunas_pecas_faltantes = [
+            coluna
+            for coluna in colunas_pecas_obrigatorias
+            if coluna not in colunas_pecas
+        ]
+
+        if colunas_pecas_faltantes:
+            st.error(
+                "❌ Não foi possível executar a otimização. "
+                "Faltam as colunas: "
+                + ", ".join(colunas_pecas_faltantes)
+            )
+            st.stop()
 
         pecas = (
             df_final[
@@ -2212,9 +2235,106 @@ if mostrar_mp:
                 fit_columns_on_grid_load=True,
                 height=650,
                 theme="streamlit",
-                allow_unsafe_jscode=True
+                allow_unsafe_jscode=True,
+                key="grid_materia_prima"
             )
                       
+            # =====================================
+            # DETALHAR MATERIAL
+            # =====================================
+
+            st.markdown("---")
+            st.subheader(
+                "🔍 Detalhar Material"
+            )
+
+            if not resumo.empty:
+
+                materiais = (
+                    resumo["Codigo"].astype(str)
+                    + " - "
+                    + resumo["Descricao"].astype(str)
+                ).tolist()
+
+                material_detalhado = st.selectbox(
+                    "Selecione o material",
+                    sorted(materiais),
+                    key="select_material_detalhamento_mp"
+                )
+
+                codigo_selecionado = (
+                    material_detalhado
+                    .split(" - ", 1)[0]
+                )
+
+                detalhe = (
+                    consumo_data[
+                        consumo_data["Codigo"].astype(str)
+                        == str(codigo_selecionado)
+                    ]
+                    .copy()
+                )
+
+                if "Previsão" in detalhe.columns:
+                    detalhe = (
+                        detalhe
+                        .sort_values("Previsão")
+                        .copy()
+                    )
+
+                    detalhe["Previsão"] = (
+                        pd.to_datetime(
+                            detalhe["Previsão"],
+                            errors="coerce"
+                        )
+                        .dt.strftime("%d/%m/%Y")
+                        .fillna("")
+                    )
+
+                if "Consumo Dia" in detalhe.columns:
+                    detalhe["Consumo Dia"] = (
+                        pd.to_numeric(
+                            detalhe["Consumo Dia"],
+                            errors="coerce"
+                        )
+                        .fillna(0)
+                        .round(2)
+                    )
+
+                colunas_detalhe_exibir = [
+                    coluna
+                    for coluna in [
+                        "Previsão",
+                        "Pedido",
+                        "Cliente",
+                        "PC",
+                        "Rota",
+                        "Consumo Dia"
+                    ]
+                    if coluna in detalhe.columns
+                ]
+
+                if not detalhe.empty and colunas_detalhe_exibir:
+                    st.dataframe(
+                        detalhe[colunas_detalhe_exibir],
+                        use_container_width=True,
+                        hide_index=True,
+                        height=350
+                    )
+                else:
+                    st.info(
+                        "Nenhum registro encontrado "
+                        "para o material selecionado."
+                    )
+
+            else:
+
+                st.info(
+                    "Nenhum material foi "
+                    "encontrado nos filtros "
+                    "selecionados."
+                )
+
             # =================================
             # EXPORTAÇÃO DA MP
             # =================================
@@ -2241,6 +2361,7 @@ if mostrar_mp:
                     "📥 Baixar "
                     "Matéria-Prima"
                 ),
+                key="download_materia_prima",
                 data=(
                     excel_mp.getvalue()
                 ),
@@ -2495,7 +2616,8 @@ mostrar_rota = st.checkbox(
 
     "📊 Mostrar Tabela por Rota",
 
-    value=True
+    value=True,
+    key="mostrar_tabela_rota"
 
 )
 
@@ -2793,7 +2915,8 @@ mostrar_produto = st.checkbox(
 
     "🪟 Mostrar Tabela por Produto",
 
-    value=True
+    value=True,
+    key="mostrar_tabela_produto"
 
 )
 
@@ -3090,7 +3213,8 @@ st.markdown("---")
 mostrar_rota_produto = (
     st.checkbox(
         "📊 Mostrar Rota X Produto",
-        value=False
+        value=False,
+        key="mostrar_rota_x_produto"
     )
 )
 
@@ -3525,7 +3649,8 @@ st.markdown("---")
 mostrar_detalhamento = (
     st.checkbox(
         "🔎 Mostrar Detalhamento",
-        value=False
+        value=False,
+        key="mostrar_detalhamento"
     )
 )
 
@@ -3708,7 +3833,8 @@ st.markdown("---")
 mostrar_base = (
     st.checkbox(
         "📋 Mostrar Base Completa",
-        value=False
+        value=False,
+        key="mostrar_base_completa"
     )
 )
 
