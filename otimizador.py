@@ -851,17 +851,11 @@ def otimizar_material(
             score = (
 
                 espaco.area
-
                 -
-
                 (
-
                     largura
-
                     *
-
                     altura
-
                 ),
 
                 menor_sobra,
@@ -954,13 +948,9 @@ def otimizar_lista(
 
     ):
 
-        largura_chapa = (
-            LARGURA_CHAPA
-        )
+        largura_chapa = LARGURA_CHAPA
 
-        altura_chapa = (
-            ALTURA_CHAPA
-        )
+        altura_chapa = ALTURA_CHAPA
 
 
         if configuracao_chapas:
@@ -1037,8 +1027,7 @@ def otimizar_lista(
         )
 
 
-    return resultado
-
+    return resultado        
         # ==========================================
         # MEDIDA PADRÃO DA CHAPA
         # ==========================================
