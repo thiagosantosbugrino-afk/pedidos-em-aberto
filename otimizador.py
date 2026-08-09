@@ -170,11 +170,19 @@ class Posicionamento:
 
 class Chapa:
 
-    def __init__(self):
+    def __init__(
+        self,
+        largura: float = LARGURA_CHAPA,
+        altura: float = ALTURA_CHAPA
+    ):
 
-        self.largura = LARGURA_CHAPA
+        self.largura = float(
+            largura
+        )
 
-        self.altura = ALTURA_CHAPA
+        self.altura = float(
+            altura
+        )
 
         self.pecas: List[Posicionamento] = []
 
@@ -193,7 +201,6 @@ class Chapa:
             )
 
         ]
-
     # --------------------------------------------------
 
     @property
@@ -733,7 +740,11 @@ def otimizar_material(
 
     codigo: str,
 
-    pecas: List[Peca]
+    pecas: List[Peca],
+
+    largura_chapa: float = LARGURA_CHAPA,
+
+    altura_chapa: float = ALTURA_CHAPA
 
 ):
 
@@ -867,19 +878,19 @@ def otimizar_material(
 
         if melhor_chapa is None:
 
-            melhor_chapa = Chapa()
+    melhor_chapa = Chapa(
 
-            chapas.append(
+        largura=largura_chapa,
 
-                melhor_chapa
+        altura=altura_chapa
 
-            )
+    )
 
-        melhor_chapa.inserir_peca(
+    chapas.append(
 
-            peca
+        melhor_chapa
 
-        )
+    )
 
     return chapas
 
@@ -887,9 +898,12 @@ def otimizar_material(
 # ==========================================================
 # OTIMIZA TODOS OS MATERIAIS
 # ==========================================================
+
 def otimizar_lista(
 
-    lista_pecas: List[Peca]
+    lista_pecas: List[Peca],
+
+    configuracao_chapas: Dict = None
 
 ):
 
@@ -909,7 +923,9 @@ def otimizar_lista(
 
         )
 
+
     resultado = {}
+
 
     for codigo in sorted(
 
@@ -917,17 +933,80 @@ def otimizar_lista(
 
     ):
 
+        # ==========================================
+        # MEDIDA PADRÃO DA CHAPA
+        # ==========================================
+
+        largura_chapa = LARGURA_CHAPA
+
+        altura_chapa = ALTURA_CHAPA
+
+
+        # ==========================================
+        # PROCURA A MEDIDA DO MATERIAL
+        # ==========================================
+
+        if configuracao_chapas:
+
+            dados_chapa = (
+                configuracao_chapas.get(
+                    str(codigo)
+                )
+            )
+
+            if isinstance(
+                dados_chapa,
+                dict
+            ):
+
+                try:
+
+                    largura_chapa = float(
+                        dados_chapa.get(
+                            "largura",
+                            largura_chapa
+                        )
+                    )
+
+                    altura_chapa = float(
+                        dados_chapa.get(
+                            "altura",
+                            altura_chapa
+                        )
+                    )
+
+                except (
+                    ValueError,
+                    TypeError
+                ):
+
+                    largura_chapa = (
+                        LARGURA_CHAPA
+                    )
+
+                    altura_chapa = (
+                        ALTURA_CHAPA
+                    )
+
+
+        # ==========================================
+        # OTIMIZA O MATERIAL NA SUA PRÓPRIA CHAPA
+        # ==========================================
+
         resultado[codigo] = otimizar_material(
 
             codigo,
 
-            materiais[codigo]
+            materiais[codigo],
+
+            largura_chapa,
+
+            altura_chapa
 
         )
 
+
     return resultado
-
-
 # ==========================================================
 # RESUMO
 # ==========================================================
