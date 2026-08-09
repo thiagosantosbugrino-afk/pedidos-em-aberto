@@ -1467,76 +1467,22 @@ if mostrar_mp:
                 )
 
                        
-                            # =================================
-        # EXECUTA A OTIMIZAÇÃO
-        # =================================
+                                       # =================================
+            # EXECUTA A OTIMIZAÇÃO
+            # =================================
 
-        resultado_otimizacao = otimizar_lista(
-            lista_otimizacao,
-            configuracao_chapas
-        )
-
-        resumo_otimizado = pd.DataFrame(
-            resumo_otimizacao(
-                resultado_otimizacao
+            resultado_otimizacao = otimizar_lista(
+                lista_otimizacao,
+                configuracao_chapas
             )
-        )
 
-        colunas = [
-            "Codigo",
-            "Qtd Chapas",
-            "Área Total",
-            "Área Utilizada",
-            "Desperdício Total",
-            "Aproveitamento (%)"
-        ]
+            resumo_otimizado = pd.DataFrame(
+                resumo_otimizacao(
+                    resultado_otimizacao
+                )
+            )
 
-        for coluna in colunas:
-
-            if coluna not in resumo_otimizado.columns:
-
-                resumo_otimizado[coluna] = 0
-
-        resumo_otimizado["Qtd Chapas"] = (
-            resumo_otimizado["Qtd Chapas"]
-            .fillna(0)
-            .astype(int)
-        )
-
-        resumo_otimizado["Área Total"] = (
-            resumo_otimizado["Área Total"]
-            .fillna(0)
-            .round(2)
-        )
-
-        resumo_otimizado["Área Utilizada"] = (
-            resumo_otimizado["Área Utilizada"]
-            .fillna(0)
-            .round(2)
-        )
-
-        resumo_otimizado["Desperdício Total"] = (
-            resumo_otimizado["Desperdício Total"]
-            .fillna(0)
-            .round(2)
-        )
-
-        resumo_otimizado["Aproveitamento (%)"] = (
-            resumo_otimizado["Aproveitamento (%)"]
-            .fillna(0)
-            .round(2)
-        )
-
-        # =================================
-        # EXIBE RESUMO OTIMIZADO
-        # =================================
-
-        with st.expander("📋 Resumo da Otimização"):
-
-            # Lista de colunas visíveis
-            # (oculta "Compra c/ Perda" apenas na visualização)
-
-            colunas_visiveis = [
+            colunas = [
                 "Codigo",
                 "Qtd Chapas",
                 "Área Total",
@@ -1545,17 +1491,84 @@ if mostrar_mp:
                 "Aproveitamento (%)"
             ]
 
-            st.dataframe(
-                resumo_otimizado[
-                    colunas_visiveis
-                ],
-                use_container_width=True,
-                hide_index=True
+            for coluna in colunas:
+
+                if coluna not in resumo_otimizado.columns:
+
+                    resumo_otimizado[coluna] = 0
+
+            resumo_otimizado["Qtd Chapas"] = (
+                resumo_otimizado["Qtd Chapas"]
+                .fillna(0)
+                .astype(int)
             )
 
-        # =================================
-        # TESTE DAS PEÇAS
-        # =================================
+            resumo_otimizado["Área Total"] = (
+                resumo_otimizado["Área Total"]
+                .fillna(0)
+                .round(2)
+            )
+
+            resumo_otimizado["Área Utilizada"] = (
+                resumo_otimizado["Área Utilizada"]
+                .fillna(0)
+                .round(2)
+            )
+
+            resumo_otimizado["Desperdício Total"] = (
+                resumo_otimizado["Desperdício Total"]
+                .fillna(0)
+                .round(2)
+            )
+
+            resumo_otimizado["Aproveitamento (%)"] = (
+                resumo_otimizado["Aproveitamento (%)"]
+                .fillna(0)
+                .round(2)
+            )
+
+            # =================================
+            # EXIBE RESUMO OTIMIZADO
+            # =================================
+
+            with st.expander(
+                "📋 Resumo da Otimização"
+            ):
+
+                # Lista de colunas visíveis
+                # (oculta "Compra c/ Perda" apenas na visualização)
+
+                colunas_visiveis = [
+                    "Codigo",
+                    "Qtd Chapas",
+                    "Área Total",
+                    "Área Utilizada",
+                    "Desperdício Total",
+                    "Aproveitamento (%)"
+                ]
+
+                st.dataframe(
+                    resumo_otimizado[
+                        colunas_visiveis
+                    ],
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+            # =================================
+            # TESTE DAS PEÇAS
+            # =================================
+
+            with st.expander(
+                "🧪 Teste das Peças"
+            ):
+
+                st.dataframe(
+                    pecas,
+                    use_container_width=True,
+                    hide_index=True,
+                    height=300
+                )
 
             with st.expander(
                 "🧪 Teste das Peças"
