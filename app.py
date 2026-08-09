@@ -2214,9 +2214,7 @@ if mostrar_mp:
                 theme="streamlit",
                 allow_unsafe_jscode=True
             )
-
-
-            # =====================================
+                        # =====================================
             # DETALHAR MATERIAL
             # =====================================
 
@@ -2236,7 +2234,7 @@ if mostrar_mp:
                     resumo["Descricao"]
                 ).tolist()
 
-                                    material = st.selectbox(
+                material = st.selectbox(
                     "Selecione o material",
                     sorted(
                         materiais
@@ -2260,30 +2258,9 @@ if mostrar_mp:
                     .copy()
                 )
 
-                if "Previsão" in detalhe.columns:
+                if not detalhe.empty:
 
-                    detalhe = (
-                        detalhe
-                        .sort_values(
-                            "Previsão"
-                        )
-                    )
-
-                    detalhe["Previsão"] = (
-                        detalhe["Previsão"]
-                        .dt.strftime(
-                            "%d/%m/%Y"
-                        )
-                    )
-
-                detalhe["Consumo Dia"] = (
-                    detalhe["Consumo Dia"]
-                    .round(2)
-                )
-
-                colunas_exibir = [
-                    coluna
-                    for coluna in [
+                    colunas_exibir = [
                         "Previsão",
                         "Pedido",
                         "Cliente",
@@ -2291,27 +2268,23 @@ if mostrar_mp:
                         "Rota",
                         "Consumo Dia"
                     ]
-                    if coluna
-                    in detalhe.columns
-                ]
 
-                st.dataframe(
-                    detalhe[
-                        colunas_exibir
-                    ],
-                    use_container_width=True,
-                    hide_index=True,
-                    height=350
-                )
+                    colunas_exibir = [
+                        coluna
+                        for coluna in colunas_exibir
+                        if coluna in detalhe.columns
+                    ]
 
-            else:
+                    st.dataframe(
+                        detalhe[
+                            colunas_exibir
+                        ],
+                        use_container_width=True,
+                        hide_index=True
+                    )
 
-                st.info(
-                    "Nenhum material foi "
-                    "encontrado nos filtros "
-                    "selecionados."
-                )
 
+            
 
             # =================================
             # EXPORTAÇÃO DA MP
