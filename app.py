@@ -1742,144 +1742,144 @@ if mostrar_mp:
             resumo["Aproveitamento (%)"] = 0
 
 
-        # =================================
-        # MEDIDA DA CHAPA POR MATERIAL
-        # =================================
+                    # =================================
+            # MEDIDA DA CHAPA POR MATERIAL
+            # =================================
 
-        larguras_chapa = []
+            larguras_chapa = []
 
-        alturas_chapa = []
+            alturas_chapa = []
 
-        areas_chapa = []
+            areas_chapa = []
 
 
-        for _, linha in resumo.iterrows():
+            for _, linha in resumo.iterrows():
 
-            codigo_atual = str(
-                linha["Codigo"]
+                codigo_atual = str(
+                    linha["Codigo"]
+                )
+
+                largura_atual, altura_atual = (
+                    obter_chapa_material(
+                        codigo_atual,
+                        configuracao_chapas
+                    )
+                )
+
+                area_atual = (
+                    largura_atual
+                    *
+                    altura_atual
+                ) / 1_000_000
+
+                larguras_chapa.append(
+                    largura_atual
+                )
+
+                alturas_chapa.append(
+                    altura_atual
+                )
+
+                areas_chapa.append(
+                    area_atual
+                )
+
+
+            resumo["Largura Chapa"] = (
+                larguras_chapa
             )
 
-            largura_atual, altura_atual = (
-                obter_chapa_material(
-                    codigo_atual,
-                    configuracao_chapas
+            resumo["Altura Chapa"] = (
+                alturas_chapa
+            )
+
+            resumo["Área Chapa"] = (
+                areas_chapa
+            )
+
+
+            # =================================
+            # CHAPAS OTIMIZADAS + COMPRA NECESSÁRIA
+            # =================================
+
+            resumo["Chapas Otimizadas"] = (
+                resumo["Qtd Chapas"]
+            )
+
+
+            # =================================
+            # CHAPAS EM ESTOQUE
+            # =================================
+
+            resumo["Chapas Estoque"] = (
+                resumo["Estoque"]
+                /
+                resumo["Área Chapa"]
+            )
+
+
+            # =================================
+            # COMPRA NECESSÁRIA
+            # =================================
+
+            resumo["Compra Necessária"] = (
+                resumo["Chapas Otimizadas"]
+                -
+                resumo["Chapas Estoque"]
+            ).clip(
+                lower=0
+            ).apply(
+                lambda valor: int(
+                    math.ceil(valor)
                 )
             )
 
-            area_atual = (
-                largura_atual
-                *
-                altura_atual
-            ) / 1_000_000
 
-            larguras_chapa.append(
-                largura_atual
+            # =================================
+            # COMPRA COM PERDA
+            # =================================
+
+            resumo["Compra c/ Perda"] = (
+                (
+                    resumo["Área Total"]
+                    -
+                    resumo["Estoque"]
+                )
+                /
+                resumo["Área Chapa"]
+            ).clip(
+                lower=0
+            ).apply(
+                lambda valor: int(
+                    math.ceil(valor)
+                )
             )
 
-            alturas_chapa.append(
-                altura_atual
+
+            # =================================
+            # STATUS
+            # =================================
+
+            resumo["Status"] = resumo.apply(
+
+                lambda linha:
+
+                    "🟢 OK"
+
+                    if
+                    linha["Chapas Estoque"]
+                    >=
+                    linha["Chapas Otimizadas"]
+
+                    else
+
+                    "🔴 Comprar",
+
+                axis=1
+
             )
 
-            areas_chapa.append(
-                area_atual
-            )
 
-
-        resumo["Largura Chapa"] = (
-            larguras_chapa
-        )
-
-        resumo["Altura Chapa"] = (
-            alturas_chapa
-        )
-
-        resumo["Área Chapa"] = (
-            areas_chapa
-        )
-
-
-        # =================================
-        # CHAPAS OTIMIZADAS + COMPRA NECESSÁRIA
-        # =================================
-
-        resumo["Chapas Otimizadas"] = (
-            resumo["Qtd Chapas"]
-        )
-
-
-        # =================================
-        # CHAPAS EM ESTOQUE
-        # =================================
-
-        resumo["Chapas Estoque"] = (
-            resumo["Estoque"]
-            /
-            resumo["Área Chapa"]
-        )
-
-
-        # =================================
-        # COMPRA NECESSÁRIA
-        # =================================
-
-        resumo["Compra Necessária"] = (
-            resumo["Chapas Otimizadas"]
-            -
-            resumo["Chapas Estoque"]
-        ).clip(
-            lower=0
-        ).apply(
-            lambda valor: int(
-                math.ceil(valor)
-            )
-        )
-
-
-        # =================================
-        # COMPRA COM PERDA
-        # =================================
-
-        resumo["Compra c/ Perda"] = (
-            (
-                resumo["Área Total"]
-                -
-                resumo["Estoque"]
-            )
-            /
-            resumo["Área Chapa"]
-        ).clip(
-            lower=0
-        ).apply(
-            lambda valor: int(
-                math.ceil(valor)
-            )
-        )
-
-
-        # =================================
-        # STATUS
-        # =================================
-
-        resumo["Status"] = resumo.apply(
-
-            lambda linha:
-
-                "🟢 OK"
-
-                if
-                linha["Chapas Estoque"]
-                >=
-                linha["Chapas Otimizadas"]
-
-                else
-
-                "🔴 Comprar",
-
-            axis=1
-
-        )
-
-                   
             # =================================
             # ARREDONDAMENTO
             # =================================
@@ -1905,6 +1905,8 @@ if mostrar_mp:
                     .round(2)
 
                 )
+
+
             # =================================
             # FORMATAÇÃO DAS DATAS
             # =================================
