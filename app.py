@@ -1580,287 +1580,292 @@ if mostrar_mp:
                     hide_index=True,
                     height=300
                 )
+                        # =================================
+        # AGRUPA PEÇAS POR MATERIAL
+        # =================================
 
+        materiais_otimizacao = {}
 
-            # =================================
-            # AGRUPA PEÇAS POR MATERIAL
-            # =================================
-            
+        for codigo in sorted(
+            pecas["Codigo"].unique()
+        ):
 
-            materiais_otimizacao = {}
+            tabela = (
+                pecas[
+                    pecas["Codigo"] == codigo
+                ]
+                .copy()
+            )
 
-            for codigo in sorted(
-                pecas["Codigo"].unique()
-            ):
-
-                tabela = (
-                    pecas[
-                        pecas["Codigo"] == codigo
-                    ]
-                    .copy()
+            tabela = (
+                tabela
+                .sort_values(
+                    [
+                        "Largura Encaixe",
+                        "Altura Encaixe"
+                    ],
+                    ascending=False
                 )
+            )
 
-                tabela = (
-                    tabela
+            materiais_otimizacao[codigo] = tabela
+
+
+        # =================================
+        # RESUMO
+        # =================================
+
+        # O merge começa pelo consumo.
+        # Portanto, aparecem somente os
+        # materiais usados pelos filtros.
+
+        resumo = pd.merge(
+            consumo,
+            estoque,
+            on="Codigo",
+            how="left"
+        )
+
+        resumo["Descricao"] = (
+            resumo["Descricao"]
+            .fillna(resumo["Codigo"])
+        )
+
+        resumo["Estoque"] = (
+            resumo["Estoque"]
+            .fillna(0)
+        )
+
+        resumo["Consumo"] = (
+            resumo["Consumo"]
+            .fillna(0)
+        )
+
+        resumo["Saldo"] = (
+            resumo["Estoque"]
+            -
+            resumo["Consumo"]
+        )
+
+        # Mostra somente materiais utilizados pelos filtros.
+
+        resumo = resumo[
+            resumo["Consumo"] > 0
+        ].copy()
+
+        # Remove possíveis cabeçalhos.
+
+        resumo = resumo[
+            ~resumo["Codigo"]
+            .astype(str)
+            .str.contains(
+                "CODIG|CÓDIG",
+                case=False,
+                na=False
+            )
+        ]
+
+        resumo = resumo[
+            ~resumo["Descricao"]
+            .astype(str)
+            .str.contains(
+                "DESCRI",
+                case=False,
+                na=False
+            )
+        ]
+
+
+        # =================================
+        # COBERTURA
+        # =================================
+
+        produz_ate = []
+        primeira_falta = []
+
+        for _, linha in resumo.iterrows():
+
+            codigo_atual = linha["Codigo"]
+            saldo_atual = linha["Estoque"]
+
+            tabela_material = (
+                consumo_data[
+                    consumo_data["Codigo"]
+                    == codigo_atual
+                ]
+                .copy()
+            )
+
+            if "Previsão" in tabela_material.columns:
+
+                tabela_material = (
+                    tabela_material
                     .sort_values(
-                        [
-                            "Largura Encaixe",
-                            "Altura Encaixe"
-                        ],
-                        ascending=False
+                        "Previsão"
                     )
                 )
 
-                materiais_otimizacao[codigo] = tabela
+            ultima_data_ok = pd.NaT
+            primeira_data_sem = pd.NaT
+
+            for _, item in tabela_material.iterrows():
+
+                consumo_dia = item[
+                    "Consumo Dia"
+                ]
+
+                if saldo_atual >= consumo_dia:
+
+                    saldo_atual -= (
+                        consumo_dia
+                    )
+
+                    if "Previsão" in item.index:
+
+                        ultima_data_ok = (
+                            item["Previsão"]
+                        )
+
+                else:
+
+                    if "Previsão" in item.index:
+
+                        primeira_data_sem = (
+                            item["Previsão"]
+                        )
+
+                    break
+
+            produz_ate.append(
+                ultima_data_ok
+            )
+
+            primeira_falta.append(
+                primeira_data_sem
+            )
+
+        resumo["Produz até"] = (
+            produz_ate
+        )
+
+        resumo["Primeira Falta"] = (
+            primeira_falta
+        )
 
 
-                        # =================================
-            # RESUMO
-            # =================================
+        # =====================================
+        # JUNTA RESULTADO DA OTIMIZAÇÃO
+        # =====================================
 
-            # O merge começa pelo consumo.
-            # Portanto, aparecem somente os
-            # materiais usados pelos filtros.
+        if not resumo_otimizado.empty:
 
-            resumo = pd.merge(
-                consumo,
-                estoque,
+            resumo = resumo.merge(
+                resumo_otimizado[
+                    [
+                        "Codigo",
+                        "Qtd Chapas",
+                        "Área Total",
+                        "Área Utilizada",
+                        "Desperdício Total",
+                        "Aproveitamento (%)"
+                    ]
+                ],
                 on="Codigo",
                 how="left"
             )
 
-            resumo["Descricao"] = (
-                resumo["Descricao"]
-                .fillna(resumo["Codigo"])
-            )
-
-            resumo["Estoque"] = (
-                resumo["Estoque"]
+            resumo["Qtd Chapas"] = (
+                resumo["Qtd Chapas"]
                 .fillna(0)
+                .astype(int)
             )
 
-            resumo["Consumo"] = (
-                resumo["Consumo"]
+            resumo["Área Total"] = (
+                resumo["Área Total"]
                 .fillna(0)
+                .round(2)
             )
 
-            resumo["Saldo"] = (
-                resumo["Estoque"]
-                -
-                resumo["Consumo"]
+            resumo["Área Utilizada"] = (
+                resumo["Área Utilizada"]
+                .fillna(0)
+                .round(2)
             )
 
-            # Mostra somente materiais utilizados pelos filtros.
-            resumo = resumo[
-                resumo["Consumo"] > 0
-            ].copy()
-
-            # Remove possíveis cabeçalhos
-            resumo = resumo[
-                ~resumo["Codigo"]
-                .astype(str)
-                .str.contains(
-                    "CODIG|CÓDIG",
-                    case=False,
-                    na=False
-                )
-            ]
-
-            resumo = resumo[
-                ~resumo["Descricao"]
-                .astype(str)
-                .str.contains(
-                    "DESCRI",
-                    case=False,
-                    na=False
-                )
-            ]
-
-
-            # =================================
-            # COBERTURA
-            # =================================
-
-            produz_ate = []
-            primeira_falta = []
-
-            for _, linha in resumo.iterrows():
-
-                codigo_atual = linha["Codigo"]
-                saldo_atual = linha["Estoque"]
-
-                tabela_material = (
-                    consumo_data[
-                        consumo_data["Codigo"]
-                        == codigo_atual
-                    ]
-                    .copy()
-                )
-
-                if "Previsão" in tabela_material.columns:
-
-                    tabela_material = (
-                        tabela_material
-                        .sort_values("Previsão")
-                    )
-
-                ultima_data_ok = pd.NaT
-                primeira_data_sem = pd.NaT
-
-                for _, item in tabela_material.iterrows():
-
-                    consumo_dia = item["Consumo Dia"]
-
-                    if saldo_atual >= consumo_dia:
-
-                        saldo_atual -= consumo_dia
-
-                        if "Previsão" in item.index:
-
-                            ultima_data_ok = (
-                                item["Previsão"]
-                            )
-
-                    else:
-
-                        if "Previsão" in item.index:
-
-                            primeira_data_sem = (
-                                item["Previsão"]
-                            )
-
-                        break
-
-                produz_ate.append(
-                    ultima_data_ok
-                )
-
-                primeira_falta.append(
-                    primeira_data_sem
-                )
-
-            resumo["Produz até"] = (
-                produz_ate
+            resumo["Desperdício Total"] = (
+                resumo["Desperdício Total"]
+                .fillna(0)
+                .round(2)
             )
 
-            resumo["Primeira Falta"] = (
-                primeira_falta
+            resumo["Aproveitamento (%)"] = (
+                resumo["Aproveitamento (%)"]
+                .fillna(0)
+                .round(2)
             )
 
+        else:
 
-            # =====================================
-            # JUNTA RESULTADO DA OTIMIZAÇÃO
-            # =====================================
-
-            if not resumo_otimizado.empty:
-
-                resumo = resumo.merge(
-                    resumo_otimizado[
-                        [
-                            "Codigo",
-                            "Qtd Chapas",
-                            "Área Total",
-                            "Área Utilizada",
-                            "Desperdício Total",
-                            "Aproveitamento (%)"
-                        ]
-                    ],
-                    on="Codigo",
-                    how="left"
-                )
-
-                resumo["Qtd Chapas"] = (
-                    resumo["Qtd Chapas"]
-                    .fillna(0)
-                    .astype(int)
-                )
-
-                resumo["Área Total"] = (
-                    resumo["Área Total"]
-                    .fillna(0)
-                    .round(2)
-                )
-
-                resumo["Área Utilizada"] = (
-                    resumo["Área Utilizada"]
-                    .fillna(0)
-                    .round(2)
-                )
-
-                resumo["Desperdício Total"] = (
-                    resumo["Desperdício Total"]
-                    .fillna(0)
-                    .round(2)
-                )
-
-                resumo["Aproveitamento (%)"] = (
-                    resumo["Aproveitamento (%)"]
-                    .fillna(0)
-                    .round(2)
-                )
-
-            else:
-
-                resumo["Qtd Chapas"] = 0
-                resumo["Área Total"] = 0
-                resumo["Área Utilizada"] = 0
-                resumo["Desperdício Total"] = 0
-                resumo["Aproveitamento (%)"] = 0
+            resumo["Qtd Chapas"] = 0
+            resumo["Área Total"] = 0
+            resumo["Área Utilizada"] = 0
+            resumo["Desperdício Total"] = 0
+            resumo["Aproveitamento (%)"] = 0
 
 
-            # =================================
-            # MEDIDA DA CHAPA POR MATERIAL
-            # =================================
+        # =================================
+        # MEDIDA DA CHAPA POR MATERIAL
+        # =================================
 
-            larguras_chapa = []
-            alturas_chapa = []
-            areas_chapa = []
+        larguras_chapa = []
+        alturas_chapa = []
+        areas_chapa = []
 
-            for _, linha in resumo.iterrows():
+        for _, linha in resumo.iterrows():
 
-                codigo_atual = str(
-                    linha["Codigo"]
-                )
-
-                largura_atual, altura_atual = (
-                    obter_chapa_material(
-                        codigo_atual,
-                        configuracao_chapas
-                    )
-                )
-
-                area_atual = (
-                    largura_atual
-                    *
-                    altura_atual
-                ) / 1_000_000
-
-                larguras_chapa.append(
-                    largura_atual
-                )
-
-                alturas_chapa.append(
-                    altura_atual
-                )
-
-                areas_chapa.append(
-                    area_atual
-                )
-
-            resumo["Largura Chapa"] = (
-                larguras_chapa
+            codigo_atual = str(
+                linha["Codigo"]
             )
 
-            resumo["Altura Chapa"] = (
-                alturas_chapa
+            largura_atual, altura_atual = (
+                obter_chapa_material(
+                    codigo_atual,
+                    configuracao_chapas
+                )
             )
 
-            resumo["Área Chapa"] = (
-                areas_chapa
+            area_atual = (
+                largura_atual
+                *
+                altura_atual
+            ) / 1_000_000
+
+            larguras_chapa.append(
+                largura_atual
             )
 
+            alturas_chapa.append(
+                altura_atual
+            )
 
-                                # =================================
+            areas_chapa.append(
+                area_atual
+            )
+
+        resumo["Largura Chapa"] = (
+            larguras_chapa
+        )
+
+        resumo["Altura Chapa"] = (
+            alturas_chapa
+        )
+
+        resumo["Área Chapa"] = (
+            areas_chapa
+        )
+
+
+        # =================================
         # CHAPAS OTIMIZADAS
         # =================================
 
@@ -1887,76 +1892,81 @@ if mostrar_mp:
             /
             resumo["Área Chapa"]
         )
-                    # =================================
-            # QTD CHAPAS A COMPRAR
-            # =================================
 
-            # Desconta do resultado da otimização
-            # a quantidade equivalente existente
-            # no estoque.
-            #
-            # Como não é possível comprar uma
-            # fração de chapa, arredonda para cima.
 
-            resumo["Qtd Chapas a Comprar"] = (
-                resumo["Chapas Otimizadas"]
+        # =================================
+        # QTD CHAPAS A COMPRAR
+        # =================================
+
+        # Desconta do resultado da otimização
+        # a quantidade equivalente existente
+        # no estoque.
+        #
+        # Como não é possível comprar uma
+        # fração de chapa, arredonda para cima.
+
+        resumo["Qtd Chapas a Comprar"] = (
+            resumo["Chapas Otimizadas"]
+            -
+            resumo["Chapas Estoque"]
+        ).clip(
+            lower=0
+        ).apply(
+            lambda valor: int(
+                math.ceil(valor)
+            )
+        )
+
+
+        # =================================
+        # COMPRA NECESSÁRIA
+        # =================================
+
+        resumo["Compra Necessária"] = (
+            resumo["Qtd Chapas a Comprar"]
+            *
+            resumo["Área Chapa"]
+        ).round(2)
+
+
+        # =================================
+        # COMPRA COM PERDA
+        # =================================
+
+        resumo["Compra c/ Perda"] = (
+            (
+                resumo["Área Total"]
                 -
-                resumo["Chapas Estoque"]
-            ).clip(
+                resumo["Estoque"]
+            )
+            .clip(
                 lower=0
-            ).apply(
-                lambda valor: int(
-                    math.ceil(valor)
-                )
             )
+            .round(2)
+        )
 
 
-            # =================================
-            # COMPRA NECESSÁRIA
-            # =================================
+        # =================================
+        # PERCENTUAL DE PERDA
+        # =================================
 
-            resumo["Compra Necessária"] = (
-                resumo["Qtd Chapas a Comprar"]
-                *
-                resumo["Área Chapa"]
-            ).round(2)
-
-
-            # =================================
-            # COMPRA COM PERDA
-            # =================================
-
-            resumo["Compra c/ Perda"] = (
-                (
-                    resumo["Área Total"]
-                    -
-                    resumo["Estoque"]
-                )
-                .clip(
-                    lower=0
-                )
-                .round(2)
+        resumo["% Perda"] = (
+            (
+                resumo["Desperdício Total"]
+                /
+                resumo["Área Total"]
             )
-
-
-            # =================================
-            # PERCENTUAL DE PERDA
-            # =================================
-
-            resumo["% Perda"] = (
-                (
-                    resumo["Desperdício Total"]
-                    /
-                    resumo["Área Total"]
-                )
-                .replace(
-                    [math.inf, -math.inf],
-                    0
-                )
-                .fillna(0)
-                .mul(100)
-                .round(2)
+            .replace(
+                [math.inf, -math.inf],
+                0
             )
+            .fillna(0)
+            .mul(100)
+            .round(2)
+        )
+
+
+            
 
 
             # =================================
@@ -2066,13 +2076,6 @@ if mostrar_mp:
                     ).sum()
                 )
             )
-
-
-            # =====================================
-            # COLUNAS DA TABELA
-            # =====================================
-
-
                     
 
             # =====================================
