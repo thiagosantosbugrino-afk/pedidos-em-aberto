@@ -770,7 +770,9 @@ def otimizar_material(
 
     )
 
+
     chapas: List[Chapa] = []
+
 
     for peca in pecas:
 
@@ -778,17 +780,20 @@ def otimizar_material(
 
         melhor_score = None
 
+
         for chapa in chapas:
 
-            espaco, girada = chapa.procurar_melhor_espaco(
-
-                peca
-
+            espaco, girada = (
+                chapa.procurar_melhor_espaco(
+                    peca
+                )
             )
+
 
             if espaco is None:
 
                 continue
+
 
             if girada:
 
@@ -802,6 +807,7 @@ def otimizar_material(
 
                 altura = peca.altura_corte
 
+
             sobra_direita = (
 
                 espaco.largura
@@ -811,6 +817,7 @@ def otimizar_material(
                 largura
 
             )
+
 
             sobra_superior = (
 
@@ -822,6 +829,7 @@ def otimizar_material(
 
             )
 
+
             menor_sobra = min(
 
                 sobra_direita,
@@ -830,6 +838,7 @@ def otimizar_material(
 
             )
 
+
             maior_sobra = max(
 
                 sobra_direita,
@@ -837,6 +846,7 @@ def otimizar_material(
                 sobra_superior
 
             )
+
 
             score = (
 
@@ -862,6 +872,7 @@ def otimizar_material(
 
             )
 
+
             if (
 
                 melhor_score is None
@@ -876,21 +887,30 @@ def otimizar_material(
 
                 melhor_chapa = chapa
 
+
         if melhor_chapa is None:
 
-    melhor_chapa = Chapa(
+            melhor_chapa = Chapa(
 
-        largura=largura_chapa,
+                largura=largura_chapa,
 
-        altura=altura_chapa
+                altura=altura_chapa
 
-    )
+            )
 
-    chapas.append(
+            chapas.append(
 
-        melhor_chapa
+                melhor_chapa
 
-    )
+            )
+
+
+        melhor_chapa.inserir_peca(
+
+            peca
+
+        )
+
 
     return chapas
 
@@ -908,6 +928,7 @@ def otimizar_lista(
 ):
 
     materiais: Dict[str, List[Peca]] = {}
+
 
     for peca in lista_pecas:
 
@@ -932,6 +953,91 @@ def otimizar_lista(
         materiais.keys()
 
     ):
+
+        largura_chapa = (
+            LARGURA_CHAPA
+        )
+
+        altura_chapa = (
+            ALTURA_CHAPA
+        )
+
+
+        if configuracao_chapas:
+
+            dados_chapa = (
+                configuracao_chapas.get(
+                    str(codigo)
+                )
+            )
+
+
+            if isinstance(
+
+                dados_chapa,
+
+                dict
+
+            ):
+
+                try:
+
+                    largura_chapa = float(
+
+                        dados_chapa.get(
+
+                            "largura",
+
+                            largura_chapa
+
+                        )
+
+                    )
+
+
+                    altura_chapa = float(
+
+                        dados_chapa.get(
+
+                            "altura",
+
+                            altura_chapa
+
+                        )
+
+                    )
+
+                except (
+
+                    ValueError,
+
+                    TypeError
+
+                ):
+
+                    largura_chapa = (
+                        LARGURA_CHAPA
+                    )
+
+                    altura_chapa = (
+                        ALTURA_CHAPA
+                    )
+
+
+        resultado[codigo] = otimizar_material(
+
+            codigo,
+
+            materiais[codigo],
+
+            largura_chapa,
+
+            altura_chapa
+
+        )
+
+
+    return resultado
 
         # ==========================================
         # MEDIDA PADRÃO DA CHAPA
@@ -1019,6 +1125,7 @@ def resumo_otimizacao(
 
     linhas = []
 
+
     for codigo, chapas in resultado.items():
 
         qtd_chapas = len(
@@ -1027,15 +1134,17 @@ def resumo_otimizacao(
 
         )
 
-        area_total = (
 
-            qtd_chapas
+        area_total = sum(
 
+            chapa.largura
             *
+            chapa.altura
 
-            AREA_CHAPA
+            for chapa in chapas
 
         )
+
 
         area_utilizada = sum(
 
@@ -1044,6 +1153,7 @@ def resumo_otimizacao(
             for chapa in chapas
 
         )
+
 
         desperdicio = (
 
@@ -1054,6 +1164,7 @@ def resumo_otimizacao(
             area_utilizada
 
         )
+
 
         aproveitamento = (
 
@@ -1076,6 +1187,7 @@ def resumo_otimizacao(
             else 0
 
         )
+
 
         linhas.append(
 
@@ -1121,10 +1233,12 @@ def resumo_otimizacao(
 
         )
 
+
     linhas.sort(
 
         key=lambda x: x["Codigo"]
 
     )
+
 
     return linhas
