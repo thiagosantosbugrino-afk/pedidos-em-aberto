@@ -1592,7 +1592,7 @@ if mostrar_mp:
                 materiais_otimizacao[codigo] = tabela
 
 
-                       # =================================
+            # =================================
             # RESUMO
             # =================================
 
@@ -1653,58 +1653,221 @@ if mostrar_mp:
             resumo["Produz até"] = produz_ate
             resumo["Primeira Falta"] = primeira_falta
 
-            # =====================================
-            # JUNTA RESULTADO DA OTIMIZAÇÃO
-            # =====================================
-            if not resumo_otimizado.empty:
-                resumo = resumo.merge(
-                    resumo_otimizado[
-                        ["Codigo", "Qtd Chapas", "Área Total", "Área Utilizada", "Desperdício Total", "Aproveitamento (%)"]
-                    ],
-                    on="Codigo",
-                    how="left"
-                )
-                resumo["Qtd Chapas"] = resumo["Qtd Chapas"].fillna(0).astype(int)
-                resumo["Área Total"] = resumo["Área Total"].fillna(0).round(2)
-                resumo["Área Utilizada"] = resumo["Área Utilizada"].fillna(0).round(2)
-                resumo["Desperdício Total"] = resumo["Desperdício Total"].fillna(0).round(2)
-                resumo["Aproveitamento (%)"] = resumo["Aproveitamento (%)"].fillna(0).round(2)
-            else:
-                resumo["Qtd Chapas"] = 0
-                resumo["Área Total"] = 0
-                resumo["Área Utilizada"] = 0
-                resumo["Desperdício Total"] = 0
-                resumo["Aproveitamento (%)"] = 0
+                   # =====================================
+        # JUNTA RESULTADO DA OTIMIZAÇÃO
+        # =====================================
 
-            # =================================
-            # CHAPAS OTIMIZADAS + COMPRA NECESSÁRIA
-            # =================================
-            AREA_CHAPA = 3.210 * 2.400  # área de uma chapa em m²
+        if not resumo_otimizado.empty:
 
-            # Chapas otimizadas = total calculado pela otimização
-            resumo["Chapas Otimizadas"] = resumo["Qtd Chapas"]
+            resumo = resumo.merge(
 
-            # Chapas em estoque
-            resumo["Chapas Estoque"] = resumo["Estoque"] / AREA_CHAPA
+                resumo_otimizado[
+                    [
+                        "Codigo",
+                        "Qtd Chapas",
+                        "Área Total",
+                        "Área Utilizada",
+                        "Desperdício Total",
+                        "Aproveitamento (%)"
+                    ]
+                ],
 
-            # Compra Necessária = chapas faltantes após descontar estoque
-            resumo["Compra Necessária"] = (
-                resumo["Chapas Otimizadas"] - resumo["Chapas Estoque"]
-            ).clip(lower=0).round(0).astype(int)
+                on="Codigo",
 
-            # Compra c/ Perda = chapas faltantes considerando desperdício total
-            resumo["Compra c/ Perda"] = (
-                (resumo["Área Total"] - resumo["Estoque"]) / AREA_CHAPA
-            ).clip(lower=0).round(0).astype(int)
+                how="left"
 
-            # =================================
-            # STATUS (corrigido por chapas)
-            # =================================
-            resumo["Status"] = resumo.apply(
-                lambda linha: "🟢 OK" if linha["Chapas Estoque"] >= linha["Chapas Otimizadas"] else "🔴 Comprar",
-                axis=1
             )
 
+            resumo["Qtd Chapas"] = (
+                resumo["Qtd Chapas"]
+                .fillna(0)
+                .astype(int)
+            )
+
+            resumo["Área Total"] = (
+                resumo["Área Total"]
+                .fillna(0)
+                .round(2)
+            )
+
+            resumo["Área Utilizada"] = (
+                resumo["Área Utilizada"]
+                .fillna(0)
+                .round(2)
+            )
+
+            resumo["Desperdício Total"] = (
+                resumo["Desperdício Total"]
+                .fillna(0)
+                .round(2)
+            )
+
+            resumo["Aproveitamento (%)"] = (
+                resumo["Aproveitamento (%)"]
+                .fillna(0)
+                .round(2)
+            )
+
+        else:
+
+            resumo["Qtd Chapas"] = 0
+
+            resumo["Área Total"] = 0
+
+            resumo["Área Utilizada"] = 0
+
+            resumo["Desperdício Total"] = 0
+
+            resumo["Aproveitamento (%)"] = 0
+
+
+        # =================================
+        # MEDIDA DA CHAPA POR MATERIAL
+        # =================================
+
+        larguras_chapa = []
+
+        alturas_chapa = []
+
+        areas_chapa = []
+
+
+        for _, linha in resumo.iterrows():
+
+            codigo_atual = str(
+                linha["Codigo"]
+            )
+
+
+            largura_atual, altura_atual = (
+                obter_chapa_material(
+                    codigo_atual,
+                    configuracao_chapas
+                )
+            )
+
+
+            area_atual = (
+
+                largura_atual
+                *
+                altura_atual
+
+            ) / 1_000_000
+
+
+            larguras_chapa.append(
+                largura_atual
+            )
+
+            alturas_chapa.append(
+                altura_atual
+            )
+
+            areas_chapa.append(
+                area_atual
+            )
+
+
+        resumo["Largura Chapa"] = (
+            larguras_chapa
+        )
+
+        resumo["Altura Chapa"] = (
+            alturas_chapa
+        )
+
+        resumo["Área Chapa"] = (
+            areas_chapa
+        )
+
+
+        # =================================
+        # CHAPAS OTIMIZADAS + COMPRA NECESSÁRIA
+        # =================================
+
+        resumo["Chapas Otimizadas"] = (
+            resumo["Qtd Chapas"]
+        )
+
+
+        # =================================
+        # CHAPAS EM ESTOQUE
+        # =================================
+
+        resumo["Chapas Estoque"] = (
+
+            resumo["Estoque"]
+            /
+            resumo["Área Chapa"]
+
+        )
+
+
+        # =================================
+        # COMPRA NECESSÁRIA
+        # =================================
+
+        resumo["Compra Necessária"] = (
+
+            resumo["Chapas Otimizadas"]
+            -
+            resumo["Chapas Estoque"]
+
+        ).clip(
+            lower=0
+        ).apply(
+            lambda valor: int(
+                math.ceil(valor)
+            )
+        )
+
+
+        # =================================
+        # COMPRA COM PERDA
+        # =================================
+
+        resumo["Compra c/ Perda"] = (
+
+            (
+                resumo["Área Total"]
+                -
+                resumo["Estoque"]
+            )
+            /
+            resumo["Área Chapa"]
+
+        ).clip(
+            lower=0
+        ).apply(
+            lambda valor: int(
+                math.ceil(valor)
+            )
+        )
+
+
+        # =================================
+        # STATUS
+        # =================================
+
+        resumo["Status"] = resumo.apply(
+
+            lambda linha:
+
+                "🟢 OK"
+
+                if
+                linha["Chapas Estoque"]
+                >=
+                linha["Chapas Otimizadas"]
+
+                else
+
+                "🔴 Comprar",
+
+            axis=1
+
+        )
 
             # =================================
             # ARREDONDAMENTO
