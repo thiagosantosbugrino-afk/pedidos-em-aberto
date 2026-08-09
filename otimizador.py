@@ -1089,81 +1089,10 @@ def otimizar_lista(
         )
 
 
-    return resultado        
-        # ==========================================
-        # MEDIDA PADRÃO DA CHAPA
-        # ==========================================
-
-        largura_chapa = LARGURA_CHAPA
-
-        altura_chapa = ALTURA_CHAPA
-
-
-        # ==========================================
-        # PROCURA A MEDIDA DO MATERIAL
-        # ==========================================
-
-        if configuracao_chapas:
-
-            dados_chapa = (
-                configuracao_chapas.get(
-                    str(codigo)
-                )
-            )
-
-            if isinstance(
-                dados_chapa,
-                dict
-            ):
-
-                try:
-
-                    largura_chapa = float(
-                        dados_chapa.get(
-                            "largura",
-                            largura_chapa
-                        )
-                    )
-
-                    altura_chapa = float(
-                        dados_chapa.get(
-                            "altura",
-                            altura_chapa
-                        )
-                    )
-
-                except (
-                    ValueError,
-                    TypeError
-                ):
-
-                    largura_chapa = (
-                        LARGURA_CHAPA
-                    )
-
-                    altura_chapa = (
-                        ALTURA_CHAPA
-                    )
-
-
-        # ==========================================
-        # OTIMIZA O MATERIAL NA SUA PRÓPRIA CHAPA
-        # ==========================================
-
-        resultado[codigo] = otimizar_material(
-
-            codigo,
-
-            materiais[codigo],
-
-            largura_chapa,
-
-            altura_chapa
-
-        )
-
-
     return resultado
+      
+
+        
 # ==========================================================
 # RESUMO
 # ==========================================================
