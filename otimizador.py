@@ -164,7 +164,7 @@ class Posicionamento:
     altura: float
 
     girada: bool
-# ==========================================================
+    # ==========================================================
 # CHAPA
 # ==========================================================
 
@@ -201,12 +201,23 @@ class Chapa:
             )
 
         ]
+
+
     # --------------------------------------------------
 
     @property
     def area_total(self):
 
-        return AREA_CHAPA
+        return (
+
+            self.largura
+
+            *
+
+            self.altura
+
+        )
+
 
     # --------------------------------------------------
 
@@ -221,12 +232,22 @@ class Chapa:
 
         )
 
+
     # --------------------------------------------------
 
     @property
     def desperdicio(self):
 
-        return self.area_total - self.area_utilizada
+        return (
+
+            self.area_total
+
+            -
+
+            self.area_utilizada
+
+        )
+
 
     # --------------------------------------------------
 
@@ -246,6 +267,7 @@ class Chapa:
             self.area_total
 
         ) * 100
+
 
     # --------------------------------------------------
 
@@ -275,6 +297,7 @@ class Chapa:
 
             return False
 
+
         sobra_direita = (
 
             espaco.largura
@@ -285,6 +308,7 @@ class Chapa:
 
         )
 
+
         sobra_superior = (
 
             espaco.altura
@@ -294,6 +318,7 @@ class Chapa:
             altura
 
         )
+
 
         if (
 
@@ -307,6 +332,7 @@ class Chapa:
 
             return False
 
+
         if (
 
             sobra_superior != 0
@@ -319,7 +345,9 @@ class Chapa:
 
             return False
 
+
         return True
+
 
     # --------------------------------------------------
 
@@ -342,6 +370,7 @@ class Chapa:
             peca.distancia_minima
 
         )
+
 
         for espaco in self.espacos:
 
@@ -381,6 +410,7 @@ class Chapa:
 
                     )
 
+
                 if not self.cabe(
 
                     espaco,
@@ -395,6 +425,7 @@ class Chapa:
 
                     continue
 
+
                 sobra_direita = (
 
                     espaco.largura
@@ -404,6 +435,7 @@ class Chapa:
                     largura
 
                 )
+
 
                 sobra_superior = (
 
@@ -415,6 +447,7 @@ class Chapa:
 
                 )
 
+
                 score = (
 
                     sobra_direita * sobra_superior,
@@ -424,6 +457,7 @@ class Chapa:
                     espaco.area
 
                 )
+
 
                 if (
 
@@ -441,6 +475,7 @@ class Chapa:
 
                     girada = rotacionada
 
+
         return (
 
             melhor,
@@ -448,7 +483,9 @@ class Chapa:
             girada
 
         )
-            # --------------------------------------------------
+
+
+    # --------------------------------------------------
 
     def inserir_peca(
 
@@ -458,15 +495,21 @@ class Chapa:
 
     ):
 
-        espaco, girada = self.procurar_melhor_espaco(
+        espaco, girada = (
 
-            peca
+            self.procurar_melhor_espaco(
+
+                peca
+
+            )
 
         )
+
 
         if espaco is None:
 
             return False
+
 
         if girada:
 
@@ -479,6 +522,7 @@ class Chapa:
             largura = peca.largura_corte
 
             altura = peca.altura_corte
+
 
         self.pecas.append(
 
@@ -500,11 +544,13 @@ class Chapa:
 
         )
 
+
         self.espacos.remove(
 
             espaco
 
         )
+
 
         self._gerar_sobras(
 
@@ -516,9 +562,12 @@ class Chapa:
 
         )
 
+
         self._limpar_espacos()
 
+
         return True
+
 
     # --------------------------------------------------
 
@@ -544,6 +593,7 @@ class Chapa:
 
         )
 
+
         sobra_superior = (
 
             espaco.altura
@@ -553,6 +603,7 @@ class Chapa:
             altura
 
         )
+
 
         perda_vertical = (
 
@@ -564,6 +615,7 @@ class Chapa:
 
         )
 
+
         perda_horizontal = (
 
             sobra_superior
@@ -573,6 +625,7 @@ class Chapa:
             espaco.largura
 
         )
+
 
         if perda_vertical <= perda_horizontal:
 
@@ -594,6 +647,7 @@ class Chapa:
 
                 )
 
+
             if sobra_superior > 0:
 
                 self.espacos.append(
@@ -611,6 +665,7 @@ class Chapa:
                     )
 
                 )
+
 
         else:
 
@@ -632,6 +687,7 @@ class Chapa:
 
                 )
 
+
             if sobra_direita > 0:
 
                 self.espacos.append(
@@ -650,6 +706,7 @@ class Chapa:
 
                 )
 
+
     # --------------------------------------------------
 
     def _limpar_espacos(
@@ -660,6 +717,7 @@ class Chapa:
 
         novos = []
 
+
         for i, espaco1 in enumerate(
 
             self.espacos
@@ -667,6 +725,7 @@ class Chapa:
         ):
 
             contido = False
+
 
             for j, espaco2 in enumerate(
 
@@ -677,6 +736,7 @@ class Chapa:
                 if i == j:
 
                     continue
+
 
                 if (
 
@@ -708,6 +768,7 @@ class Chapa:
 
                     break
 
+
             if not contido:
 
                 novos.append(
@@ -715,6 +776,7 @@ class Chapa:
                     espaco1
 
                 )
+
 
         self.espacos = sorted(
 
