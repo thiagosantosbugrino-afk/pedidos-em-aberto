@@ -2,6 +2,7 @@ import io
 import re
 import json
 import math
+import os
 
 import streamlit as st
 import pandas as pd
@@ -96,15 +97,152 @@ def formatar_numero_br(valor):
 
 
 # ===================================
-# CONFIGURAÇÃO DAS CHAPAS
+# CONFIGURAÇÃO DAS CHAPAS POR MATERIAL
 # ===================================
 
-LARGURA_CHAPA = 3.210
-ALTURA_CHAPA = 2.400
+ARQUIVO_CHAPAS = "chapas_materiais.json"
 
-AREA_CHAPA = LARGURA_CHAPA * ALTURA_CHAPA
+LARGURA_CHAPA_PADRAO = 3210
+ALTURA_CHAPA_PADRAO = 2400
 
 
+def carregar_configuracao_chapas():
+
+    configuracao_padrao = {
+        "_PADRAO": {
+            "largura": LARGURA_CHAPA_PADRAO,
+            "altura": ALTURA_CHAPA_PADRAO
+        }
+    }
+
+    try:
+
+        if not os.path.exists(
+            ARQUIVO_CHAPAS
+        ):
+
+            with open(
+                ARQUIVO_CHAPAS,
+                "w",
+                encoding="utf-8"
+            ) as arquivo:
+
+                json.dump(
+                    configuracao_padrao,
+                    arquivo,
+                    ensure_ascii=False,
+                    indent=4
+                )
+
+            return configuracao_padrao
+
+        with open(
+            ARQUIVO_CHAPAS,
+            "r",
+            encoding="utf-8"
+        ) as arquivo:
+
+            dados = json.load(
+                arquivo
+            )
+
+        if not isinstance(
+            dados,
+            dict
+        ):
+
+            return configuracao_padrao
+
+        if "_PADRAO" not in dados:
+
+            dados["_PADRAO"] = (
+                configuracao_padrao["_PADRAO"]
+            )
+
+        return dados
+
+    except Exception:
+
+        return configuracao_padrao
+
+
+def salvar_configuracao_chapas(
+    configuracao
+):
+
+    with open(
+        ARQUIVO_CHAPAS,
+        "w",
+        encoding="utf-8"
+    ) as arquivo:
+
+        json.dump(
+            configuracao,
+            arquivo,
+            ensure_ascii=False,
+            indent=4
+        )
+
+
+def obter_chapa_material(
+    codigo,
+    configuracao
+):
+
+    codigo = str(
+        codigo
+    )
+
+    dados = configuracao.get(
+        codigo
+    )
+
+    if not isinstance(
+        dados,
+        dict
+    ):
+
+        dados = configuracao.get(
+            "_PADRAO",
+            {
+                "largura": LARGURA_CHAPA_PADRAO,
+                "altura": ALTURA_CHAPA_PADRAO
+            }
+        )
+
+    try:
+
+        largura = float(
+            dados.get(
+                "largura",
+                LARGURA_CHAPA_PADRAO
+            )
+        )
+
+        altura = float(
+            dados.get(
+                "altura",
+                ALTURA_CHAPA_PADRAO
+            )
+        )
+
+    except (
+        ValueError,
+        TypeError
+    ):
+
+        largura = (
+            LARGURA_CHAPA_PADRAO
+        )
+
+        altura = (
+            ALTURA_CHAPA_PADRAO
+        )
+
+    return (
+        largura,
+        altura
+    )
 # ===================================
 # CONFIGURAÇÃO
 # ===================================
@@ -742,6 +880,216 @@ df_final = (
     df_final
     .drop_duplicates()
 )
+# =====================================
+# CONFIGURAÇÃO DE CHAPAS POR MATERIAL
+# =====================================
+
+configuracao_chapas = carregar_configuracao_chapas()
+
+st.markdown("---")
+
+st.subheader(
+    "📐 Configuração de Chapas por Material"
+)
+
+st.caption(
+    "Selecione um material para consultar ou alterar "
+    "a medida da chapa utilizada na otimização."
+)
+
+
+# =====================================
+# IDENTIFICA OS MATERIAIS DA PLANILHA
+# =====================================
+
+if (
+    not df_final.empty
+    and "Produto" in df_final.columns
+):
+
+    materiais_disponiveis = (
+        df_final["Produto"]
+        .dropna()
+        .astype(str)
+        .apply(codigo_material)
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+
+    materiais_disponiveis = sorted(
+        materiais_disponiveis
+    )
+
+else:
+
+    materiais_disponiveis = []
+
+
+# =====================================
+# SELEÇÃO DO MATERIAL
+# =====================================
+
+if materiais_disponiveis:
+
+    material_selecionado = st.selectbox(
+        "🪵 Selecione o material",
+        options=materiais_disponiveis,
+        key="material_chapa_selecionado"
+    )
+
+
+    # =================================
+    # BUSCA A MEDIDA ATUAL
+    # =================================
+
+    largura_atual, altura_atual = (
+        obter_chapa_material(
+            material_selecionado,
+            configuracao_chapas
+        )
+    )
+
+
+    # =================================
+    # MOSTRA A DESCRIÇÃO DO MATERIAL
+    # =================================
+
+    descricao_atual = ""
+
+    try:
+
+        produtos_material = (
+            df_final[
+                df_final["Produto"]
+                .astype(str)
+                .apply(codigo_material)
+                == material_selecionado
+            ]["Produto"]
+            .dropna()
+            .astype(str)
+            .unique()
+        )
+
+        if len(produtos_material) > 0:
+
+            descricao_atual = (
+                produtos_material[0]
+            )
+
+    except Exception:
+
+        descricao_atual = ""
+
+
+    if descricao_atual:
+
+        st.info(
+            f"Material selecionado: "
+            f"**{material_selecionado}** — "
+            f"{descricao_atual}"
+        )
+
+    else:
+
+        st.info(
+            f"Material selecionado: "
+            f"**{material_selecionado}**"
+        )
+
+
+    # =================================
+    # MEDIDAS DA CHAPA
+    # =================================
+
+    col1, col2 = st.columns(2)
+
+
+    with col1:
+
+        nova_largura = st.number_input(
+            "📏 Largura da chapa (mm)",
+            min_value=100.0,
+            max_value=10000.0,
+            value=float(largura_atual),
+            step=1.0,
+            key=(
+                f"largura_chapa_"
+                f"{material_selecionado}"
+            )
+        )
+
+
+    with col2:
+
+        nova_altura = st.number_input(
+            "📐 Altura da chapa (mm)",
+            min_value=100.0,
+            max_value=10000.0,
+            value=float(altura_atual),
+            step=1.0,
+            key=(
+                f"altura_chapa_"
+                f"{material_selecionado}"
+            )
+        )
+
+
+    # =================================
+    # MOSTRA A MEDIDA ATUAL
+    # =================================
+
+    st.write(
+        f"**Medida configurada:** "
+        f"{nova_largura:.0f} × "
+        f"{nova_altura:.0f} mm"
+    )
+
+
+    # =================================
+    # SALVAR
+    # =================================
+
+    if st.button(
+        "💾 Salvar medida deste material",
+        type="primary"
+    ):
+
+        configuracao_chapas[
+            material_selecionado
+        ] = {
+
+            "largura": float(
+                nova_largura
+            ),
+
+            "altura": float(
+                nova_altura
+            )
+
+        }
+
+
+        salvar_configuracao_chapas(
+            configuracao_chapas
+        )
+
+
+        st.success(
+            f"✅ Medida salva para o material "
+            f"**{material_selecionado}**: "
+            f"{nova_largura:.0f} × "
+            f"{nova_altura:.0f} mm"
+        )
+
+
+else:
+
+    st.info(
+        "Nenhum material foi encontrado "
+        "nas planilhas carregadas."
+    )
 
 
 # =====================================
