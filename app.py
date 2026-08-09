@@ -2214,76 +2214,7 @@ if mostrar_mp:
                 theme="streamlit",
                 allow_unsafe_jscode=True
             )
-                        # =====================================
-            # DETALHAR MATERIAL
-            # =====================================
-
-            st.markdown("---")
-
-            st.subheader(
-                "🔍 Detalhar Material"
-            )
-
-            if not resumo.empty:
-
-                materiais = (
-                    resumo["Codigo"]
-                    +
-                    " - "
-                    +
-                    resumo["Descricao"]
-                ).tolist()
-
-                material = st.selectbox(
-                    "Selecione o material",
-                    sorted(
-                        materiais
-                    ),
-                    key="detalhar_material_mp"
-                )
-
-                codigo_selecionado = (
-                    material
-                    .split(
-                        " - "
-                    )[0]
-                )
-
-                detalhe = (
-                    consumo_data[
-                        consumo_data["Codigo"]
-                        ==
-                        codigo_selecionado
-                    ]
-                    .copy()
-                )
-
-                if not detalhe.empty:
-
-                    colunas_exibir = [
-                        "Previsão",
-                        "Pedido",
-                        "Cliente",
-                        "PC",
-                        "Rota",
-                        "Consumo Dia"
-                    ]
-
-                    colunas_exibir = [
-                        coluna
-                        for coluna in colunas_exibir
-                        if coluna in detalhe.columns
-                    ]
-
-                    st.dataframe(
-                        detalhe[
-                            colunas_exibir
-                        ],
-                        use_container_width=True,
-                        hide_index=True
-                    )
-                       
-                        
+                      
             # =================================
             # EXPORTAÇÃO DA MP
             # =================================
