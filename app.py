@@ -2236,11 +2236,12 @@ if mostrar_mp:
                     resumo["Descricao"]
                 ).tolist()
 
-                material = st.selectbox(
+                    material = st.selectbox(
                     "Selecione o material",
                     sorted(
                         materiais
-                    )
+                    ),
+                    key="select_material_detalhamento_mp"
                 )
 
                 codigo_selecionado = (
