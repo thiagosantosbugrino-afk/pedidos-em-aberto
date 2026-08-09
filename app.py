@@ -1614,7 +1614,7 @@ if mostrar_mp:
                 materiais_otimizacao[codigo] = tabela
 
 
-            # =================================
+                        # =================================
             # RESUMO
             # =================================
 
@@ -1629,129 +1629,192 @@ if mostrar_mp:
                 how="left"
             )
 
-            resumo["Descricao"] = resumo["Descricao"].fillna(resumo["Codigo"])
-            resumo["Estoque"] = resumo["Estoque"].fillna(0)
-            resumo["Consumo"] = resumo["Consumo"].fillna(0)
-            resumo["Saldo"] = resumo["Estoque"] - resumo["Consumo"]
+            resumo["Descricao"] = (
+                resumo["Descricao"]
+                .fillna(resumo["Codigo"])
+            )
+
+            resumo["Estoque"] = (
+                resumo["Estoque"]
+                .fillna(0)
+            )
+
+            resumo["Consumo"] = (
+                resumo["Consumo"]
+                .fillna(0)
+            )
+
+            resumo["Saldo"] = (
+                resumo["Estoque"]
+                -
+                resumo["Consumo"]
+            )
 
             # Mostra somente materiais utilizados pelos filtros.
-            resumo = resumo[resumo["Consumo"] > 0].copy()
+            resumo = resumo[
+                resumo["Consumo"] > 0
+            ].copy()
 
             # Remove possíveis cabeçalhos
-            resumo = resumo[~resumo["Codigo"].astype(str).str.contains("CODIG|CÓDIG", case=False, na=False)]
-            resumo = resumo[~resumo["Descricao"].astype(str).str.contains("DESCRI", case=False, na=False)]
+            resumo = resumo[
+                ~resumo["Codigo"]
+                .astype(str)
+                .str.contains(
+                    "CODIG|CÓDIG",
+                    case=False,
+                    na=False
+                )
+            ]
+
+            resumo = resumo[
+                ~resumo["Descricao"]
+                .astype(str)
+                .str.contains(
+                    "DESCRI",
+                    case=False,
+                    na=False
+                )
+            ]
+
 
             # =================================
             # COBERTURA
             # =================================
+
             produz_ate = []
             primeira_falta = []
 
             for _, linha in resumo.iterrows():
+
                 codigo_atual = linha["Codigo"]
                 saldo_atual = linha["Estoque"]
 
-                tabela_material = consumo_data[consumo_data["Codigo"] == codigo_atual].copy()
+                tabela_material = (
+                    consumo_data[
+                        consumo_data["Codigo"]
+                        == codigo_atual
+                    ]
+                    .copy()
+                )
+
                 if "Previsão" in tabela_material.columns:
-                    tabela_material = tabela_material.sort_values("Previsão")
+
+                    tabela_material = (
+                        tabela_material
+                        .sort_values("Previsão")
+                    )
 
                 ultima_data_ok = pd.NaT
                 primeira_data_sem = pd.NaT
 
                 for _, item in tabela_material.iterrows():
+
                     consumo_dia = item["Consumo Dia"]
+
                     if saldo_atual >= consumo_dia:
+
                         saldo_atual -= consumo_dia
+
                         if "Previsão" in item.index:
-                            ultima_data_ok = item["Previsão"]
+
+                            ultima_data_ok = (
+                                item["Previsão"]
+                            )
+
                     else:
+
                         if "Previsão" in item.index:
-                            primeira_data_sem = item["Previsão"]
+
+                            primeira_data_sem = (
+                                item["Previsão"]
+                            )
+
                         break
 
-                produz_ate.append(ultima_data_ok)
-                primeira_falta.append(primeira_data_sem)
+                produz_ate.append(
+                    ultima_data_ok
+                )
 
-            resumo["Produz até"] = produz_ate
-            resumo["Primeira Falta"] = primeira_falta
-                # =====================================
-        # JUNTA RESULTADO DA OTIMIZAÇÃO
-        # =====================================
+                primeira_falta.append(
+                    primeira_data_sem
+                )
 
-        if not resumo_otimizado.empty:
-
-            resumo = resumo.merge(
-
-                resumo_otimizado[
-                    [
-                        "Codigo",
-                        "Qtd Chapas",
-                        "Área Total",
-                        "Área Utilizada",
-                        "Desperdício Total",
-                        "Aproveitamento (%)"
-                    ]
-                ],
-
-                on="Codigo",
-
-                how="left"
-
+            resumo["Produz até"] = (
+                produz_ate
             )
 
-            resumo["Qtd Chapas"] = (
-                resumo["Qtd Chapas"]
-                .fillna(0)
-                .astype(int)
+            resumo["Primeira Falta"] = (
+                primeira_falta
             )
 
-            resumo["Área Total"] = (
-                resumo["Área Total"]
-                .fillna(0)
-                .round(2)
-            )
 
-            resumo["Área Utilizada"] = (
-                resumo["Área Utilizada"]
-                .fillna(0)
-                .round(2)
-            )
+            # =====================================
+            # JUNTA RESULTADO DA OTIMIZAÇÃO
+            # =====================================
 
-            resumo["Desperdício Total"] = (
-                resumo["Desperdício Total"]
-                .fillna(0)
-                .round(2)
-            )
+            if not resumo_otimizado.empty:
 
-            resumo["Aproveitamento (%)"] = (
-                resumo["Aproveitamento (%)"]
-                .fillna(0)
-                .round(2)
-            )
+                resumo = resumo.merge(
+                    resumo_otimizado[
+                        [
+                            "Codigo",
+                            "Qtd Chapas",
+                            "Área Total",
+                            "Área Utilizada",
+                            "Desperdício Total",
+                            "Aproveitamento (%)"
+                        ]
+                    ],
+                    on="Codigo",
+                    how="left"
+                )
 
-        else:
+                resumo["Qtd Chapas"] = (
+                    resumo["Qtd Chapas"]
+                    .fillna(0)
+                    .astype(int)
+                )
 
-            resumo["Qtd Chapas"] = 0
+                resumo["Área Total"] = (
+                    resumo["Área Total"]
+                    .fillna(0)
+                    .round(2)
+                )
 
-            resumo["Área Total"] = 0
+                resumo["Área Utilizada"] = (
+                    resumo["Área Utilizada"]
+                    .fillna(0)
+                    .round(2)
+                )
 
-            resumo["Área Utilizada"] = 0
+                resumo["Desperdício Total"] = (
+                    resumo["Desperdício Total"]
+                    .fillna(0)
+                    .round(2)
+                )
 
-            resumo["Desperdício Total"] = 0
+                resumo["Aproveitamento (%)"] = (
+                    resumo["Aproveitamento (%)"]
+                    .fillna(0)
+                    .round(2)
+                )
 
-            resumo["Aproveitamento (%)"] = 0
+            else:
+
+                resumo["Qtd Chapas"] = 0
+                resumo["Área Total"] = 0
+                resumo["Área Utilizada"] = 0
+                resumo["Desperdício Total"] = 0
+                resumo["Aproveitamento (%)"] = 0
 
 
-                    # =================================
+            # =================================
             # MEDIDA DA CHAPA POR MATERIAL
             # =================================
 
             larguras_chapa = []
-
             alturas_chapa = []
-
             areas_chapa = []
-
 
             for _, linha in resumo.iterrows():
 
@@ -1784,7 +1847,6 @@ if mostrar_mp:
                     area_atual
                 )
 
-
             resumo["Largura Chapa"] = (
                 larguras_chapa
             )
@@ -1799,7 +1861,7 @@ if mostrar_mp:
 
 
             # =================================
-            # CHAPAS OTIMIZADAS + COMPRA NECESSÁRIA
+            # CHAPAS OTIMIZADAS
             # =================================
 
             resumo["Chapas Otimizadas"] = (
@@ -1861,22 +1923,15 @@ if mostrar_mp:
             # =================================
 
             resumo["Status"] = resumo.apply(
-
                 lambda linha:
-
                     "🟢 OK"
-
-                    if
-                    linha["Chapas Estoque"]
-                    >=
-                    linha["Chapas Otimizadas"]
-
-                    else
-
-                    "🔴 Comprar",
-
+                    if (
+                        linha["Chapas Estoque"]
+                        >=
+                        linha["Chapas Otimizadas"]
+                    )
+                    else "🔴 Comprar",
                 axis=1
-
             )
 
 
@@ -1885,25 +1940,17 @@ if mostrar_mp:
             # =================================
 
             for coluna in [
-
                 "Estoque",
-
                 "Consumo",
-
                 "Saldo",
-
+                "Chapas Estoque",
                 "Compra Necessária",
-
                 "Compra c/ Perda"
-
             ]:
 
                 resumo[coluna] = (
-
                     resumo[coluna]
-
                     .round(2)
-
                 )
 
 
@@ -1912,38 +1959,29 @@ if mostrar_mp:
             # =================================
 
             for coluna in [
-
                 "Produz até",
-
                 "Primeira Falta"
-
             ]:
 
                 resumo[coluna] = (
-
                     pd.to_datetime(
-
                         resumo[coluna],
-
                         errors="coerce"
-
                     )
-
                     .dt.strftime(
-
                         "%d/%m/%Y"
-
                     )
-
                     .fillna("")
-
                 )
 
+
             # =====================================
-            # INDICADORES DA MP (corrigido)
+            # INDICADORES DA MP
             # =====================================
 
-            col1, col2, col3, col4, col5 = st.columns(5)
+            col1, col2, col3, col4, col5 = (
+                st.columns(5)
+            )
 
             col1.metric(
                 "📦 Materiais",
@@ -1953,11 +1991,18 @@ if mostrar_mp:
             col2.metric(
                 "🔴 Comprar",
                 int(
-                    (resumo["Status"] == "🔴 Comprar").sum()
+                    (
+                        resumo["Status"]
+                        ==
+                        "🔴 Comprar"
+                    ).sum()
                 )
             )
 
-            total_compra = int(resumo["Qtd Chapas"].sum())
+            total_compra = int(
+                resumo["Qtd Chapas"].sum()
+            )
+
             col3.metric(
                 "🧱 Total Chapas",
                 total_compra
@@ -1966,18 +2011,27 @@ if mostrar_mp:
             col4.metric(
                 "⚠️ Falta Material",
                 int(
-                    (resumo["Primeira Falta"] != "").sum()
+                    (
+                        resumo["Primeira Falta"]
+                        !=
+                        ""
+                    ).sum()
                 )
             )
 
             col5.metric(
                 "🟢 OK",
                 int(
-                    (resumo["Status"] == "🟢 OK").sum()
+                    (
+                        resumo["Status"]
+                        ==
+                        "🟢 OK"
+                    ).sum()
                 )
             )
 
-                                  # =====================================
+
+            # =====================================
             # COLUNAS DA TABELA
             # =====================================
 
@@ -1999,28 +2053,53 @@ if mostrar_mp:
                 "Status"
             ]
 
-            # 🔹 Colunas ocultas somente na visualização
+
+            # =====================================
+            # COLUNAS OCULTAS
+            # =====================================
+
+            # Mantemos visíveis:
+            # Codigo
+            # Descricao
+            # Estoque
+            # Consumo
+            # Saldo
+            # Produz até
+            # Primeira Falta
+            # Compra Necessária
+            # Compra c/ Perda
+            # Qtd Chapas
+            # Status
+
             colunas_ocultas = [
-                "Compra Necessária",
+                "Área Total",
                 "Área Utilizada",
                 "Desperdício Total",
-                "Codigo",
-                "Qtd Chapas"  # oculta o total bruto de chapas
+                "Aproveitamento (%)"
             ]
+
 
             colunas_exibir = [
                 coluna
                 for coluna in colunas_tabela
-                if coluna not in colunas_ocultas
+                if coluna
+                not in colunas_ocultas
             ]
 
-            # Cria cópia somente para exibição
+
+            # =====================================
+            # PREPARA TABELA
+            # =====================================
+
             tabela = resumo.copy()
 
-            # Remove linhas totalmente vazias
-            tabela = tabela.dropna(how="all")
+            tabela = (
+                tabela
+                .dropna(
+                    how="all"
+                )
+            )
 
-            # Remove materiais sem estoque, sem consumo e sem saldo
             tabela = tabela[
                 (tabela["Estoque"] != 0)
                 |
@@ -2029,28 +2108,59 @@ if mostrar_mp:
                 (tabela["Saldo"] != 0)
             ]
 
-            # Mantém a ordem original e oculta somente as escolhidas
-            tabela = tabela[colunas_exibir]
 
-            gb = GridOptionsBuilder.from_dataframe(tabela)
+            # Mantém somente as colunas
+            # escolhidas para visualização.
+
+            tabela = tabela[
+                colunas_exibir
+            ]
+
+
+            # =====================================
+            # CONFIGURAÇÃO DO AGGRID
+            # =====================================
+
+            gb = (
+                GridOptionsBuilder
+                .from_dataframe(
+                    tabela
+                )
+            )
 
             gb.configure_default_column(
                 editable=False,
                 sortable=True,
                 filter=True,
                 resizable=True,
-                cellStyle={"textAlign": "center"},
-                headerClass="ag-center-header"
+                cellStyle={
+                    "textAlign": "center"
+                },
+                headerClass=(
+                    "ag-center-header"
+                )
             )
 
+
             for coluna in tabela.columns:
+
                 gb.configure_column(
                     coluna,
-                    cellStyle={"textAlign": "center"},
-                    headerClass="ag-center-header"
+                    cellStyle={
+                        "textAlign": "center"
+                    },
+                    headerClass=(
+                        "ag-center-header"
+                    )
                 )
 
+
             gridOptions = gb.build()
+
+
+            # =====================================
+            # EXIBE A TABELA DE MATÉRIA-PRIMA
+            # =====================================
 
             AgGrid(
                 tabela,
@@ -2058,16 +2168,13 @@ if mostrar_mp:
                 fit_columns_on_grid_load=True,
                 height=650,
                 theme="streamlit",
-                allow_unsafe_jscode=True,
+                allow_unsafe_jscode=True
             )
 
 
             # =====================================
             # DETALHAR MATERIAL
             # =====================================
-                        
-
-
 
             st.markdown("---")
 
@@ -2078,173 +2185,88 @@ if mostrar_mp:
             if not resumo.empty:
 
                 materiais = (
-
                     resumo["Codigo"]
-
                     +
-
                     " - "
-
                     +
-
                     resumo["Descricao"]
-
                 ).tolist()
 
-                material = (
-
-                    st.selectbox(
-
-                        "Selecione o material",
-
-                        sorted(
-
-                            materiais
-
-                        )
-
+                material = st.selectbox(
+                    "Selecione o material",
+                    sorted(
+                        materiais
                     )
-
                 )
 
                 codigo_selecionado = (
-
                     material
-
                     .split(
-
                         " - "
-
                     )[0]
-
                 )
 
                 detalhe = (
-
                     consumo_data[
-
-                        consumo_data[
-
-                            "Codigo"
-
-                        ]
-
+                        consumo_data["Codigo"]
                         ==
-
                         codigo_selecionado
-
                     ]
-
                     .copy()
-
                 )
 
-                if (
-                    "Previsão"
-                    in detalhe.columns
-                ):
+                if "Previsão" in detalhe.columns:
 
                     detalhe = (
-
                         detalhe
-
                         .sort_values(
-
                             "Previsão"
-
                         )
-
                     )
 
-                    detalhe[
-
-                        "Previsão"
-
-                    ] = (
-
-                        detalhe[
-
-                            "Previsão"
-
-                        ]
-
+                    detalhe["Previsão"] = (
+                        detalhe["Previsão"]
                         .dt.strftime(
-
                             "%d/%m/%Y"
-
                         )
-
                     )
 
-                detalhe[
-
-                    "Consumo Dia"
-
-                ] = (
-
-                    detalhe[
-
-                        "Consumo Dia"
-
-                    ]
-
+                detalhe["Consumo Dia"] = (
+                    detalhe["Consumo Dia"]
                     .round(2)
-
                 )
 
                 colunas_exibir = [
-
                     coluna
-
                     for coluna in [
-
                         "Previsão",
-
                         "Pedido",
-
                         "Cliente",
-
                         "PC",
-
                         "Rota",
-
                         "Consumo Dia"
-
                     ]
-
                     if coluna
-
                     in detalhe.columns
-
                 ]
 
                 st.dataframe(
-
                     detalhe[
-
                         colunas_exibir
-
                     ],
-
                     use_container_width=True,
-
                     hide_index=True,
-
                     height=350
-
                 )
 
             else:
 
                 st.info(
-
                     "Nenhum material foi "
-
                     "encontrado nos filtros "
-
                     "selecionados."
-
                 )
+
 
             # =================================
             # EXPORTAÇÃO DA MP
@@ -2255,61 +2277,35 @@ if mostrar_mp:
             )
 
             with pd.ExcelWriter(
-
                 excel_mp,
-
                 engine="openpyxl"
-
             ) as writer:
 
                 resumo.to_excel(
-
                     writer,
-
                     sheet_name=(
-
                         "Matéria-Prima"
-
                     ),
-
                     index=False
-
                 )
 
             st.download_button(
-
                 label=(
-
                     "📥 Baixar "
-
                     "Matéria-Prima"
-
                 ),
-
                 data=(
-
                     excel_mp.getvalue()
-
                 ),
-
                 file_name=(
-
                     "Materia_Prima.xlsx"
-
                 ),
-
                 mime=(
-
                     "application/"
-
                     "vnd.openxmlformats-"
-
                     "officedocument."
-
                     "spreadsheetml.sheet"
-
                 )
-
             )
 
 
