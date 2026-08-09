@@ -1860,9 +1860,13 @@ if mostrar_mp:
             )
 
 
-            # =================================
+                        # =================================
             # CHAPAS OTIMIZADAS
             # =================================
+
+            # Resultado bruto da otimização.
+            # Representa quantas chapas são necessárias
+            # para produzir todas as peças do material.
 
             resumo["Chapas Otimizadas"] = (
                 resumo["Qtd Chapas"]
@@ -1873,6 +1877,12 @@ if mostrar_mp:
             # CHAPAS EM ESTOQUE
             # =================================
 
+            # Converte o estoque existente em
+            # quantidade equivalente de chapas.
+            #
+            # A área da chapa é individual para
+            # cada material.
+
             resumo["Chapas Estoque"] = (
                 resumo["Estoque"]
                 /
@@ -1881,10 +1891,17 @@ if mostrar_mp:
 
 
             # =================================
-            # COMPRA NECESSÁRIA
+            # QTD CHAPAS PARA COMPRAR
             # =================================
 
-            resumo["Compra Necessária"] = (
+            # Desconta do resultado da otimização
+            # as chapas equivalentes existentes
+            # no estoque.
+            #
+            # Como chapa não pode ser comprada
+            # fracionada, arredonda para cima.
+
+            resumo["Qtd Chapas"] = (
                 resumo["Chapas Otimizadas"]
                 -
                 resumo["Chapas Estoque"]
@@ -1898,8 +1915,28 @@ if mostrar_mp:
 
 
             # =================================
+            # COMPRA NECESSÁRIA
+            # =================================
+
+            # Converte a quantidade de chapas
+            # que precisa ser comprada em m².
+            #
+            # A conversão utiliza a área da chapa
+            # específica de cada material.
+
+            resumo["Compra Necessária"] = (
+                resumo["Qtd Chapas"]
+                *
+                resumo["Área Chapa"]
+            ).round(2)
+
+
+            # =================================
             # COMPRA COM PERDA
             # =================================
+
+            # Área adicional necessária considerando
+            # o desperdício calculado pela otimização.
 
             resumo["Compra c/ Perda"] = (
                 (
@@ -1907,17 +1944,22 @@ if mostrar_mp:
                     -
                     resumo["Estoque"]
                 )
-                /
-                resumo["Área Chapa"]
             ).clip(
                 lower=0
-            ).apply(
-                lambda valor: int(
-                    math.ceil(valor)
-                )
+            ).round(2)
+
+
+            # =================================
+            # STATUS
+            # =================================
+
+            resumo["Status"] = resumo.apply(
+                lambda linha:
+                    "🟢 OK"
+                    if linha["Qtd Chapas"] == 0
+                    else "🔴 Comprar",
+                axis=1
             )
-
-
             # =================================
             # STATUS
             # =================================
