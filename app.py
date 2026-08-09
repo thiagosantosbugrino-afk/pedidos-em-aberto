@@ -2236,7 +2236,7 @@ if mostrar_mp:
                     resumo["Descricao"]
                 ).tolist()
 
-                    material = st.selectbox(
+                                    material = st.selectbox(
                     "Selecione o material",
                     sorted(
                         materiais
