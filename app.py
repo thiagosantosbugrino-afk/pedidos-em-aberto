@@ -1467,62 +1467,65 @@ if mostrar_mp:
                 )
 
                        
-            # =================================
-            # EXECUTA A OTIMIZAÇÃO
-            # =================================
-    
+                    # =================================
+        # EXECUTA A OTIMIZAÇÃO
+        # =================================
+
         resultado_otimizacao = otimizar_lista(
             lista_otimizacao,
             configuracao_chapas
         )
 
         resumo_otimizado = pd.DataFrame(
-            resumo_otimizacao(resultado_otimizacao)
+            resumo_otimizacao(
+                resultado_otimizacao
+            )
         )
 
-            colunas = [
-                "Codigo",
-                "Qtd Chapas",
-                "Área Total",
-                "Área Utilizada",
-                "Desperdício Total",
-                "Aproveitamento (%)"
-            ]
+        colunas = [
+            "Codigo",
+            "Qtd Chapas",
+            "Área Total",
+            "Área Utilizada",
+            "Desperdício Total",
+            "Aproveitamento (%)"
+        ]
 
-            for coluna in colunas:
-                if coluna not in resumo_otimizado.columns:
-                    resumo_otimizado[coluna] = 0
+        for coluna in colunas:
 
-            resumo_otimizado["Qtd Chapas"] = (
-                resumo_otimizado["Qtd Chapas"]
-                .fillna(0)
-                .astype(int)
-            )
+            if coluna not in resumo_otimizado.columns:
 
-            resumo_otimizado["Área Total"] = (
-                resumo_otimizado["Área Total"]
-                .fillna(0)
-                .round(2)
-            )
+                resumo_otimizado[coluna] = 0
 
-            resumo_otimizado["Área Utilizada"] = (
-                resumo_otimizado["Área Utilizada"]
-                .fillna(0)
-                .round(2)
-            )
+        resumo_otimizado["Qtd Chapas"] = (
+            resumo_otimizado["Qtd Chapas"]
+            .fillna(0)
+            .astype(int)
+        )
 
-            resumo_otimizado["Desperdício Total"] = (
-                resumo_otimizado["Desperdício Total"]
-                .fillna(0)
-                .round(2)
-            )
+        resumo_otimizado["Área Total"] = (
+            resumo_otimizado["Área Total"]
+            .fillna(0)
+            .round(2)
+        )
 
-            resumo_otimizado["Aproveitamento (%)"] = (
-                resumo_otimizado["Aproveitamento (%)"]
-                .fillna(0)
-                .round(2)
-            )
+        resumo_otimizado["Área Utilizada"] = (
+            resumo_otimizado["Área Utilizada"]
+            .fillna(0)
+            .round(2)
+        )
 
+        resumo_otimizado["Desperdício Total"] = (
+            resumo_otimizado["Desperdício Total"]
+            .fillna(0)
+            .round(2)
+        )
+
+        resumo_otimizado["Aproveitamento (%)"] = (
+            resumo_otimizado["Aproveitamento (%)"]
+            .fillna(0)
+            .round(2)
+        )
             # =================================
             # EXIBE RESUMO OTIMIZADO
             # =================================
