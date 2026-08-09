@@ -1548,22 +1548,8 @@ if mostrar_mp:
                 hide_index=True
             )
 
-
+        
         # =================================
-        # TESTE DAS PEÇAS
-        # =================================
-
-        with st.expander(
-            "🧪 Teste das Peças"
-        ):
-
-            st.dataframe(
-                pecas,
-                use_container_width=True,
-                hide_index=True,
-                height=300
-            )
-                    # =================================
         # AGRUPA PEÇAS POR MATERIAL
         # =================================
 
@@ -2115,11 +2101,6 @@ if mostrar_mp:
                 "% Perda",
                 "Status"
             ]
-
-
-            # =====================================
-            # QTD CHAPAS OTIMIZADAS
-            # =====================================
 
             # =====================================
             # QTD CHAPAS OTIMIZADAS
