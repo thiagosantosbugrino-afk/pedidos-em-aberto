@@ -1241,248 +1241,297 @@ if mostrar_mp:
             )
 
 
-        # =====================================
+               # =====================================
         # CONSUMO POR DATA
         # =====================================
-        
-        
-        
 
-        
+        colunas_detalhe = [
+            "Previsão",
+            "Produto",
+            "Pedido",
+            "Cliente",
+            "PC",
+            "Rota",
+            "M2 Vendido"
+        ]
 
-            colunas_detalhe = [
+        colunas_existentes = [
+            coluna
+            for coluna in colunas_detalhe
+            if coluna in df_final.columns
+        ]
 
-                "Previsão",
-
-                "Produto",
-
-                "Pedido",
-
-                "Cliente",
-
-                "PC",
-
-                "Rota",
-
-                "M2 Vendido"
-
+        consumo_data = (
+            df_final[
+                colunas_existentes
             ]
+            .copy()
+        )
 
-            colunas_existentes = [
-
-                coluna
-
-                for coluna
-                in colunas_detalhe
-
-                if coluna
-                in df_final.columns
-
+        consumo_data["Codigo"] = (
+            consumo_data[
+                "Produto"
             ]
+            .apply(
+                codigo_material
+            )
+        )
+
+        consumo_data["Consumo Dia"] = (
+            pd.to_numeric(
+                consumo_data[
+                    "M2 Vendido"
+                ],
+                errors="coerce"
+            )
+            .fillna(0)
+        )
+
+        if "Previsão" in consumo_data.columns:
 
             consumo_data = (
-                df_final[
-                    colunas_existentes
-                ]
-                .copy()
-            )
-
-            consumo_data["Codigo"] = (
-                consumo_data[
-                    "Produto"
-                ]
-                .apply(
-                    codigo_material
-                )
-            )
-
-            consumo_data[
-                "Consumo Dia"
-            ] = (
-
-                pd.to_numeric(
-                    consumo_data[
-                        "M2 Vendido"
-                    ],
-                    errors="coerce"
-                )
-                .fillna(0)
-
-            )
-
-            if (
-                "Previsão"
-                in consumo_data.columns
-            ):
-
-                consumo_data = (
-                    consumo_data
-                    .sort_values(
-                        [
-                            "Codigo",
-                            "Previsão"
-                        ]
-                    )
-                )
-            # =================================
-            # PEÇAS PARA OTIMIZAÇÃO
-            # =================================
-
-            colunas_pecas = [
-
-                "Produto",
-
-                "Pedido",
-
-                "Cliente",
-
-                "PC",
-
-                "Rota",
-
-                "Largura",
-
-                "Altura"
-
-            ]
-
-            colunas_pecas = [
-
-                c
-
-                for c in colunas_pecas
-
-                if c in df_final.columns
-
-            ]
-
-            pecas = (
-
-                df_final[
-                    colunas_pecas
-                ]
-
-                .copy()
-
-            )
-
-            pecas["Codigo"] = (
-
-                pecas["Produto"]
-
-                .apply(
-
-                    codigo_material
-
-                )
-
-            )
-
-            pecas["Largura"] = (
-
-                pd.to_numeric(
-
-                    pecas["Largura"],
-
-                    errors="coerce"
-
-                )
-
-            )
-
-            pecas["Altura"] = (
-
-                pd.to_numeric(
-
-                    pecas["Altura"],
-
-                    errors="coerce"
-
-                )
-
-            )
-
-            pecas = (
-
-                pecas
-
-                .dropna(
-
-                    subset=[
-
-                        "Largura",
-
-                        "Altura"
-
+                consumo_data
+                .sort_values(
+                    [
+                        "Codigo",
+                        "Previsão"
                     ]
+                )
+            )
 
+
+        # =================================
+        # PEÇAS PARA OTIMIZAÇÃO
+        # =================================
+
+        colunas_pecas = [
+            "Produto",
+            "Pedido",
+            "Cliente",
+            "PC",
+            "Rota",
+            "Largura",
+            "Altura"
+        ]
+
+        colunas_pecas = [
+            coluna
+            for coluna in colunas_pecas
+            if coluna in df_final.columns
+        ]
+
+        pecas = (
+            df_final[
+                colunas_pecas
+            ]
+            .copy()
+        )
+
+        pecas["Codigo"] = (
+            pecas["Produto"]
+            .apply(
+                codigo_material
+            )
+        )
+
+        pecas["Largura"] = (
+            pd.to_numeric(
+                pecas["Largura"],
+                errors="coerce"
+            )
+        )
+
+        pecas["Altura"] = (
+            pd.to_numeric(
+                pecas["Altura"],
+                errors="coerce"
+            )
+        )
+
+        pecas = (
+            pecas
+            .dropna(
+                subset=[
+                    "Largura",
+                    "Altura"
+                ]
+            )
+        )
+
+
+        # =================================
+        # PREPARAÇÃO PARA O CORTE
+        # =================================
+
+        # Acrescenta 4 mm para lapidação
+
+        pecas["Largura Corte"] = (
+            pecas["Largura"] + 4
+        )
+
+        pecas["Altura Corte"] = (
+            pecas["Altura"] + 4
+        )
+
+        # Área da peça em m²
+
+        pecas["Área"] = (
+            pecas["Largura Corte"]
+            *
+            pecas["Altura Corte"]
+        ) / 1000000
+
+
+        # =================================
+        # TAMANHO UTILIZADO NO ENCAIXE
+        # =================================
+
+        # O cálculo da distância mínima
+        # é feito somente no otimizador.py.
+
+        pecas["Largura Encaixe"] = (
+            pecas["Largura Corte"]
+        )
+
+        pecas["Altura Encaixe"] = (
+            pecas["Altura Corte"]
+        )
+
+
+        # =====================================
+        # MONTA LISTA PARA OTIMIZAÇÃO
+        # =====================================
+
+        lista_otimizacao = []
+
+        for _, linha in pecas.iterrows():
+
+            largura = float(
+                linha["Largura Encaixe"]
+            )
+
+            altura = float(
+                linha["Altura Encaixe"]
+            )
+
+            if altura > largura:
+
+                largura, altura = (
+                    altura,
+                    largura
                 )
 
-            )
-            # =================================
-            # PREPARAÇÃO PARA O CORTE
-            # =================================
-
-            # Acrescenta 4 mm para lapidação
-            pecas["Largura Corte"] = pecas["Largura"] + 4
-            pecas["Altura Corte"] = pecas["Altura"] + 4
-
-            # Área da peça em m²
-            pecas["Área"] = (
-                pecas["Largura Corte"] * pecas["Altura Corte"]
-            ) / 1000000
-
-            # =================================
-            # TAMANHO UTILIZADO NO ENCAIXE
-            # =================================
-            # ⚠️ Agora não somamos mais a distância mínima aqui.
-            # O cálculo de distância mínima será feito apenas no otimizador.py
-
-            pecas["Largura Encaixe"] = pecas["Largura Corte"]
-            pecas["Altura Encaixe"] = pecas["Altura Corte"]
-
-            # =====================================
-            # MONTA LISTA PARA OTIMIZAÇÃO
-            # =====================================
-
-            lista_otimizacao = []
-
-            for _, linha in pecas.iterrows():
-                largura = float(linha["Largura Encaixe"])
-                altura = float(linha["Altura Encaixe"])
-
-                if altura > largura:
-                    largura, altura = altura, largura
-
-                lista_otimizacao.append(
-                    Peca(
-                        codigo=str(linha["Codigo"]),
-                        largura=largura,
-                        altura=altura,
-                        pedido=str(linha.get("Pedido", "")),
-                        cliente=str(linha.get("Cliente", "")),
-                        pc=str(linha.get("PC", "")),
-                        rota=str(linha.get("Rota", ""))
+            lista_otimizacao.append(
+                Peca(
+                    codigo=str(
+                        linha["Codigo"]
+                    ),
+                    largura=largura,
+                    altura=altura,
+                    pedido=str(
+                        linha.get(
+                            "Pedido",
+                            ""
+                        )
+                    ),
+                    cliente=str(
+                        linha.get(
+                            "Cliente",
+                            ""
+                        )
+                    ),
+                    pc=str(
+                        linha.get(
+                            "PC",
+                            ""
+                        )
+                    ),
+                    rota=str(
+                        linha.get(
+                            "Rota",
+                            ""
+                        )
                     )
                 )
-
-                       
-                                       # =================================
-            # EXECUTA A OTIMIZAÇÃO
-            # =================================
-
-            resultado_otimizacao = otimizar_lista(
-                lista_otimizacao,
-                configuracao_chapas
             )
 
-            resumo_otimizado = pd.DataFrame(
-                resumo_otimizacao(
-                    resultado_otimizacao
-                )
-            )
 
-            colunas = [
+        # =================================
+        # EXECUTA A OTIMIZAÇÃO
+        # =================================
+
+        resultado_otimizacao = otimizar_lista(
+            lista_otimizacao,
+            configuracao_chapas
+        )
+
+        resumo_otimizado = pd.DataFrame(
+            resumo_otimizacao(
+                resultado_otimizacao
+            )
+        )
+
+
+        # =================================
+        # GARANTE AS COLUNAS DO RESUMO
+        # =================================
+
+        colunas = [
+            "Codigo",
+            "Qtd Chapas",
+            "Área Total",
+            "Área Utilizada",
+            "Desperdício Total",
+            "Aproveitamento (%)"
+        ]
+
+        for coluna in colunas:
+
+            if coluna not in resumo_otimizado.columns:
+
+                resumo_otimizado[coluna] = 0
+
+
+        resumo_otimizado["Qtd Chapas"] = (
+            resumo_otimizado["Qtd Chapas"]
+            .fillna(0)
+            .astype(int)
+        )
+
+        resumo_otimizado["Área Total"] = (
+            resumo_otimizado["Área Total"]
+            .fillna(0)
+            .round(2)
+        )
+
+        resumo_otimizado["Área Utilizada"] = (
+            resumo_otimizado["Área Utilizada"]
+            .fillna(0)
+            .round(2)
+        )
+
+        resumo_otimizado["Desperdício Total"] = (
+            resumo_otimizado["Desperdício Total"]
+            .fillna(0)
+            .round(2)
+        )
+
+        resumo_otimizado["Aproveitamento (%)"] = (
+            resumo_otimizado["Aproveitamento (%)"]
+            .fillna(0)
+            .round(2)
+        )
+
+
+        # =================================
+        # EXIBE RESUMO OTIMIZADO
+        # =================================
+
+        with st.expander(
+            "📋 Resumo da Otimização"
+        ):
+
+            colunas_visiveis = [
                 "Codigo",
                 "Qtd Chapas",
                 "Área Total",
@@ -1491,96 +1540,30 @@ if mostrar_mp:
                 "Aproveitamento (%)"
             ]
 
-            for coluna in colunas:
-
-                if coluna not in resumo_otimizado.columns:
-
-                    resumo_otimizado[coluna] = 0
-
-            resumo_otimizado["Qtd Chapas"] = (
-                resumo_otimizado["Qtd Chapas"]
-                .fillna(0)
-                .astype(int)
+            st.dataframe(
+                resumo_otimizado[
+                    colunas_visiveis
+                ],
+                use_container_width=True,
+                hide_index=True
             )
 
-            resumo_otimizado["Área Total"] = (
-                resumo_otimizado["Área Total"]
-                .fillna(0)
-                .round(2)
+
+        # =================================
+        # TESTE DAS PEÇAS
+        # =================================
+
+        with st.expander(
+            "🧪 Teste das Peças"
+        ):
+
+            st.dataframe(
+                pecas,
+                use_container_width=True,
+                hide_index=True,
+                height=300
             )
-
-            resumo_otimizado["Área Utilizada"] = (
-                resumo_otimizado["Área Utilizada"]
-                .fillna(0)
-                .round(2)
-            )
-
-            resumo_otimizado["Desperdício Total"] = (
-                resumo_otimizado["Desperdício Total"]
-                .fillna(0)
-                .round(2)
-            )
-
-            resumo_otimizado["Aproveitamento (%)"] = (
-                resumo_otimizado["Aproveitamento (%)"]
-                .fillna(0)
-                .round(2)
-            )
-
-            # =================================
-            # EXIBE RESUMO OTIMIZADO
-            # =================================
-
-            with st.expander(
-                "📋 Resumo da Otimização"
-            ):
-
-                # Lista de colunas visíveis
-                # (oculta "Compra c/ Perda" apenas na visualização)
-
-                colunas_visiveis = [
-                    "Codigo",
-                    "Qtd Chapas",
-                    "Área Total",
-                    "Área Utilizada",
-                    "Desperdício Total",
-                    "Aproveitamento (%)"
-                ]
-
-                st.dataframe(
-                    resumo_otimizado[
-                        colunas_visiveis
-                    ],
-                    use_container_width=True,
-                    hide_index=True
-                )
-
-            # =================================
-            # TESTE DAS PEÇAS
-            # =================================
-
-            with st.expander(
-                "🧪 Teste das Peças"
-            ):
-
-                st.dataframe(
-                    pecas,
-                    use_container_width=True,
-                    hide_index=True,
-                    height=300
-                )
-
-            with st.expander(
-                "🧪 Teste das Peças"
-            ):
-
-                st.dataframe(
-                    pecas,
-                    use_container_width=True,
-                    hide_index=True,
-                    height=300
-                )
-                        # =================================
+                    # =================================
         # AGRUPA PEÇAS POR MATERIAL
         # =================================
 
@@ -1608,7 +1591,9 @@ if mostrar_mp:
                 )
             )
 
-            materiais_otimizacao[codigo] = tabela
+            materiais_otimizacao[codigo] = (
+                tabela
+            )
 
 
         # =================================
@@ -1628,7 +1613,9 @@ if mostrar_mp:
 
         resumo["Descricao"] = (
             resumo["Descricao"]
-            .fillna(resumo["Codigo"])
+            .fillna(
+                resumo["Codigo"]
+            )
         )
 
         resumo["Estoque"] = (
@@ -1647,11 +1634,14 @@ if mostrar_mp:
             resumo["Consumo"]
         )
 
-        # Mostra somente materiais utilizados pelos filtros.
+
+        # Mostra somente materiais
+        # utilizados pelos filtros.
 
         resumo = resumo[
             resumo["Consumo"] > 0
         ].copy()
+
 
         # Remove possíveis cabeçalhos.
 
@@ -1685,8 +1675,13 @@ if mostrar_mp:
 
         for _, linha in resumo.iterrows():
 
-            codigo_atual = linha["Codigo"]
-            saldo_atual = linha["Estoque"]
+            codigo_atual = (
+                linha["Codigo"]
+            )
+
+            saldo_atual = (
+                linha["Estoque"]
+            )
 
             tabela_material = (
                 consumo_data[
@@ -1696,7 +1691,10 @@ if mostrar_mp:
                 .copy()
             )
 
-            if "Previsão" in tabela_material.columns:
+            if (
+                "Previsão"
+                in tabela_material.columns
+            ):
 
                 tabela_material = (
                     tabela_material
@@ -1708,19 +1706,29 @@ if mostrar_mp:
             ultima_data_ok = pd.NaT
             primeira_data_sem = pd.NaT
 
-            for _, item in tabela_material.iterrows():
 
-                consumo_dia = item[
-                    "Consumo Dia"
-                ]
+            for _, item in (
+                tabela_material.iterrows()
+            ):
 
-                if saldo_atual >= consumo_dia:
+                consumo_dia = (
+                    item["Consumo Dia"]
+                )
+
+                if (
+                    saldo_atual
+                    >=
+                    consumo_dia
+                ):
 
                     saldo_atual -= (
                         consumo_dia
                     )
 
-                    if "Previsão" in item.index:
+                    if (
+                        "Previsão"
+                        in item.index
+                    ):
 
                         ultima_data_ok = (
                             item["Previsão"]
@@ -1728,13 +1736,17 @@ if mostrar_mp:
 
                 else:
 
-                    if "Previsão" in item.index:
+                    if (
+                        "Previsão"
+                        in item.index
+                    ):
 
                         primeira_data_sem = (
                             item["Previsão"]
                         )
 
                     break
+
 
             produz_ate.append(
                 ultima_data_ok
@@ -1743,6 +1755,7 @@ if mostrar_mp:
             primeira_falta.append(
                 primeira_data_sem
             )
+
 
         resumo["Produz até"] = (
             produz_ate
@@ -1821,6 +1834,7 @@ if mostrar_mp:
         alturas_chapa = []
         areas_chapa = []
 
+
         for _, linha in resumo.iterrows():
 
             codigo_atual = str(
@@ -1852,6 +1866,7 @@ if mostrar_mp:
                 area_atual
             )
 
+
         resumo["Largura Chapa"] = (
             larguras_chapa
         )
@@ -1863,15 +1878,12 @@ if mostrar_mp:
         resumo["Área Chapa"] = (
             areas_chapa
         )
-
-
-        # =================================
+                # =================================
         # CHAPAS OTIMIZADAS
         # =================================
 
-        # Resultado bruto da otimização.
-        # Representa a quantidade de chapas
-        # realmente utilizada pelo otimizador.
+        # Quantidade de chapas realmente
+        # utilizadas pelo resultado da otimização.
 
         resumo["Chapas Otimizadas"] = (
             resumo["Qtd Chapas"]
@@ -1884,8 +1896,6 @@ if mostrar_mp:
 
         # Converte o estoque existente em
         # quantidade equivalente de chapas.
-        #
-        # A área é específica para cada material.
 
         resumo["Chapas Estoque"] = (
             resumo["Estoque"]
@@ -1902,8 +1912,8 @@ if mostrar_mp:
         # a quantidade equivalente existente
         # no estoque.
         #
-        # Como não é possível comprar uma
-        # fração de chapa, arredonda para cima.
+        # Como a compra é feita em chapas inteiras,
+        # arredonda sempre para cima.
 
         resumo["Qtd Chapas a Comprar"] = (
             resumo["Chapas Otimizadas"]
@@ -1922,6 +1932,9 @@ if mostrar_mp:
         # COMPRA NECESSÁRIA
         # =================================
 
+        # Mantida para cálculo interno.
+        # Esta coluna será ocultada na tabela.
+
         resumo["Compra Necessária"] = (
             resumo["Qtd Chapas a Comprar"]
             *
@@ -1932,6 +1945,9 @@ if mostrar_mp:
         # =================================
         # COMPRA COM PERDA
         # =================================
+
+        # Área total necessária considerando
+        # o resultado da otimização e o estoque.
 
         resumo["Compra c/ Perda"] = (
             (
@@ -1950,6 +1966,9 @@ if mostrar_mp:
         # PERCENTUAL DE PERDA
         # =================================
 
+        # Percentual de desperdício gerado
+        # pela otimização.
+
         resumo["% Perda"] = (
             (
                 resumo["Desperdício Total"]
@@ -1964,6 +1983,8 @@ if mostrar_mp:
             .mul(100)
             .round(2)
         )
+
+
         # =================================
         # STATUS
         # =================================
@@ -1977,51 +1998,48 @@ if mostrar_mp:
         )
 
 
-            
+        # =================================
+        # ARREDONDAMENTO
+        # =================================
+
+        for coluna in [
+            "Estoque",
+            "Consumo",
+            "Saldo",
+            "Chapas Estoque",
+            "Compra Necessária",
+            "Compra c/ Perda"
+        ]:
+
+            resumo[coluna] = (
+                resumo[coluna]
+                .round(2)
+            )
 
 
-            
+        # =================================
+        # FORMATAÇÃO DAS DATAS
+        # =================================
 
-            # =================================
-            # ARREDONDAMENTO
-            # =================================
+        for coluna in [
+            "Produz até",
+            "Primeira Falta"
+        ]:
 
-            for coluna in [
-                "Estoque",
-                "Consumo",
-                "Saldo",
-                "Chapas Estoque",
-                "Compra Necessária",
-                "Compra c/ Perda"
-            ]:
-
-                resumo[coluna] = (
-                    resumo[coluna]
-                    .round(2)
+            resumo[coluna] = (
+                pd.to_datetime(
+                    resumo[coluna],
+                    errors="coerce"
                 )
-
-
-            # =================================
-            # FORMATAÇÃO DAS DATAS
-            # =================================
-
-            for coluna in [
-                "Produz até",
-                "Primeira Falta"
-            ]:
-
-                resumo[coluna] = (
-                    pd.to_datetime(
-                        resumo[coluna],
-                        errors="coerce"
-                    )
-                    .dt.strftime(
-                        "%d/%m/%Y"
-                    )
-                    .fillna("")
+                .dt.strftime(
+                    "%d/%m/%Y"
                 )
+                .fillna("")
+            )
+        
 
 
+        
             # =====================================
             # INDICADORES DA MP
             # =====================================
