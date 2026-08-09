@@ -1652,8 +1652,7 @@ if mostrar_mp:
 
             resumo["Produz até"] = produz_ate
             resumo["Primeira Falta"] = primeira_falta
-
-                   # =====================================
+                # =====================================
         # JUNTA RESULTADO DA OTIMIZAÇÃO
         # =====================================
 
@@ -1738,7 +1737,6 @@ if mostrar_mp:
                 linha["Codigo"]
             )
 
-
             largura_atual, altura_atual = (
                 obter_chapa_material(
                     codigo_atual,
@@ -1746,15 +1744,11 @@ if mostrar_mp:
                 )
             )
 
-
             area_atual = (
-
                 largura_atual
                 *
                 altura_atual
-
             ) / 1_000_000
-
 
             larguras_chapa.append(
                 largura_atual
@@ -1796,11 +1790,9 @@ if mostrar_mp:
         # =================================
 
         resumo["Chapas Estoque"] = (
-
             resumo["Estoque"]
             /
             resumo["Área Chapa"]
-
         )
 
 
@@ -1809,11 +1801,9 @@ if mostrar_mp:
         # =================================
 
         resumo["Compra Necessária"] = (
-
             resumo["Chapas Otimizadas"]
             -
             resumo["Chapas Estoque"]
-
         ).clip(
             lower=0
         ).apply(
@@ -1828,7 +1818,6 @@ if mostrar_mp:
         # =================================
 
         resumo["Compra c/ Perda"] = (
-
             (
                 resumo["Área Total"]
                 -
@@ -1836,7 +1825,6 @@ if mostrar_mp:
             )
             /
             resumo["Área Chapa"]
-
         ).clip(
             lower=0
         ).apply(
@@ -1869,6 +1857,7 @@ if mostrar_mp:
 
         )
 
+                   
             # =================================
             # ARREDONDAMENTO
             # =================================
