@@ -1964,23 +1964,23 @@ if mostrar_mp:
             .mul(100)
             .round(2)
         )
+        # =================================
+        # STATUS
+        # =================================
+
+        resumo["Status"] = resumo.apply(
+            lambda linha:
+                "🟢 OK"
+                if linha["Qtd Chapas a Comprar"] == 0
+                else "🔴 Comprar",
+            axis=1
+        )
 
 
             
 
 
-            # =================================
-            # STATUS
-            # =================================
-
-            resumo["Status"] = resumo.apply(
-                lambda linha:
-                    "🟢 OK"
-                    if linha["Qtd Chapas a Comprar"] == 0
-                    else "🔴 Comprar",
-                axis=1
-            )
-
+            
 
             # =================================
             # ARREDONDAMENTO
