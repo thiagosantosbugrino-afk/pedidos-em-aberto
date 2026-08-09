@@ -1889,98 +1889,98 @@ if mostrar_mp:
         )
 
 
-        # =================================
-        # QTD CHAPAS A COMPRAR
-        # =================================
+                    # =================================
+            # QTD CHAPAS A COMPRAR
+            # =================================
 
-        # Desconta do resultado da otimização
-        # a quantidade equivalente existente
-        # no estoque.
-        #
-        # Como não é possível comprar uma
-        # fração de chapa, arredonda para cima.
+            # Desconta do resultado da otimização
+            # a quantidade equivalente existente
+            # no estoque.
+            #
+            # Como não é possível comprar uma
+            # fração de chapa, arredonda para cima.
 
-        resumo["Qtd Chapas a Comprar"] = (
-            resumo["Chapas Otimizadas"]
-            -
-            resumo["Chapas Estoque"]
-        ).clip(
-            lower=0
-        ).apply(
-            lambda valor: int(
-                math.ceil(valor)
-            )
-        )
-
-
-        # =================================
-        # COMPRA NECESSÁRIA
-        # =================================
-
-        # Converte a quantidade de chapas
-        # que precisa ser comprada em m².
-
-        resumo["Compra Necessária"] = (
-            resumo["Qtd Chapas a Comprar"]
-            *
-            resumo["Área Chapa"]
-        ).round(2)
-
-
-        # =================================
-        # COMPRA COM PERDA
-        # =================================
-
-        # Área total das chapas utilizadas
-        # na otimização, descontando o estoque.
-
-        resumo["Compra c/ Perda"] = (
-            (
-                resumo["Área Total"]
+            resumo["Qtd Chapas a Comprar"] = (
+                resumo["Chapas Otimizadas"]
                 -
-                resumo["Estoque"]
-            )
-            .clip(
+                resumo["Chapas Estoque"]
+            ).clip(
                 lower=0
+            ).apply(
+                lambda valor: int(
+                    math.ceil(valor)
+                )
             )
-            .round(2)
-        )
 
 
-        # =================================
-        # PERCENTUAL DE PERDA
-        # =================================
+            # =================================
+            # COMPRA NECESSÁRIA
+            # =================================
 
-        # Percentual de desperdício gerado
-        # pela otimização.
+            # Converte a quantidade de chapas
+            # que precisa ser comprada em m².
 
-        resumo["% Perda"] = (
-            (
-                resumo["Desperdício Total"]
-                /
-                resumo["Área Total"]
+            resumo["Compra Necessária"] = (
+                resumo["Qtd Chapas a Comprar"]
+                *
+                resumo["Área Chapa"]
+            ).round(2)
+
+
+            # =================================
+            # COMPRA COM PERDA
+            # =================================
+
+            # Área total das chapas utilizadas
+            # na otimização, descontando o estoque.
+
+            resumo["Compra c/ Perda"] = (
+                (
+                    resumo["Área Total"]
+                    -
+                    resumo["Estoque"]
+                )
+                .clip(
+                    lower=0
+                )
+                .round(2)
             )
-            .replace(
-                [math.inf, -math.inf],
-                0
+
+
+            # =================================
+            # PERCENTUAL DE PERDA
+            # =================================
+
+            # Percentual de desperdício gerado
+            # pela otimização.
+
+            resumo["% Perda"] = (
+                (
+                    resumo["Desperdício Total"]
+                    /
+                    resumo["Área Total"]
+                )
+                .replace(
+                    [math.inf, -math.inf],
+                    0
+                )
+                .fillna(0)
+                .mul(100)
+                .round(2)
             )
-            .fillna(0)
-            .mul(100)
-            .round(2)
-        )
 
 
-        # =================================
-        # STATUS
-        # =================================
+            # =================================
+            # STATUS
+            # =================================
 
-        resumo["Status"] = resumo.apply(
-            lambda linha:
-                "🟢 OK"
-                if linha["Qtd Chapas a Comprar"] == 0
-                else "🔴 Comprar",
-            axis=1
-        )
+            resumo["Status"] = resumo.apply(
+                lambda linha:
+                    "🟢 OK"
+                    if linha["Qtd Chapas a Comprar"] == 0
+                    else "🔴 Comprar",
+                axis=1
+            )
 
 
             # =================================
@@ -2048,7 +2048,7 @@ if mostrar_mp:
             )
 
             total_compra = int(
-                resumo["Qtd Chapas"].sum()
+                resumo["Qtd Chapas a Comprar"].sum()
             )
 
             col3.metric(
@@ -2099,6 +2099,10 @@ if mostrar_mp:
                 "Status"
             ]
 
+
+            # =====================================
+            # QTD CHAPAS OTIMIZADAS
+            # =====================================
 
             # =====================================
             # QTD CHAPAS OTIMIZADAS
