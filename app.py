@@ -999,53 +999,54 @@ if materiais_disponiveis:
         )
 
 
-    # =================================
-    # MEDIDAS DA CHAPA
-    # =================================
+   # =================================
+# MEDIDAS DA CHAPA
+# =================================
 
-    col1, col2 = st.columns(2)
+col1, col2 = st.columns(2)
 
 
-    with col1:
+with col1:
 
-        nova_largura = st.number_input(
-            "📏 Largura da chapa (mm)",
-            min_value=100.0,
-            max_value=10000.0,
-            value=float(largura_atual),
-            step=1.0,
-            key=(
-                f"largura_chapa_"
-                f"{material_selecionado}"
-            )
+    nova_largura = st.number_input(
+        "📏 Largura da chapa (mm)",
+        min_value=100,
+        max_value=10000,
+        value=int(largura_atual),
+        step=1,
+        format="%d",
+        key=(
+            f"largura_chapa_"
+            f"{material_selecionado}"
         )
-
-
-    with col2:
-
-        nova_altura = st.number_input(
-            "📐 Altura da chapa (mm)",
-            min_value=100.0,
-            max_value=10000.0,
-            value=float(altura_atual),
-            step=1.0,
-            key=(
-                f"altura_chapa_"
-                f"{material_selecionado}"
-            )
-        )
-
-
-    # =================================
-    # MOSTRA A MEDIDA ATUAL
-    # =================================
-
-    st.write(
-        f"**Medida configurada:** "
-        f"{nova_largura:.0f} × "
-        f"{nova_altura:.0f} mm"
     )
 
+
+with col2:
+
+    nova_altura = st.number_input(
+        "📐 Altura da chapa (mm)",
+        min_value=100,
+        max_value=10000,
+        value=int(altura_atual),
+        step=1,
+        format="%d",
+        key=(
+            f"altura_chapa_"
+            f"{material_selecionado}"
+        )
+    )
+
+
+# =================================
+# MOSTRA A MEDIDA ATUAL
+# =================================
+
+st.write(
+    f"**Medida configurada:** "
+    f"{nova_largura} × "
+    f"{nova_altura} mm"
+)
 
     # =================================
     # SALVAR
