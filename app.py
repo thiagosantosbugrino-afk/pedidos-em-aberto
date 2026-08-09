@@ -1467,15 +1467,18 @@ if mostrar_mp:
                 )
 
                        
-                            # =================================
+            # =================================
             # EXECUTA A OTIMIZAÇÃO
             # =================================
+    
+        resultado_otimizacao = otimizar_lista(
+            lista_otimizacao,
+            configuracao_chapas
+        )
 
-            resultado_otimizacao = otimizar_lista(lista_otimizacao)
-
-            resumo_otimizado = pd.DataFrame(
-                resumo_otimizacao(resultado_otimizacao)
-            )
+        resumo_otimizado = pd.DataFrame(
+            resumo_otimizacao(resultado_otimizacao)
+        )
 
             colunas = [
                 "Codigo",
