@@ -2236,7 +2236,6 @@ if mostrar_mp:
                 height=650,
                 theme="streamlit",
                 allow_unsafe_jscode=True,
-                key="grid_materia_prima_unico"
             )
                       
             # =====================================
