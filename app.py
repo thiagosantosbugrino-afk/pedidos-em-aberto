@@ -886,207 +886,208 @@ df_final = (
 
 configuracao_chapas = carregar_configuracao_chapas()
 
-st.markdown("---")
-
-st.subheader(
-    "📐 Configuração de Chapas por Material"
+mostrar_config_chapas = st.checkbox(
+    "📐 Mostrar Configuração de Chapas",
+    value=False,
+    key="mostrar_config_chapas"
 )
 
-st.caption(
-    "Selecione um material para consultar ou alterar "
-    "a medida da chapa utilizada na otimização."
-)
+if mostrar_config_chapas:
 
+    st.markdown("---")
 
-# =====================================
-# IDENTIFICA OS MATERIAIS DA PLANILHA
-# =====================================
-
-if (
-    not df_final.empty
-    and "Produto" in df_final.columns
-):
-
-    materiais_disponiveis = (
-        df_final["Produto"]
-        .dropna()
-        .astype(str)
-        .apply(codigo_material)
-        .dropna()
-        .astype(str)
-        .unique()
-        .tolist()
+    st.subheader(
+        "📐 Configuração de Chapas por Material"
     )
 
-    materiais_disponiveis = sorted(
-        materiais_disponiveis
+    st.caption(
+        "Selecione um material para consultar ou alterar "
+        "a medida da chapa utilizada na otimização."
     )
 
-else:
+    # =====================================
+    # IDENTIFICA OS MATERIAIS DA PLANILHA
+    # =====================================
 
-    materiais_disponiveis = []
+    if (
+        not df_final.empty
+        and "Produto" in df_final.columns
+    ):
 
-
-# =====================================
-# SELEÇÃO DO MATERIAL
-# =====================================
-
-if materiais_disponiveis:
-
-    material_selecionado = st.selectbox(
-        "🪵 Selecione o material",
-        options=materiais_disponiveis,
-        key="material_chapa_selecionado"
-    )
-
-
-    # =================================
-    # BUSCA A MEDIDA ATUAL
-    # =================================
-
-    largura_atual, altura_atual = (
-        obter_chapa_material(
-            material_selecionado,
-            configuracao_chapas
-        )
-    )
-
-
-    # =================================
-    # MOSTRA A DESCRIÇÃO DO MATERIAL
-    # =================================
-
-    descricao_atual = ""
-
-    try:
-
-        produtos_material = (
-            df_final[
-                df_final["Produto"]
-                .astype(str)
-                .apply(codigo_material)
-                == material_selecionado
-            ]["Produto"]
+        materiais_disponiveis = (
+            df_final["Produto"]
+            .dropna()
+            .astype(str)
+            .apply(codigo_material)
             .dropna()
             .astype(str)
             .unique()
+            .tolist()
         )
 
-        if len(produtos_material) > 0:
-
-            descricao_atual = (
-                produtos_material[0]
-            )
-
-    except Exception:
-
-        descricao_atual = ""
-
-
-    if descricao_atual:
-
-        st.info(
-            f"Material selecionado: "
-            f"**{material_selecionado}** — "
-            f"{descricao_atual}"
+        materiais_disponiveis = sorted(
+            materiais_disponiveis
         )
 
     else:
 
-        st.info(
-            f"Material selecionado: "
-            f"**{material_selecionado}**"
+        materiais_disponiveis = []
+
+    # =====================================
+    # SELEÇÃO DO MATERIAL
+    # =====================================
+
+    if materiais_disponiveis:
+
+        material_selecionado = st.selectbox(
+            "🪵 Selecione o material",
+            options=materiais_disponiveis,
+            key="material_chapa_selecionado"
         )
+
         # =================================
-# MEDIDAS DA CHAPA
-# =================================
+        # BUSCA A MEDIDA ATUAL
+        # =================================
 
-col1, col2 = st.columns(2)
-
-with col1:
-
-    nova_largura = st.number_input(
-        "📏 Largura da chapa (mm)",
-        min_value=100,
-        max_value=10000,
-        value=int(largura_atual),
-        step=1,
-        format="%d",
-        key=(
-            f"largura_chapa_"
-            f"{material_selecionado}"
-        )
-    )
-
-with col2:
-
-    nova_altura = st.number_input(
-        "📐 Altura da chapa (mm)",
-        min_value=100,
-        max_value=10000,
-        value=int(altura_atual),
-        step=1,
-        format="%d",
-        key=(
-            f"altura_chapa_"
-            f"{material_selecionado}"
-        )
-    )
-
-
-# =================================
-# MOSTRA A MEDIDA ATUAL
-# =================================
-
-st.write(
-    f"**Medida configurada:** "
-    f"{nova_largura} × "
-    f"{nova_altura} mm"
-)
-
-
-# =================================
-# SALVAR
-# =================================
-
-if st.button(
-    "💾 Salvar medida deste material",
-    type="primary",
-    key="salvar_medida_material"
-):
-
-    configuracao_chapas[
-        material_selecionado
-    ] = {
-
-        "largura": int(
-            nova_largura
-        ),
-
-        "altura": int(
-            nova_altura
+        largura_atual, altura_atual = (
+            obter_chapa_material(
+                material_selecionado,
+                configuracao_chapas
+            )
         )
 
-    }
+        # =================================
+        # MOSTRA A DESCRIÇÃO DO MATERIAL
+        # =================================
 
-    salvar_configuracao_chapas(
-        configuracao_chapas
-    )
+        descricao_atual = ""
 
-    st.success(
-        f"✅ Medida salva para o material "
-        f"**{material_selecionado}**: "
-        f"{nova_largura} × "
-        f"{nova_altura} mm"
-    )
+        try:
 
+            produtos_material = (
+                df_final[
+                    df_final["Produto"]
+                    .astype(str)
+                    .apply(codigo_material)
+                    == material_selecionado
+                ]["Produto"]
+                .dropna()
+                .astype(str)
+                .unique()
+            )
 
-else:
+            if len(produtos_material) > 0:
 
-    st.info(
-        "Nenhum material foi encontrado "
-        "nas planilhas carregadas."
-    )
+                descricao_atual = (
+                    produtos_material[0]
+                )
+
+        except Exception:
+
+            descricao_atual = ""
+
+        if descricao_atual:
+
+            st.info(
+                f"Material selecionado: "
+                f"**{material_selecionado}** — "
+                f"{descricao_atual}"
+            )
+
+        else:
+
+            st.info(
+                f"Material selecionado: "
+                f"**{material_selecionado}**"
+            )
+
+        # =================================
+        # MEDIDAS DA CHAPA
+        # =================================
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            nova_largura = st.number_input(
+                "📏 Largura da chapa (mm)",
+                min_value=100,
+                max_value=10000,
+                value=int(largura_atual),
+                step=1,
+                format="%d",
+                key=(
+                    f"largura_chapa_"
+                    f"{material_selecionado}"
+                )
+            )
+
+        with col2:
+
+            nova_altura = st.number_input(
+                "📐 Altura da chapa (mm)",
+                min_value=100,
+                max_value=10000,
+                value=int(altura_atual),
+                step=1,
+                format="%d",
+                key=(
+                    f"altura_chapa_"
+                    f"{material_selecionado}"
+                )
+            )
+
+        # =================================
+        # MOSTRA A MEDIDA ATUAL
+        # =================================
+
+        st.write(
+            f"**Medida configurada:** "
+            f"{nova_largura} × "
+            f"{nova_altura} mm"
+        )
+
+        # =================================
+        # SALVAR
+        # =================================
+
+        if st.button(
+            "💾 Salvar medida deste material",
+            type="primary",
+            key="salvar_medida_material"
+        ):
+
+            configuracao_chapas[
+                material_selecionado
+            ] = {
+
+                "largura": int(
+                    nova_largura
+                ),
+
+                "altura": int(
+                    nova_altura
+                )
+
+            }
+
+            salvar_configuracao_chapas(
+                configuracao_chapas
+            )
+
+            st.success(
+                f"✅ Medida salva para o material "
+                f"**{material_selecionado}**: "
+                f"{nova_largura} × "
+                f"{nova_altura} mm"
+            )
+
+    else:
+
+        st.info(
+            "Nenhum material foi encontrado "
+            "nas planilhas carregadas."
+        )
         
 # =====================================
 # VISÃO MATÉRIA-PRIMA
@@ -2200,6 +2201,8 @@ if mostrar_mp:
             sortable=True,
             filter=True,
             resizable=True,
+            minWidth=95,
+            flex=1,
             cellStyle={
                 "textAlign": "center"
             },
@@ -2209,10 +2212,33 @@ if mostrar_mp:
         )
 
 
+        # Define larguras mínimas para manter todas as colunas
+        # importantes visíveis na tabela, sem esconder as colunas
+        # de planejamento e compra.
+        larguras_minimas = {
+            "Descricao": 170,
+            "Estoque": 95,
+            "Consumo": 95,
+            "Saldo": 95,
+            "Produz até": 115,
+            "Primeira Falta": 125,
+            "Qtd Chapas Otimizadas": 130,
+            "Compra c/ Perda": 120,
+            "Qtd Chapas a Comprar": 130,
+            "% Perda": 90,
+            "Status": 105
+        }
+
+
         for coluna in tabela.columns:
 
             gb.configure_column(
                 coluna,
+                minWidth=larguras_minimas.get(
+                    coluna,
+                    95
+                ),
+                flex=1,
                 cellStyle={
                     "textAlign": "center"
                 },
