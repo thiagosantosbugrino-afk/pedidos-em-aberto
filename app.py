@@ -2049,157 +2049,170 @@ if mostrar_mp:
 
 
         
-            # =====================================
-            # INDICADORES DA MP
-            # =====================================
+        # =====================================
+        # INDICADORES DA MP
+        # =====================================
 
-            col1, col2, col3, col4, col5 = (
-                st.columns(5)
-            )
+        col1, col2, col3, col4, col5 = (
+            st.columns(5)
+        )
 
-            col1.metric(
-                "📦 Materiais",
-                len(resumo)
-            )
+        col1.metric(
+            "📦 Materiais",
+            len(resumo)
+        )
 
-            col2.metric(
-                "🔴 Comprar",
-                int(
-                    (
-                        resumo["Status"]
-                        ==
-                        "🔴 Comprar"
-                    ).sum()
-                )
+        col2.metric(
+            "🔴 Comprar",
+            int(
+                (
+                    resumo["Status"]
+                    ==
+                    "🔴 Comprar"
+                ).sum()
             )
+        )
 
-            total_compra = int(
-                resumo["Qtd Chapas a Comprar"].sum()
-            )
+        total_compra = int(
+            resumo["Qtd Chapas a Comprar"].sum()
+        )
 
-            col3.metric(
-                "🧱 Total Chapas",
-                total_compra
-            )
+        col3.metric(
+            "🧱 Total Chapas",
+            total_compra
+        )
 
-            col4.metric(
-                "⚠️ Falta Material",
-                int(
-                    (
-                        resumo["Primeira Falta"]
-                        !=
-                        ""
-                    ).sum()
-                )
+        col4.metric(
+            "⚠️ Falta Material",
+            int(
+                (
+                    resumo["Primeira Falta"]
+                    !=
+                    ""
+                ).sum()
             )
+        )
 
-            col5.metric(
-                "🟢 OK",
-                int(
-                    (
-                        resumo["Status"]
-                        ==
-                        "🟢 OK"
-                    ).sum()
-                )
+        col5.metric(
+            "🟢 OK",
+            int(
+                (
+                    resumo["Status"]
+                    ==
+                    "🟢 OK"
+                ).sum()
             )
+        )
                     
 
-            # =====================================
-            # COLUNAS DA TABELA
-            # =====================================
+        # =====================================
+        # COLUNAS DA TABELA
+        # =====================================
 
-            colunas_tabela = [
-                "Codigo",
-                "Descricao",
-                "Estoque",
-                "Consumo",
-                "Saldo",
-                "Produz até",
-                "Primeira Falta",
-                "Qtd Chapas Otimizadas",
-                "Compra c/ Perda",
-                "Qtd Chapas a Comprar",
-                "Compra Necessária",
-                "% Perda",
-                "Status"
-            ]
+        colunas_tabela = [
+            "Codigo",
+            "Descricao",
+            "Estoque",
+            "Consumo",
+            "Saldo",
+            "Produz até",
+            "Primeira Falta",
+            "Qtd Chapas Otimizadas",
+            "Compra c/ Perda",
+            "Qtd Chapas a Comprar",
+            "Compra Necessária",
+            "% Perda",
+            "Status"
+        ]
 
-            # =====================================
-            # QTD CHAPAS OTIMIZADAS
-            # =====================================
+        # =====================================
+        # QTD CHAPAS OTIMIZADAS
+        # =====================================
 
-            resumo["Qtd Chapas Otimizadas"] = (
-                resumo["Chapas Otimizadas"]
+        resumo["Qtd Chapas Otimizadas"] = (
+            resumo["Chapas Otimizadas"]
+        )
+
+
+        # =====================================
+        # COLUNAS OCULTAS
+        # =====================================
+
+        colunas_ocultas = [
+            "Codigo",
+            "Compra Necessária"
+        ]
+
+
+        # =====================================
+        # COLUNAS QUE SERÃO EXIBIDAS
+        # =====================================
+
+        colunas_exibir = [
+            coluna
+            for coluna in colunas_tabela
+            if coluna not in colunas_ocultas
+        ]
+
+        # =====================================
+        # PREPARA TABELA
+        # =====================================
+
+        tabela = resumo.copy()
+
+        tabela = (
+            tabela
+            .dropna(
+                how="all"
             )
+        )
+
+        tabela = tabela[
+            (tabela["Estoque"] != 0)
+            |
+            (tabela["Consumo"] != 0)
+            |
+            (tabela["Saldo"] != 0)
+        ]
 
 
-            # =====================================
-            # COLUNAS OCULTAS
-            # =====================================
+        # Mantém somente as colunas
+        # escolhidas para visualização.
 
-            colunas_ocultas = [
-                "Codigo",
-                "Compra Necessária"
-            ]
+        tabela = tabela[
+            colunas_exibir
+        ]
 
 
-            # =====================================
-            # COLUNAS QUE SERÃO EXIBIDAS
-            # =====================================
+        # =====================================
+        # CONFIGURAÇÃO DO AGGRID
+        # =====================================
 
-            colunas_exibir = [
-                coluna
-                for coluna in colunas_tabela
-                if coluna not in colunas_ocultas
-            ]
-
-            # =====================================
-            # PREPARA TABELA
-            # =====================================
-
-            tabela = resumo.copy()
-
-            tabela = (
+        gb = (
+            GridOptionsBuilder
+            .from_dataframe(
                 tabela
-                .dropna(
-                    how="all"
-                )
             )
+        )
 
-            tabela = tabela[
-                (tabela["Estoque"] != 0)
-                |
-                (tabela["Consumo"] != 0)
-                |
-                (tabela["Saldo"] != 0)
-            ]
-
-
-            # Mantém somente as colunas
-            # escolhidas para visualização.
-
-            tabela = tabela[
-                colunas_exibir
-            ]
-
-
-            # =====================================
-            # CONFIGURAÇÃO DO AGGRID
-            # =====================================
-
-            gb = (
-                GridOptionsBuilder
-                .from_dataframe(
-                    tabela
-                )
+        gb.configure_default_column(
+            editable=False,
+            sortable=True,
+            filter=True,
+            resizable=True,
+            cellStyle={
+                "textAlign": "center"
+            },
+            headerClass=(
+                "ag-center-header"
             )
+        )
 
-            gb.configure_default_column(
-                editable=False,
-                sortable=True,
-                filter=True,
-                resizable=True,
+
+        for coluna in tabela.columns:
+
+            gb.configure_column(
+                coluna,
                 cellStyle={
                     "textAlign": "center"
                 },
@@ -2209,171 +2222,158 @@ if mostrar_mp:
             )
 
 
-            for coluna in tabela.columns:
-
-                gb.configure_column(
-                    coluna,
-                    cellStyle={
-                        "textAlign": "center"
-                    },
-                    headerClass=(
-                        "ag-center-header"
-                    )
-                )
+        gridOptions = gb.build()
 
 
-            gridOptions = gb.build()
+        # =====================================
+        # EXIBE A TABELA DE MATÉRIA-PRIMA
+        # =====================================
 
-
-            # =====================================
-            # EXIBE A TABELA DE MATÉRIA-PRIMA
-            # =====================================
-
-            AgGrid(
-                tabela,
-                gridOptions=gridOptions,
-                fit_columns_on_grid_load=True,
-                height=650,
-                theme="streamlit",
-                allow_unsafe_jscode=True,
-            )
+        AgGrid(
+            tabela,
+            gridOptions=gridOptions,
+            fit_columns_on_grid_load=True,
+            height=650,
+            theme="streamlit",
+            allow_unsafe_jscode=True,
+        )
                       
-            # =====================================
-            # DETALHAR MATERIAL
-            # =====================================
+        # =====================================
+        # DETALHAR MATERIAL
+        # =====================================
 
-            st.markdown("---")
-            st.subheader(
-                "🔍 Detalhar Material"
+        st.markdown("---")
+        st.subheader(
+            "🔍 Detalhar Material"
+        )
+
+        if not resumo.empty:
+
+            materiais = (
+                resumo["Codigo"].astype(str)
+                + " - "
+                + resumo["Descricao"].astype(str)
+            ).tolist()
+
+            material_detalhado = st.selectbox(
+                "Selecione o material",
+                sorted(materiais),
+                key="select_material_detalhamento_mp"
             )
 
-            if not resumo.empty:
+            codigo_selecionado = (
+                material_detalhado
+                .split(" - ", 1)[0]
+            )
 
-                materiais = (
-                    resumo["Codigo"].astype(str)
-                    + " - "
-                    + resumo["Descricao"].astype(str)
-                ).tolist()
+            detalhe = (
+                consumo_data[
+                    consumo_data["Codigo"].astype(str)
+                    == str(codigo_selecionado)
+                ]
+                .copy()
+            )
 
-                material_detalhado = st.selectbox(
-                    "Selecione o material",
-                    sorted(materiais),
-                    key="select_material_detalhamento_mp"
-                )
-
-                codigo_selecionado = (
-                    material_detalhado
-                    .split(" - ", 1)[0]
-                )
-
+            if "Previsão" in detalhe.columns:
                 detalhe = (
-                    consumo_data[
-                        consumo_data["Codigo"].astype(str)
-                        == str(codigo_selecionado)
-                    ]
+                    detalhe
+                    .sort_values("Previsão")
                     .copy()
                 )
 
-                if "Previsão" in detalhe.columns:
-                    detalhe = (
-                        detalhe
-                        .sort_values("Previsão")
-                        .copy()
+                detalhe["Previsão"] = (
+                    pd.to_datetime(
+                        detalhe["Previsão"],
+                        errors="coerce"
                     )
-
-                    detalhe["Previsão"] = (
-                        pd.to_datetime(
-                            detalhe["Previsão"],
-                            errors="coerce"
-                        )
-                        .dt.strftime("%d/%m/%Y")
-                        .fillna("")
-                    )
-
-                if "Consumo Dia" in detalhe.columns:
-                    detalhe["Consumo Dia"] = (
-                        pd.to_numeric(
-                            detalhe["Consumo Dia"],
-                            errors="coerce"
-                        )
-                        .fillna(0)
-                        .round(2)
-                    )
-
-                colunas_detalhe_exibir = [
-                    coluna
-                    for coluna in [
-                        "Previsão",
-                        "Pedido",
-                        "Cliente",
-                        "PC",
-                        "Rota",
-                        "Consumo Dia"
-                    ]
-                    if coluna in detalhe.columns
-                ]
-
-                if not detalhe.empty and colunas_detalhe_exibir:
-                    st.dataframe(
-                        detalhe[colunas_detalhe_exibir],
-                        use_container_width=True,
-                        hide_index=True,
-                        height=350
-                    )
-                else:
-                    st.info(
-                        "Nenhum registro encontrado "
-                        "para o material selecionado."
-                    )
-
-            else:
-
-                st.info(
-                    "Nenhum material foi "
-                    "encontrado nos filtros "
-                    "selecionados."
+                    .dt.strftime("%d/%m/%Y")
+                    .fillna("")
                 )
 
-            # =================================
-            # EXPORTAÇÃO DA MP
-            # =================================
+            if "Consumo Dia" in detalhe.columns:
+                detalhe["Consumo Dia"] = (
+                    pd.to_numeric(
+                        detalhe["Consumo Dia"],
+                        errors="coerce"
+                    )
+                    .fillna(0)
+                    .round(2)
+                )
 
-            excel_mp = (
-                io.BytesIO()
+            colunas_detalhe_exibir = [
+                coluna
+                for coluna in [
+                    "Previsão",
+                    "Pedido",
+                    "Cliente",
+                    "PC",
+                    "Rota",
+                    "Consumo Dia"
+                ]
+                if coluna in detalhe.columns
+            ]
+
+            if not detalhe.empty and colunas_detalhe_exibir:
+                st.dataframe(
+                    detalhe[colunas_detalhe_exibir],
+                    use_container_width=True,
+                    hide_index=True,
+                    height=350
+                )
+            else:
+                st.info(
+                    "Nenhum registro encontrado "
+                    "para o material selecionado."
+                )
+
+        else:
+
+            st.info(
+                "Nenhum material foi "
+                "encontrado nos filtros "
+                "selecionados."
             )
 
-            with pd.ExcelWriter(
-                excel_mp,
-                engine="openpyxl"
-            ) as writer:
+        # =================================
+        # EXPORTAÇÃO DA MP
+        # =================================
 
-                resumo.to_excel(
-                    writer,
-                    sheet_name=(
-                        "Matéria-Prima"
-                    ),
-                    index=False
-                )
+        excel_mp = (
+            io.BytesIO()
+        )
 
-            st.download_button(
-                label=(
-                    "📥 Baixar "
+        with pd.ExcelWriter(
+            excel_mp,
+            engine="openpyxl"
+        ) as writer:
+
+            resumo.to_excel(
+                writer,
+                sheet_name=(
                     "Matéria-Prima"
                 ),
-                key="download_materia_prima",
-                data=(
-                    excel_mp.getvalue()
-                ),
-                file_name=(
-                    "Materia_Prima.xlsx"
-                ),
-                mime=(
-                    "application/"
-                    "vnd.openxmlformats-"
-                    "officedocument."
-                    "spreadsheetml.sheet"
-                )
+                index=False
             )
+
+        st.download_button(
+            label=(
+                "📥 Baixar "
+                "Matéria-Prima"
+            ),
+            key="download_materia_prima",
+            data=(
+                excel_mp.getvalue()
+            ),
+            file_name=(
+                "Materia_Prima.xlsx"
+            ),
+            mime=(
+                "application/"
+                "vnd.openxmlformats-"
+                "officedocument."
+                "spreadsheetml.sheet"
+            )
+        )
 
 
 # ===================================
