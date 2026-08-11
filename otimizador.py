@@ -1,25 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Callable
+from typing import List, Dict, Optional, Tuple
 import math
 import random
 
+
 # ==========================================================
-# CONFIGURAÇÃO PADRÃO DA CHAPA
+# CONFIGURAÇÃO DA CHAPA
 # ==========================================================
 
 LARGURA_CHAPA = 3210
 ALTURA_CHAPA = 2400
 AREA_CHAPA = LARGURA_CHAPA * ALTURA_CHAPA
 
-# Acréscimo usado no corte/lapidação.
+# Acréscimo de lapidação já utilizado pelo sistema.
 LAPIDACAO = 4
-
-# Número máximo de tentativas do otimizador por material.
-# Mais tentativas = maior chance de encontrar uma solução melhor,
-# porém aumenta o tempo de processamento.
-MAX_TENTATIVAS = 16
 
 
 # ==========================================================
@@ -28,6 +24,7 @@ MAX_TENTATIVAS = 16
 
 @dataclass
 class Peca:
+
     codigo: str
     largura: float
     altura: float
@@ -37,26 +34,28 @@ class Peca:
     rota: str = ""
 
     @property
-    def largura_corte(self) -> float:
-        return float(self.largura) + LAPIDACAO
+    def largura_corte(self):
+        return self.largura + LAPIDACAO
 
     @property
-    def altura_corte(self) -> float:
-        return float(self.altura) + LAPIDACAO
+    def altura_corte(self):
+        return self.altura + LAPIDACAO
 
     @property
-    def area(self) -> float:
+    def area(self):
         return self.largura_corte * self.altura_corte
 
     @property
-    def distancia_minima(self) -> float:
-        """Distância mínima entre peças conforme o código/material."""
+    def distancia_minima(self):
         codigo = str(self.codigo).upper()
 
         if codigo.startswith("LM"):
-            return 30.0
+            return 30
 
-        numeros = "".join(c for c in codigo if c.isdigit())
+        numeros = "".join(
+            c for c in codigo
+            if c.isdigit()
+        )
 
         if numeros:
             try:
@@ -65,13 +64,13 @@ class Peca:
                 espessura = 0
 
             if espessura in (3, 4):
-                return 12.0
-            if espessura in (6, 8):
-                return 20.0
-            if espessura >= 10:
-                return 30.0
+                return 12
+            elif espessura in (6, 8):
+                return 20
+            elif espessura >= 10:
+                return 30
 
-        return 12.0
+        return 12
 
 
 # ==========================================================
@@ -80,22 +79,15 @@ class Peca:
 
 @dataclass
 class Espaco:
+
     x: float
     y: float
     largura: float
     altura: float
 
     @property
-    def area(self) -> float:
-        return max(0.0, self.largura) * max(0.0, self.altura)
-
-    @property
-    def direita(self) -> float:
-        return self.x + self.largura
-
-    @property
-    def topo(self) -> float:
-        return self.y + self.altura
+    def area(self):
+        return self.largura * self.altura
 
 
 # ==========================================================
@@ -104,6 +96,7 @@ class Espaco:
 
 @dataclass
 class Posicionamento:
+
     peca: Peca
     x: float
     y: float
@@ -117,210 +110,259 @@ class Posicionamento:
 # ==========================================================
 
 class Chapa:
-    """
-    Representa uma chapa e seus espaços livres.
-
-    A versão V2 usa uma abordagem semelhante ao MaxRects:
-    - testa diferentes posições dentro do espaço livre;
-    - testa rotação;
-    - escolhe o encaixe que deixa a menor sobra;
-    - divide o espaço ocupado em regiões livres menores;
-    - elimina espaços redundantes/contidos.
-    """
 
     def __init__(
         self,
         largura: float = LARGURA_CHAPA,
-        altura: float = ALTURA_CHAPA,
+        altura: float = ALTURA_CHAPA
     ):
+
         self.largura = float(largura)
         self.altura = float(altura)
+
         self.pecas: List[Posicionamento] = []
+
         self.espacos: List[Espaco] = [
-            Espaco(0.0, 0.0, self.largura, self.altura)
+            Espaco(
+                0,
+                0,
+                self.largura,
+                self.altura
+            )
         ]
 
     @property
-    def area_total(self) -> float:
+    def area_total(self):
         return self.largura * self.altura
 
     @property
-    def area_utilizada(self) -> float:
-        return sum(p.largura * p.altura for p in self.pecas)
+    def area_utilizada(self):
+        return sum(
+            p.largura * p.altura
+            for p in self.pecas
+        )
 
     @property
-    def desperdicio(self) -> float:
-        return max(0.0, self.area_total - self.area_utilizada)
+    def desperdicio(self):
+        return self.area_total - self.area_utilizada
 
     @property
-    def aproveitamento(self) -> float:
+    def aproveitamento(self):
         if self.area_total <= 0:
-            return 0.0
-        return (self.area_utilizada / self.area_total) * 100.0
+            return 0
 
-    def _orientacoes(self, peca: Peca):
-        """Retorna as duas orientações sem duplicar quadrados."""
-        normal = (peca.largura_corte, peca.altura_corte, False)
-        yield normal
+        return (
+            self.area_utilizada / self.area_total
+        ) * 100
 
-        if abs(peca.largura_corte - peca.altura_corte) > 1e-9:
-            yield (peca.altura_corte, peca.largura_corte, True)
+    # ------------------------------------------------------
+    # VALIDAÇÃO DO ESPAÇO
+    # ------------------------------------------------------
 
-    def _cabe(
+    def cabe(
         self,
         espaco: Espaco,
         largura: float,
         altura: float,
-        distancia: float,
-    ) -> bool:
-        eps = 1e-9
+        distancia: float
+    ):
 
-        if largura > espaco.largura + eps:
+        if largura > espaco.largura + 1e-9:
             return False
-        if altura > espaco.altura + eps:
+
+        if altura > espaco.altura + 1e-9:
             return False
 
         sobra_direita = espaco.largura - largura
         sobra_superior = espaco.altura - altura
 
-        # Mantém a regra industrial existente: se sobra uma faixa,
-        # ela precisa comportar a distância mínima; se a peça fecha
-        # exatamente o espaço, não há faixa a reservar.
-        if sobra_direita > eps and sobra_direita < distancia - eps:
+        # A distância mínima é necessária somente quando
+        # existe uma sobra real. Tolerância numérica evita
+        # rejeitar encaixes por diferenças de ponto flutuante.
+        tol = 1e-7
+
+        if (
+            sobra_direita > tol
+            and sobra_direita < distancia - tol
+        ):
             return False
-        if sobra_superior > eps and sobra_superior < distancia - eps:
+
+        if (
+            sobra_superior > tol
+            and sobra_superior < distancia - tol
+        ):
             return False
 
         return True
 
-    @staticmethod
-    def _score_posicao(
-        espaco: Espaco,
-        largura: float,
-        altura: float,
-        modo: str,
-        indice: int,
-    ) -> Tuple:
-        sobra_direita = max(0.0, espaco.largura - largura)
-        sobra_superior = max(0.0, espaco.altura - altura)
-        area_sobra = max(0.0, espaco.area - largura * altura)
-        menor_sobra = min(sobra_direita, sobra_superior)
-        maior_sobra = max(sobra_direita, sobra_superior)
-
-        # Os modos produzem soluções diferentes para o mesmo conjunto
-        # de peças. O otimizador compara todas posteriormente.
-        if modo == "best_short_side":
-            return (
-                menor_sobra,
-                maior_sobra,
-                area_sobra,
-                espaco.y,
-                espaco.x,
-                indice,
-            )
-
-        if modo == "best_long_side":
-            return (
-                maior_sobra,
-                menor_sobra,
-                area_sobra,
-                espaco.y,
-                espaco.x,
-                indice,
-            )
-
-        if modo == "best_area":
-            return (
-                area_sobra,
-                menor_sobra,
-                maior_sobra,
-                espaco.y,
-                espaco.x,
-                indice,
-            )
-
-        if modo == "bottom_left":
-            return (
-                espaco.y,
-                espaco.x,
-                menor_sobra,
-                maior_sobra,
-                area_sobra,
-                indice,
-            )
-
-        if modo == "compact":
-            return (
-                menor_sobra + maior_sobra,
-                menor_sobra,
-                area_sobra,
-                espaco.y,
-                espaco.x,
-                indice,
-            )
-
-        return (
-            area_sobra,
-            menor_sobra,
-            maior_sobra,
-            espaco.y,
-            espaco.x,
-            indice,
-        )
+    # ------------------------------------------------------
+    # MELHOR POSIÇÃO
+    # ------------------------------------------------------
 
     def procurar_melhor_espaco(
         self,
         peca: Peca,
-        modo: str = "best_area",
-    ) -> Tuple[Optional[Espaco], bool]:
-        """Procura o melhor espaço e orientação para uma peça."""
-        melhor: Optional[Espaco] = None
+        estrategia: str = "best_area"
+    ):
+
+        melhor = None
         melhor_girada = False
         melhor_score = None
+
         distancia = peca.distancia_minima
 
-        for indice, espaco in enumerate(self.espacos):
-            for largura, altura, girada in self._orientacoes(peca):
-                if not self._cabe(
+        orientacoes = [
+            (
+                False,
+                peca.largura_corte,
+                peca.altura_corte
+            ),
+            (
+                True,
+                peca.altura_corte,
+                peca.largura_corte
+            )
+        ]
+
+        # Remove duplicação quando a peça é quadrada.
+        if (
+            abs(
+                peca.largura_corte
+                -
+                peca.altura_corte
+            ) < 1e-9
+        ):
+            orientacoes = orientacoes[:1]
+
+        for espaco in self.espacos:
+
+            for girada, largura, altura in orientacoes:
+
+                if not self.cabe(
                     espaco,
                     largura,
                     altura,
-                    distancia,
+                    distancia
                 ):
                     continue
 
-                score = self._score_posicao(
-                    espaco,
-                    largura,
-                    altura,
-                    modo,
-                    indice,
+                sobra_direita = (
+                    espaco.largura - largura
                 )
 
-                if melhor_score is None or score < melhor_score:
+                sobra_superior = (
+                    espaco.altura - altura
+                )
+
+                sobra_area = (
+                    espaco.area
+                    -
+                    largura * altura
+                )
+
+                menor_sobra = min(
+                    sobra_direita,
+                    sobra_superior
+                )
+
+                maior_sobra = max(
+                    sobra_direita,
+                    sobra_superior
+                )
+
+                # Estratégias diferentes geram candidatos
+                # diferentes. Todas continuam obedecendo
+                # às mesmas regras geométricas.
+                if estrategia == "best_area":
+                    score = (
+                        sobra_area,
+                        menor_sobra,
+                        maior_sobra,
+                        espaco.y,
+                        espaco.x
+                    )
+
+                elif estrategia == "best_short_side":
+                    score = (
+                        menor_sobra,
+                        sobra_area,
+                        maior_sobra,
+                        espaco.y,
+                        espaco.x
+                    )
+
+                elif estrategia == "best_long_side":
+                    score = (
+                        maior_sobra,
+                        menor_sobra,
+                        sobra_area,
+                        espaco.y,
+                        espaco.x
+                    )
+
+                elif estrategia == "bottom_left":
+                    score = (
+                        espaco.y,
+                        espaco.x,
+                        sobra_area,
+                        menor_sobra
+                    )
+
+                elif estrategia == "best_fit":
+                    # Prioriza preencher ao máximo uma das
+                    # dimensões sem sacrificar o encaixe.
+                    score = (
+                        min(
+                            sobra_direita,
+                            sobra_superior
+                        ),
+                        abs(
+                            sobra_direita
+                            -
+                            sobra_superior
+                        ),
+                        sobra_area,
+                        espaco.y,
+                        espaco.x
+                    )
+
+                else:
+                    score = (
+                        sobra_area,
+                        menor_sobra,
+                        maior_sobra,
+                        espaco.y,
+                        espaco.x
+                    )
+
+                if (
+                    melhor_score is None
+                    or score < melhor_score
+                ):
                     melhor_score = score
                     melhor = espaco
                     melhor_girada = girada
 
         return melhor, melhor_girada
 
+    # ------------------------------------------------------
+    # INSERE PEÇA
+    # ------------------------------------------------------
+
     def inserir_peca(
         self,
         peca: Peca,
-        modo: str = "best_area",
-        espaco: Optional[Espaco] = None,
-        girada: Optional[bool] = None,
-    ) -> bool:
-        if espaco is None or girada is None:
-            espaco, girada = self.procurar_melhor_espaco(
+        estrategia: str = "best_area"
+    ):
+
+        espaco, girada = (
+            self.procurar_melhor_espaco(
                 peca,
-                modo=modo,
+                estrategia
             )
+        )
 
-        if espaco is None or girada is None:
-            return False
-
-        if espaco not in self.espacos:
+        if espaco is None:
             return False
 
         if girada:
@@ -330,92 +372,142 @@ class Chapa:
             largura = peca.largura_corte
             altura = peca.altura_corte
 
-        if not self._cabe(
-            espaco,
-            largura,
-            altura,
-            peca.distancia_minima,
-        ):
-            return False
-
-        posicionamento = Posicionamento(
-            peca=peca,
-            x=espaco.x,
-            y=espaco.y,
-            largura=largura,
-            altura=altura,
-            girada=girada,
+        self.pecas.append(
+            Posicionamento(
+                peca=peca,
+                x=espaco.x,
+                y=espaco.y,
+                largura=largura,
+                altura=altura,
+                girada=girada
+            )
         )
 
-        self.pecas.append(posicionamento)
         self.espacos.remove(espaco)
 
-        self._dividir_espacos(espaco, largura, altura)
+        self._gerar_sobras(
+            espaco,
+            largura,
+            altura
+        )
+
         self._limpar_espacos()
 
         return True
 
-    def _dividir_espacos(
+    # ------------------------------------------------------
+    # GERAÇÃO DE SOBRAS
+    # ------------------------------------------------------
+
+    def _gerar_sobras(
         self,
-        espaco: Espaco,
-        largura: float,
-        altura: float,
-    ) -> None:
-        """
-        Divide o espaço usado em quatro possíveis regiões.
-        Como a peça é colocada no canto inferior esquerdo do espaço,
-        na prática duas regiões são as principais; as quatro direções
-        tornam o algoritmo mais robusto para as diferentes estratégias.
-        """
-        eps = 1e-9
+        espaco,
+        largura,
+        altura
+    ):
 
-        sobra_direita = espaco.largura - largura
-        sobra_superior = espaco.altura - altura
+        sobra_direita = (
+            espaco.largura - largura
+        )
 
-        if sobra_direita > eps:
-            self.espacos.append(
-                Espaco(
-                    espaco.x + largura,
-                    espaco.y,
-                    sobra_direita,
-                    espaco.altura,
+        sobra_superior = (
+            espaco.altura - altura
+        )
+
+        if sobra_direita <= 0 and sobra_superior <= 0:
+            return
+
+        perda_vertical = (
+            max(0, sobra_direita)
+            *
+            max(0, altura)
+        )
+
+        perda_horizontal = (
+            max(0, sobra_superior)
+            *
+            max(0, espaco.largura)
+        )
+
+        if perda_vertical <= perda_horizontal:
+
+            if sobra_direita > 0:
+                self.espacos.append(
+                    Espaco(
+                        espaco.x + largura,
+                        espaco.y,
+                        sobra_direita,
+                        altura
+                    )
                 )
-            )
 
-        if sobra_superior > eps:
-            self.espacos.append(
-                Espaco(
-                    espaco.x,
-                    espaco.y + altura,
-                    largura,
-                    sobra_superior,
+            if sobra_superior > 0:
+                self.espacos.append(
+                    Espaco(
+                        espaco.x,
+                        espaco.y + altura,
+                        espaco.largura,
+                        sobra_superior
+                    )
                 )
-            )
 
-    def _limpar_espacos(self) -> None:
-        """Remove espaços vazios, inválidos e contidos em outros."""
-        eps = 1e-9
+        else:
 
-        validos = [
-            e
-            for e in self.espacos
-            if e.largura > eps and e.altura > eps
-        ]
+            if sobra_superior > 0:
+                self.espacos.append(
+                    Espaco(
+                        espaco.x,
+                        espaco.y + altura,
+                        largura,
+                        sobra_superior
+                    )
+                )
 
-        novos: List[Espaco] = []
+            if sobra_direita > 0:
+                self.espacos.append(
+                    Espaco(
+                        espaco.x + largura,
+                        espaco.y,
+                        sobra_direita,
+                        espaco.altura
+                    )
+                )
 
-        for i, espaco1 in enumerate(validos):
+    # ------------------------------------------------------
+    # LIMPEZA DE ESPAÇOS CONTIDOS
+    # ------------------------------------------------------
+
+    def _limpar_espacos(self):
+
+        novos = []
+
+        for i, espaco1 in enumerate(self.espacos):
+
+            if (
+                espaco1.largura <= 0
+                or espaco1.altura <= 0
+            ):
+                continue
+
             contido = False
 
-            for j, espaco2 in enumerate(validos):
+            for j, espaco2 in enumerate(self.espacos):
+
                 if i == j:
                     continue
 
                 if (
-                    espaco1.x >= espaco2.x - eps
-                    and espaco1.y >= espaco2.y - eps
-                    and espaco1.direita <= espaco2.direita + eps
-                    and espaco1.topo <= espaco2.topo + eps
+                    espaco1.x >= espaco2.x
+                    and
+                    espaco1.y >= espaco2.y
+                    and
+                    espaco1.x + espaco1.largura
+                    <=
+                    espaco2.x + espaco2.largura
+                    and
+                    espaco1.y + espaco1.altura
+                    <=
+                    espaco2.y + espaco2.altura
                 ):
                     contido = True
                     break
@@ -428,364 +520,434 @@ class Chapa:
             key=lambda e: (
                 e.y,
                 e.x,
-                e.area,
-            ),
+                e.area
+            )
         )
 
 
 # ==========================================================
-# ORDENAÇÕES / ESTRATÉGIAS
+# ORDENAÇÃO DAS PEÇAS
 # ==========================================================
 
-def _ordens_base(pecas: List[Peca]):
-    """Gera diferentes ordens determinísticas para multi-start."""
-    estrategias: List[Tuple[str, List[Peca]]] = []
+def _ordenar_pecas(
+    pecas: List[Peca],
+    estrategia: str
+) -> List[Peca]:
 
-    estrategias.append((
-        "area",
-        sorted(
-            pecas,
-            key=lambda p: (
-                p.area,
-                max(p.largura_corte, p.altura_corte),
-                min(p.largura_corte, p.altura_corte),
-            ),
-            reverse=True,
-        ),
-    ))
-
-    estrategias.append((
-        "maior_lado",
-        sorted(
-            pecas,
-            key=lambda p: (
-                max(p.largura_corte, p.altura_corte),
-                p.area,
-            ),
-            reverse=True,
-        ),
-    ))
-
-    estrategias.append((
-        "menor_lado",
-        sorted(
-            pecas,
-            key=lambda p: (
-                min(p.largura_corte, p.altura_corte),
-                p.area,
-            ),
-            reverse=True,
-        ),
-    ))
-
-    estrategias.append((
-        "perimetro",
-        sorted(
-            pecas,
-            key=lambda p: (
-                2 * (p.largura_corte + p.altura_corte),
-                p.area,
-            ),
-            reverse=True,
-        ),
-    ))
-
-    estrategias.append((
-        "alongadas",
-        sorted(
-            pecas,
-            key=lambda p: (
-                max(p.largura_corte, p.altura_corte)
-                / max(1.0, min(p.largura_corte, p.altura_corte)),
-                p.area,
-            ),
-            reverse=True,
-        ),
-    ))
-
-    estrategias.append((
-        "largura",
-        sorted(
-            pecas,
-            key=lambda p: (
+    if estrategia == "area":
+        chave = lambda p: (
+            p.area,
+            max(
                 p.largura_corte,
-                p.altura_corte,
+                p.altura_corte
             ),
-            reverse=True,
-        ),
-    ))
-
-    estrategias.append((
-        "altura",
-        sorted(
-            pecas,
-            key=lambda p: (
-                p.altura_corte,
+            min(
                 p.largura_corte,
-            ),
-            reverse=True,
-        ),
-    ))
+                p.altura_corte
+            )
+        )
 
-    estrategias.append((
-        "quadrados",
-        sorted(
-            pecas,
-            key=lambda p: (
-                -abs(p.largura_corte - p.altura_corte),
-                p.area,
+    elif estrategia == "maior_lado":
+        chave = lambda p: (
+            max(
+                p.largura_corte,
+                p.altura_corte
             ),
-            reverse=True,
-        ),
-    ))
+            p.area
+        )
 
-    return estrategias
+    elif estrategia == "menor_lado":
+        chave = lambda p: (
+            min(
+                p.largura_corte,
+                p.altura_corte
+            ),
+            p.area
+        )
+
+    elif estrategia == "perimetro":
+        chave = lambda p: (
+            2 * (
+                p.largura_corte
+                +
+                p.altura_corte
+            ),
+            p.area
+        )
+
+    elif estrategia == "alongadas":
+        chave = lambda p: (
+            max(
+                p.largura_corte,
+                p.altura_corte
+            )
+            /
+            max(
+                1,
+                min(
+                    p.largura_corte,
+                    p.altura_corte
+                )
+            ),
+            p.area
+        )
+
+    elif estrategia == "largura":
+        chave = lambda p: (
+            p.largura_corte,
+            p.area
+        )
+
+    elif estrategia == "altura":
+        chave = lambda p: (
+            p.altura_corte,
+            p.area
+        )
+
+    else:
+        chave = lambda p: p.area
+
+    return sorted(
+        pecas,
+        key=chave,
+        reverse=True
+    )
 
 
 # ==========================================================
-# AVALIAÇÃO DE UMA SOLUÇÃO
+# AVALIAÇÃO DA SOLUÇÃO
 # ==========================================================
 
-def _avaliar_chapas(chapas: List[Chapa]) -> Tuple:
-    """
-    Critério principal:
-      1) menos chapas;
-      2) maior aproveitamento global;
-      3) menor desperdício global;
-      4) melhor utilização da última chapa.
-    """
+def _avaliar_chapas(
+    chapas: List[Chapa]
+):
+
     if not chapas:
-        return (0, 0.0, 0.0, 0.0)
+        return (
+            0,
+            0.0,
+            0.0
+        )
 
-    qtd = len(chapas)
-    area_total = sum(c.area_total for c in chapas)
-    area_utilizada = sum(c.area_utilizada for c in chapas)
-    desperdicio = max(0.0, area_total - area_utilizada)
+    area_total = sum(
+        chapa.area_total
+        for chapa in chapas
+    )
+
+    area_utilizada = sum(
+        chapa.area_utilizada
+        for chapa in chapas
+    )
+
+    desperdicio = (
+        area_total
+        -
+        area_utilizada
+    )
 
     aproveitamento = (
-        area_utilizada / area_total
+        (
+            area_utilizada
+            /
+            area_total
+        )
+        *
+        100
         if area_total > 0
-        else 0.0
+        else 0
     )
 
-    ultima = chapas[-1]
-    ultima_aproveitamento = (
-        ultima.area_utilizada / ultima.area_total
-        if ultima.area_total > 0
-        else 0.0
-    )
-
-    # Menor é melhor para o primeiro item; portanto usamos negativos
-    # nos indicadores que queremos maximizar.
     return (
-        qtd,
-        -aproveitamento,
+        len(chapas),
         desperdicio,
-        -ultima_aproveitamento,
+        aproveitamento
     )
 
 
 # ==========================================================
-# OTIMIZAÇÃO DE UM MATERIAL — V2
+# CHAVE DA SOLUÇÃO
+# ==========================================================
+
+def _chave_solucao(
+    chapas: List[Chapa]
+):
+    """
+    Critério principal:
+    1) menor desperdício absoluto;
+    2) maior aproveitamento;
+    3) menor quantidade de chapas.
+
+    Assim evitamos escolher uma solução que economize
+    uma chapa mas desperdice muito mais material.
+    """
+
+    qtd, desperdicio, aproveitamento = (
+        _avaliar_chapas(chapas)
+    )
+
+    return (
+        round(desperdicio, 6),
+        -round(aproveitamento, 6),
+        qtd
+    )
+
+
+# ==========================================================
+# OTIMIZAÇÃO DE UMA TENTATIVA
+# ==========================================================
+
+def _otimizar_tentativa(
+    pecas: List[Peca],
+    largura_chapa: float,
+    altura_chapa: float,
+    ordem: str,
+    estrategia_espaco: str
+):
+
+    ordenadas = _ordenar_pecas(
+        pecas,
+        ordem
+    )
+
+    chapas: List[Chapa] = []
+
+    for peca in ordenadas:
+
+        melhor_chapa = None
+        melhor_posicao = None
+        melhor_score = None
+
+        for chapa in chapas:
+
+            espaco, girada = (
+                chapa.procurar_melhor_espaco(
+                    peca,
+                    estrategia_espaco
+                )
+            )
+
+            if espaco is None:
+                continue
+
+            if girada:
+                largura = peca.altura_corte
+                altura = peca.largura_corte
+            else:
+                largura = peca.largura_corte
+                altura = peca.altura_corte
+
+            sobra_direita = (
+                espaco.largura - largura
+            )
+
+            sobra_superior = (
+                espaco.altura - altura
+            )
+
+            sobra_area = (
+                espaco.area
+                -
+                largura * altura
+            )
+
+            # Preferimos espaços que deixam menor
+            # sobra residual, mas sem forçar uma
+            # única regra de encaixe.
+            score = (
+                sobra_area,
+                min(
+                    sobra_direita,
+                    sobra_superior
+                ),
+                max(
+                    sobra_direita,
+                    sobra_superior
+                ),
+                espaco.y,
+                espaco.x
+            )
+
+            if (
+                melhor_score is None
+                or score < melhor_score
+            ):
+                melhor_score = score
+                melhor_chapa = chapa
+                melhor_posicao = (
+                    espaco,
+                    girada
+                )
+
+        if melhor_chapa is None:
+
+            nova = Chapa(
+                largura=largura_chapa,
+                altura=altura_chapa
+            )
+
+            inseriu = nova.inserir_peca(
+                peca,
+                estrategia_espaco
+            )
+
+            # Nunca ignora uma peça silenciosamente.
+            if inseriu:
+                chapas.append(nova)
+
+        else:
+
+            melhor_chapa.inserir_peca(
+                peca,
+                estrategia_espaco
+            )
+
+    return chapas
+
+
+# ==========================================================
+# VALIDAÇÃO DAS PEÇAS
+# ==========================================================
+
+def _peca_cabe_em_chapa(
+    peca: Peca,
+    largura_chapa: float,
+    altura_chapa: float
+):
+
+    w = peca.largura_corte
+    h = peca.altura_corte
+
+    normal = (
+        w <= largura_chapa
+        and
+        h <= altura_chapa
+    )
+
+    girada = (
+        h <= largura_chapa
+        and
+        w <= altura_chapa
+    )
+
+    return normal or girada
+
+
+# ==========================================================
+# OTIMIZAÇÃO DE UM MATERIAL
 # ==========================================================
 
 def otimizar_material(
     codigo: str,
     pecas: List[Peca],
     largura_chapa: float = LARGURA_CHAPA,
-    altura_chapa: float = ALTURA_CHAPA,
-    tentativas: int = MAX_TENTATIVAS,
-) -> List[Chapa]:
-    """
-    Otimizador híbrido/multi-start.
+    altura_chapa: float = ALTURA_CHAPA
+):
 
-    Em vez de executar uma única heurística, ele monta várias soluções
-    com ordens diferentes e estratégias de encaixe e retorna a melhor.
-    """
     if not pecas:
         return []
 
-    # Remove dimensões impossíveis antes de iniciar.
+    # Mantém todas as peças válidas.
     pecas_validas = [
-        p for p in pecas
-        if p.largura_corte > 0
-        and p.altura_corte > 0
+        p
+        for p in pecas
+        if _peca_cabe_em_chapa(
+            p,
+            largura_chapa,
+            altura_chapa
+        )
     ]
 
+    # Se houver peça que não cabe nem girando,
+    # ela não pode ser colocada em uma chapa.
+    # O sistema continua otimizando as demais, sem
+    # interromper os outros materiais.
     if not pecas_validas:
         return []
 
-    estrategias_espaco = [
+    ordens = [
+        "area",
+        "maior_lado",
+        "menor_lado",
+        "perimetro",
+        "alongadas",
+        "largura",
+        "altura"
+    ]
+
+    estrategias = [
         "best_area",
         "best_short_side",
         "best_long_side",
         "bottom_left",
-        "compact",
+        "best_fit"
     ]
 
-    ordens = _ordens_base(pecas_validas)
+    melhor_chapas = None
+    melhor_chave = None
 
-    # Aumenta a diversidade com tentativas pseudoaleatórias,
-    # mantendo resultado reproduzível para o mesmo conjunto de peças.
-    rng = random.Random(
-        20260811 + sum(ord(c) for c in str(codigo))
-    )
+    # Executa várias combinações, mas sempre usando
+    # a mesma geometria e as mesmas regras de corte.
+    for ordem in ordens:
 
-    quantidade_aleatoria = max(
-        0,
-        min(
-            8,
-            tentativas - len(ordens),
-        ),
-    )
+        for estrategia in estrategias:
 
-    for i in range(quantidade_aleatoria):
-        lista = list(pecas_validas)
-        rng.shuffle(lista)
-        ordens.append((f"random_{i}", lista))
+            chapas = _otimizar_tentativa(
+                pecas_validas,
+                largura_chapa,
+                altura_chapa,
+                ordem,
+                estrategia
+            )
 
-    melhor_chapas: Optional[List[Chapa]] = None
-    melhor_score = None
+            chave = _chave_solucao(
+                chapas
+            )
 
-    for indice, (_, ordem) in enumerate(
-        ordens[:max(1, tentativas)]
-    ):
-        modo = estrategias_espaco[
-            indice % len(estrategias_espaco)
-        ]
+            if (
+                melhor_chave is None
+                or chave < melhor_chave
+            ):
+                melhor_chave = chave
+                melhor_chapas = chapas
 
-        chapas: List[Chapa] = []
+    # Pequenas perturbações determinísticas adicionais.
+    # Não mudam as dimensões; apenas testam ordens diferentes.
+    for semente in range(5):
 
-        sucesso = True
+        embaralhadas = list(
+            pecas_validas
+        )
 
-        for peca in ordem:
-            melhor_chapa = None
-            melhor_encaixe = None
-            melhor_girada = False
-            melhor_local_score = None
+        random.Random(
+            semente
+        ).shuffle(
+            embaralhadas
+        )
 
-            # Procura o melhor espaço considerando TODAS as chapas já abertas.
-            for chapa_index, chapa in enumerate(chapas):
-                espaco, girada = chapa.procurar_melhor_espaco(
-                    peca,
-                    modo=modo,
-                )
+        chapas = _otimizar_tentativa(
+            embaralhadas,
+            largura_chapa,
+            altura_chapa,
+            "area",
+            "best_fit"
+        )
 
-                if espaco is None:
-                    continue
+        chave = _chave_solucao(
+            chapas
+        )
 
-                if girada:
-                    largura = peca.altura_corte
-                    altura = peca.largura_corte
-                else:
-                    largura = peca.largura_corte
-                    altura = peca.altura_corte
-
-                sobra_direita = max(
-                    0.0,
-                    espaco.largura - largura,
-                )
-                sobra_superior = max(
-                    0.0,
-                    espaco.altura - altura,
-                )
-                menor_sobra = min(
-                    sobra_direita,
-                    sobra_superior,
-                )
-                maior_sobra = max(
-                    sobra_direita,
-                    sobra_superior,
-                )
-                area_sobra = max(
-                    0.0,
-                    espaco.area - largura * altura,
-                )
-
-                # Favorece o fechamento de espaços pequenos e, depois,
-                # a compactação da chapa.
-                if modo == "best_short_side":
-                    local_score = (
-                        menor_sobra,
-                        maior_sobra,
-                        area_sobra,
-                        chapa_index,
-                    )
-                elif modo == "best_long_side":
-                    local_score = (
-                        maior_sobra,
-                        menor_sobra,
-                        area_sobra,
-                        chapa_index,
-                    )
-                elif modo == "bottom_left":
-                    local_score = (
-                        espaco.y,
-                        espaco.x,
-                        menor_sobra,
-                        area_sobra,
-                        chapa_index,
-                    )
-                elif modo == "compact":
-                    local_score = (
-                        menor_sobra + maior_sobra,
-                        menor_sobra,
-                        area_sobra,
-                        chapa_index,
-                    )
-                else:
-                    local_score = (
-                        area_sobra,
-                        menor_sobra,
-                        maior_sobra,
-                        chapa_index,
-                    )
-
-                if (
-                    melhor_local_score is None
-                    or local_score < melhor_local_score
-                ):
-                    melhor_local_score = local_score
-                    melhor_chapa = chapa
-                    melhor_encaixe = espaco
-                    melhor_girada = girada
-
-            if melhor_chapa is None:
-                # Abre uma nova chapa.
-                nova_chapa = Chapa(
-                    largura=largura_chapa,
-                    altura=altura_chapa,
-                )
-
-                if not nova_chapa.inserir_peca(
-                    peca,
-                    modo=modo,
-                ):
-                    sucesso = False
-                    break
-
-                chapas.append(nova_chapa)
-            else:
-                # Reutiliza exatamente o espaço que foi escolhido na
-                # comparação entre todas as chapas.
-                if not melhor_chapa.inserir_peca(
-                    peca,
-                    espaco=melhor_encaixe,
-                    girada=melhor_girada,
-                ):
-                    sucesso = False
-                    break
-
-        if not sucesso:
-            continue
-
-        score = _avaliar_chapas(chapas)
-
-        if melhor_score is None or score < melhor_score:
-            melhor_score = score
+        if (
+            melhor_chave is None
+            or chave < melhor_chave
+        ):
+            melhor_chave = chave
             melhor_chapas = chapas
 
-    return melhor_chapas or []
+    return (
+        melhor_chapas
+        if melhor_chapas is not None
+        else []
+    )
 
 
 # ==========================================================
@@ -794,61 +956,78 @@ def otimizar_material(
 
 def otimizar_lista(
     lista_pecas: List[Peca],
-    configuracao_chapas: Dict = None,
+    configuracao_chapas: Dict = None
 ):
-    """Otimiza cada material separadamente."""
+
     materiais: Dict[str, List[Peca]] = {}
 
     for peca in lista_pecas:
+
         materiais.setdefault(
-            str(peca.codigo),
-            [],
-        ).append(peca)
+            peca.codigo,
+            []
+        ).append(
+            peca
+        )
 
     resultado = {}
 
-    for codigo in sorted(materiais.keys()):
-        largura_chapa = float(LARGURA_CHAPA)
-        altura_chapa = float(ALTURA_CHAPA)
+    for codigo in sorted(
+        materiais.keys()
+    ):
+
+        largura_chapa = LARGURA_CHAPA
+        altura_chapa = ALTURA_CHAPA
 
         if configuracao_chapas:
-            dados_chapa = configuracao_chapas.get(
-                str(codigo)
+
+            dados_chapa = (
+                configuracao_chapas.get(
+                    str(codigo)
+                )
             )
 
-            if isinstance(dados_chapa, dict):
+            if isinstance(
+                dados_chapa,
+                dict
+            ):
+
                 try:
+
                     largura_chapa = float(
                         dados_chapa.get(
                             "largura",
-                            largura_chapa,
+                            largura_chapa
                         )
                     )
+
                     altura_chapa = float(
                         dados_chapa.get(
                             "altura",
-                            altura_chapa,
+                            altura_chapa
                         )
                     )
-                except (ValueError, TypeError):
-                    largura_chapa = float(LARGURA_CHAPA)
-                    altura_chapa = float(ALTURA_CHAPA)
 
-        # Reduz tentativas para listas muito grandes para manter o app responsivo.
-        qtd_pecas = len(materiais[codigo])
-        if qtd_pecas >= 500:
-            tentativas = 8
-        elif qtd_pecas >= 250:
-            tentativas = 10
-        else:
-            tentativas = MAX_TENTATIVAS
+                except (
+                    ValueError,
+                    TypeError
+                ):
 
-        resultado[codigo] = otimizar_material(
-            codigo,
-            materiais[codigo],
-            largura_chapa,
-            altura_chapa,
-            tentativas=tentativas,
+                    largura_chapa = (
+                        LARGURA_CHAPA
+                    )
+
+                    altura_chapa = (
+                        ALTURA_CHAPA
+                    )
+
+        resultado[codigo] = (
+            otimizar_material(
+                codigo,
+                materiais[codigo],
+                largura_chapa,
+                altura_chapa
+            )
         )
 
     return resultado
@@ -858,14 +1037,22 @@ def otimizar_lista(
 # RESUMO
 # ==========================================================
 
-def resumo_otimizacao(resultado):
+def resumo_otimizacao(
+    resultado
+):
+
     linhas = []
 
     for codigo, chapas in resultado.items():
-        qtd_chapas = len(chapas)
+
+        qtd_chapas = len(
+            chapas
+        )
 
         area_total = sum(
-            chapa.largura * chapa.altura
+            chapa.largura
+            *
+            chapa.altura
             for chapa in chapas
         )
 
@@ -874,40 +1061,54 @@ def resumo_otimizacao(resultado):
             for chapa in chapas
         )
 
-        desperdicio = max(
-            0.0,
-            area_total - area_utilizada,
+        desperdicio = (
+            area_total
+            -
+            area_utilizada
         )
 
         aproveitamento = (
-            (area_utilizada / area_total) * 100.0
+            (
+                area_utilizada
+                /
+                area_total
+            )
+            *
+            100
             if area_total > 0
-            else 0.0
+            else 0
         )
 
-        linhas.append({
-            "Codigo": codigo,
-            "Qtd Chapas": qtd_chapas,
-            "Área Total": round(
-                area_total / 1_000_000,
-                2,
-            ),
-            "Área Utilizada": round(
-                area_utilizada / 1_000_000,
-                2,
-            ),
-            "Desperdício Total": round(
-                desperdicio / 1_000_000,
-                2,
-            ),
-            "Aproveitamento (%)": round(
-                aproveitamento,
-                2,
-            ),
-        })
+        linhas.append(
+            {
+                "Codigo": codigo,
+
+                "Qtd Chapas": qtd_chapas,
+
+                "Área Total": round(
+                    area_total / 1_000_000,
+                    2
+                ),
+
+                "Área Utilizada": round(
+                    area_utilizada / 1_000_000,
+                    2
+                ),
+
+                "Desperdício Total": round(
+                    desperdicio / 1_000_000,
+                    2
+                ),
+
+                "Aproveitamento (%)": round(
+                    aproveitamento,
+                    2
+                )
+            }
+        )
 
     linhas.sort(
-        key=lambda x: str(x["Codigo"])
+        key=lambda x: x["Codigo"]
     )
 
     return linhas
