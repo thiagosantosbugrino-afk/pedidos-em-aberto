@@ -647,9 +647,7 @@ if "Produto" in df.columns:
             .astype(str)
             .isin(produtos_sel)
         ]
-
-
-# ===================================
+        # ===================================
 # PROGRAMAÇÃO DE CARGA - FILTRO POR DIA
 # ===================================
 
@@ -674,16 +672,36 @@ try:
         "Previsão Entrega"
     }.issubset(programacao.columns):
 
+        # ===================================
+        # PADRONIZA PC
+        # ===================================
+
         programacao["PC"] = (
             programacao["PC"]
-            .astype(str)
+            .astype("string")
+            .str.strip()
             .str.replace(
-                ".0",
+                r"\.0$",
                 "",
-                regex=False
+                regex=True
             )
+        )
+
+        # Converte valores vazios/nan para ""
+        programacao["PC"] = (
+            programacao["PC"]
+            .fillna("")
+            .replace(
+                ["nan", "NaN", "<NA>"],
+                ""
+            )
+            .astype(str)
             .str.strip()
         )
+
+        # ===================================
+        # PADRONIZA DATA
+        # ===================================
 
         programacao["Previsão Entrega"] = (
             pd.to_datetime(
@@ -693,24 +711,24 @@ try:
             )
         )
 
-        programacao = programacao.dropna(
-            subset=[
-                "PC",
-                "Previsão Entrega"
-            ]
-        ).copy()
+        # IMPORTANTE:
+        # NÃO removemos registros sem PC aqui.
+        #
+        # Eles precisam continuar existindo quando
+        # o usuário selecionar "TODOS".
+        #
+        # Para a programação dos dias específicos,
+        # somente os PCs preenchidos serão utilizados.
+
+        programacao = programacao[
+            programacao["Previsão Entrega"].notna()
+        ].copy()
 
         programacao_carregada = True
 
         # ===================================
         # PERÍODO DA PROGRAMAÇÃO
         # ===================================
-
-        # Por padrão, o sistema usa automaticamente
-        # a semana vigente.
-        #
-        # As duas datas ficam no mesmo local e podem
-        # ser alteradas livremente pelo usuário.
 
         hoje = datetime.now().date()
 
@@ -725,47 +743,9 @@ try:
         fim_semana = (
             inicio_semana
             +
-            timedelta(days=4)
-        )
-
-        datas_programacao = (
-            pd.to_datetime(
-                programacao["Previsão Entrega"],
-                errors="coerce"
+            timedelta(
+                days=4
             )
-            .dropna()
-            .dt.date
-        )
-
-        if len(datas_programacao) > 0:
-
-            min_data_programacao = min(
-                datas_programacao
-            )
-
-            max_data_programacao = max(
-                datas_programacao
-            )
-
-        else:
-
-            min_data_programacao = (
-                inicio_semana
-            )
-
-            max_data_programacao = (
-                fim_semana
-            )
-
-        # Garante que a semana automática possa ser
-        # usada mesmo quando estiver fora do intervalo
-        # existente na planilha.
-        inicio_programacao = (
-            inicio_semana
-        )
-
-        fim_programacao = (
-            fim_semana
         )
 
         st.sidebar.markdown(
@@ -775,7 +755,7 @@ try:
         inicio_programacao = (
             st.sidebar.date_input(
                 "De",
-                value=inicio_programacao,
+                value=inicio_semana,
                 key="periodo_programacao_inicio",
                 format="DD/MM/YYYY"
             )
@@ -784,7 +764,7 @@ try:
         fim_programacao = (
             st.sidebar.date_input(
                 "Até",
-                value=fim_programacao,
+                value=fim_semana,
                 key="periodo_programacao_fim",
                 format="DD/MM/YYYY"
             )
@@ -827,29 +807,62 @@ try:
             "SEXTA": 4
         }
 
-        # Primeiro limita ao período escolhido.
-        programacao_periodo = programacao[
-            (
-                programacao[
-                    "Previsão Entrega"
-                ].dt.date
-                >=
-                inicio_programacao
-            )
-            &
-            (
-                programacao[
-                    "Previsão Entrega"
-                ].dt.date
-                <=
-                fim_programacao
-            )
-        ].copy()
+        # ===================================
+        # "TODOS" = TODOS OS PEDIDOS
+        # ===================================
 
-        if dia_programacao != "TODOS":
+        if dia_programacao == "TODOS":
 
-            # Dentro do período escolhido, mantém somente
-            # os dias da semana selecionados.
+            # ------------------------------------------------
+            # IMPORTANTE:
+            #
+            # Quando "TODOS" estiver selecionado, NÃO fazemos
+            # nenhum filtro pela planilha de programação.
+            #
+            # Dessa forma:
+            # - pedidos com PC aparecem;
+            # - pedidos sem PC aparecem;
+            # - pedidos que não estão na programação aparecem;
+            # - todos os pedidos da base continuam disponíveis.
+            #
+            # As outras filtragens (data, rota, produto etc.)
+            # continuam funcionando normalmente.
+            # ------------------------------------------------
+
+            pcs_programacao_dia = set()
+
+            st.sidebar.caption(
+                "📦 Todos os pedidos da base estão sendo exibidos."
+            )
+
+        else:
+
+            # ===================================
+            # FILTRA O PERÍODO
+            # ===================================
+
+            programacao_periodo = programacao[
+                (
+                    programacao[
+                        "Previsão Entrega"
+                    ].dt.date
+                    >=
+                    inicio_programacao
+                )
+                &
+                (
+                    programacao[
+                        "Previsão Entrega"
+                    ].dt.date
+                    <=
+                    fim_programacao
+                )
+            ].copy()
+
+            # ===================================
+            # FILTRA O DIA DA SEMANA
+            # ===================================
+
             dia_numero = mapa_dias[
                 dia_programacao
             ]
@@ -865,56 +878,85 @@ try:
                 .copy()
             )
 
-        else:
+            # ===================================
+            # PEGA SOMENTE PCs VÁLIDOS
+            # ===================================
 
-            programacao_dia = (
-                programacao_periodo
-                .copy()
+            pcs_programacao_dia = set(
+                programacao_dia[
+                    programacao_dia["PC"].ne("")
+                ]["PC"]
+                .astype(str)
+                .str.strip()
+                .tolist()
             )
 
-        pcs_programacao_dia = set(
-            programacao_dia["PC"]
-            .astype(str)
-            .str.strip()
-            .tolist()
-        )
+            # ===================================
+            # PADRONIZA PC DA BASE
+            # ===================================
 
-        df["PC"] = (
-            df["PC"]
-            .astype(str)
-            .str.replace(
-                ".0",
-                "",
-                regex=False
-            )
-            .str.strip()
-        )
+            if "PC" in df.columns:
 
-        # O filtro por programação só restringe a base
-        # quando existe uma programação válida no período.
-        df = df[
-            df["PC"].isin(
-                pcs_programacao_dia
-            )
-        ].copy()
+                df["PC"] = (
+                    df["PC"]
+                    .astype("string")
+                    .fillna("")
+                    .str.strip()
+                    .str.replace(
+                        r"\.0$",
+                        "",
+                        regex=True
+                    )
+                )
 
-        st.sidebar.caption(
-            f"📅 Período: "
-            f"{inicio_programacao.strftime('%d/%m/%Y')} "
-            f"a "
-            f"{fim_programacao.strftime('%d/%m/%Y')}"
-        )
+                df["PC"] = (
+                    df["PC"]
+                    .replace(
+                        ["nan", "NaN", "<NA>"],
+                        ""
+                    )
+                    .astype(str)
+                    .str.strip()
+                )
 
-        if dia_programacao != "TODOS":
+            # ===================================
+            # APLICA FILTRO DO DIA
+            # ===================================
+
+            if pcs_programacao_dia:
+
+                df = df[
+                    df["PC"].isin(
+                        pcs_programacao_dia
+                    )
+                ].copy()
+
+            else:
+
+                # Não existem PCs programados
+                # para o dia selecionado.
+
+                df = df.iloc[0:0].copy()
 
             st.sidebar.caption(
                 f"📌 Dia selecionado: "
                 f"{dia_programacao}"
             )
 
+            st.sidebar.caption(
+                f"📦 {len(pcs_programacao_dia)} PC(s) "
+                f"na programação selecionada."
+            )
+
+        # ===================================
+        # PERÍODO
+        # ===================================
+
         st.sidebar.caption(
-            f"📦 {len(pcs_programacao_dia)} PC(s) "
-            f"na programação selecionada."
+            f"📅 Período: "
+            f"{inicio_programacao.strftime('%d/%m/%Y')} "
+            f"a "
+            f"{fim_programacao.strftime('%d/%m/%Y')}"
         )
 
 except FileNotFoundError:
@@ -931,6 +973,9 @@ except Exception as e:
         f"⚠️ Não foi possível ler a "
         f"Programação de Carga: {e}"
     )
+
+
+
 
 
 # ===================================
