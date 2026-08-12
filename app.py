@@ -54,10 +54,20 @@ def codigo_material(texto):
     utilizando a tabela de equivalências.
     """
 
-    texto = normalizar_material(texto)
-
-    if texto is None:
+    if pd.isna(texto):
         return None
+
+    texto = str(texto).upper().strip()
+
+    # Normaliza espaços
+    texto = re.sub(r"\s+", " ", texto)
+
+    # 04mm -> 04 MM
+    # 04 mm -> 04 MM
+    texto = re.sub(r"(\d+)\s*MM\b", r"\1 MM", texto)
+
+    # 4 MM -> 04 MM
+    texto = re.sub(r"\b(\d)\s+MM\b", r"0\1 MM", texto)
 
     return EQUIVALENCIAS.get(texto, texto)
 
