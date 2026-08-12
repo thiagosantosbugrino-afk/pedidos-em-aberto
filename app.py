@@ -20,7 +20,6 @@ from otimizador import (
     otimizar_lista,
     resumo_otimizacao
 )
-
 # ===================================
 # FUNÇÕES
 # ===================================
@@ -40,7 +39,6 @@ def normalizar_material(texto):
 
     # Padroniza medidas:
     # 4MM, 04MM, 4 MM, 04 MM
-    # todos passam a ter espaço antes de MM
     texto = re.sub(r"(\d+)\s*MM\b", r"\1 MM", texto)
 
     # Padroniza espessuras de 1 dígito para 2 dígitos
@@ -62,6 +60,64 @@ def codigo_material(texto):
         return None
 
     return EQUIVALENCIAS.get(texto, texto)
+
+
+def descricao_material(texto):
+    """
+    Converte a descrição do consolidador
+    em um nome mais amigável.
+    """
+
+    if pd.isna(texto):
+        return ""
+
+    texto = str(texto).upper().strip()
+
+    # Remove CHAPARIA
+    texto = texto.replace("CHAPARIA", "")
+
+    # Remove medidas
+    texto = re.sub(
+        r"\d{4}\s*[Xx]\s*\d{4}",
+        "",
+        texto
+    )
+
+    # Remove espaços extras
+    texto = re.sub(
+        r"\s+",
+        " ",
+        texto
+    ).strip()
+
+    # Padroniza espessura
+    texto = re.sub(
+        r"\b0(\d)\s*MM\b",
+        r"\1 mm",
+        texto
+    )
+
+    return texto.upper()
+
+
+def formatar_numero_br(valor):
+    """
+    Formata números no padrão brasileiro.
+    Exemplo:
+    1234.50 -> 1.234,50
+    """
+
+    if pd.isna(valor):
+        return ""
+
+    return (
+        f"{float(valor):,.2f}"
+        .replace(",", "X")
+        .replace(".", ",")
+        .replace("X", ".")
+    )
+
+
 
 # ===================================
 # CONFIGURAÇÃO DAS CHAPAS POR MATERIAL
