@@ -650,6 +650,181 @@ if "Produto" in df.columns:
 
 
 # ===================================
+# PROGRAMAÇÃO DE CARGA - FILTRO POR DIA
+# ===================================
+
+programacao_carregada = False
+pc_programacao_dia = set()
+dia_programacao = "TODOS"
+
+try:
+
+    programacao = pd.read_excel(
+        "programacao_carga.xlsx"
+    )
+
+    programacao.columns = (
+        programacao.columns
+        .astype(str)
+        .str.strip()
+    )
+
+    if {
+        "PC",
+        "Previsão Entrega"
+    }.issubset(programacao.columns):
+
+        programacao["PC"] = (
+            programacao["PC"]
+            .astype(str)
+            .str.replace(
+                ".0",
+                "",
+                regex=False
+            )
+            .str.strip()
+        )
+
+        programacao["Previsão Entrega"] = (
+            pd.to_datetime(
+                programacao["Previsão Entrega"],
+                errors="coerce",
+                dayfirst=True
+            )
+        )
+
+        programacao = (
+            programacao
+            .dropna(
+                subset=[
+                    "PC",
+                    "Previsão Entrega"
+                ]
+            )
+            .copy()
+        )
+
+        programacao_carregada = True
+
+        hoje = datetime.now().date()
+
+        inicio_semana = (
+            hoje
+            - timedelta(
+                days=hoje.weekday()
+            )
+        )
+
+        fim_semana = (
+            inicio_semana
+            + timedelta(days=4)
+        )
+
+        dias_programacao = [
+            "TODOS",
+            "SEGUNDA",
+            "TERÇA",
+            "QUARTA",
+            "QUINTA",
+            "SEXTA"
+        ]
+
+        dia_programacao = st.sidebar.selectbox(
+            "📅 Programação de carga por dia",
+            dias_programacao,
+            index=0,
+            key="dia_programacao_carga"
+        )
+
+        if dia_programacao != "TODOS":
+
+            mapa_dias = {
+                "SEGUNDA": 0,
+                "TERÇA": 1,
+                "QUARTA": 2,
+                "QUINTA": 3,
+                "SEXTA": 4
+            }
+
+            data_dia = (
+                inicio_semana
+                + timedelta(
+                    days=mapa_dias[
+                        dia_programacao
+                    ]
+                )
+            )
+
+            programacao_dia = programacao[
+                programacao[
+                    "Previsão Entrega"
+                ].dt.date
+                == data_dia
+            ].copy()
+
+            pc_programacao_dia = set(
+                programacao_dia["PC"]
+                .astype(str)
+                .str.strip()
+                .tolist()
+            )
+
+            if "PC" in df.columns:
+                df["PC"] = (
+                    df["PC"]
+                    .astype(str)
+                    .str.replace(
+                        ".0",
+                        "",
+                        regex=False
+                    )
+                    .str.strip()
+                )
+
+                df = df[
+                    df["PC"].isin(
+                        pc_programacao_dia
+                    )
+                ].copy()
+
+            st.sidebar.caption(
+                f"📅 Semana: "
+                f"{inicio_semana.strftime('%d/%m/%Y')} "
+                f"a {fim_semana.strftime('%d/%m/%Y')} "
+                f"| {dia_programacao}: "
+                f"{data_dia.strftime('%d/%m/%Y')}"
+            )
+
+            st.sidebar.caption(
+                f"📦 {len(pc_programacao_dia)} PC(s) "
+                f"na programação desse dia."
+            )
+
+        else:
+
+            st.sidebar.caption(
+                f"📅 Semana atual: "
+                f"{inicio_semana.strftime('%d/%m/%Y')} "
+                f"a {fim_semana.strftime('%d/%m/%Y')}"
+            )
+
+except FileNotFoundError:
+
+    st.sidebar.info(
+        "📄 Carregue a Programação de Carga "
+        "na página Edição para habilitar "
+        "o filtro por dia."
+    )
+
+except Exception as e:
+
+    st.sidebar.warning(
+        f"⚠️ Não foi possível ler a "
+        f"Programação de Carga: {e}"
+    )
+
+
+# ===================================
 # FILTRO DE PC
 # ===================================
 
