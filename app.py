@@ -653,7 +653,7 @@ if "Produto" in df.columns:
 
 programacao_carregada = False
 pcs_programacao_dia = None
-dia_programacao = "TODOS"
+dias_programacao_selecionados = []
 
 try:
 
@@ -679,6 +679,7 @@ try:
         programacao["PC"] = (
             programacao["PC"]
             .astype("string")
+            .fillna("")
             .str.strip()
             .str.replace(
                 r"\.0$",
@@ -687,10 +688,8 @@ try:
             )
         )
 
-        # Converte valores vazios/nan para ""
         programacao["PC"] = (
             programacao["PC"]
-            .fillna("")
             .replace(
                 ["nan", "NaN", "<NA>"],
                 ""
@@ -711,14 +710,9 @@ try:
             )
         )
 
-        # IMPORTANTE:
-        # NÃO removemos registros sem PC aqui.
-        #
-        # Eles precisam continuar existindo quando
-        # o usuário selecionar "TODOS".
-        #
-        # Para a programação dos dias específicos,
-        # somente os PCs preenchidos serão utilizados.
+        # Mantém registros sem PC.
+        # Eles são importantes quando "TODOS"
+        # estiver selecionado.
 
         programacao = programacao[
             programacao["Previsão Entrega"].notna()
@@ -784,7 +778,6 @@ try:
         # ===================================
 
         dias_programacao = [
-            "TODOS",
             "SEGUNDA",
             "TERÇA",
             "QUARTA",
@@ -792,47 +785,26 @@ try:
             "SEXTA"
         ]
 
-        dia_programacao = st.sidebar.selectbox(
-            "📅 Programação de carga por dia",
-            dias_programacao,
-            index=0,
-            key="dia_programacao_carga"
+        dias_programacao_selecionados = (
+            st.sidebar.multiselect(
+                "📅 Programação de carga por dia",
+                options=dias_programacao,
+                default=[],
+                key="dias_programacao_carga"
+            )
         )
 
-        mapa_dias = {
-            "SEGUNDA": 0,
-            "TERÇA": 1,
-            "QUARTA": 2,
-            "QUINTA": 3,
-            "SEXTA": 4
-        }
-
         # ===================================
-        # "TODOS" = TODOS OS PEDIDOS
+        # "NENHUM DIA" = TODOS
         # ===================================
 
-        if dia_programacao == "TODOS":
-
-            # ------------------------------------------------
-            # IMPORTANTE:
-            #
-            # Quando "TODOS" estiver selecionado, NÃO fazemos
-            # nenhum filtro pela planilha de programação.
-            #
-            # Dessa forma:
-            # - pedidos com PC aparecem;
-            # - pedidos sem PC aparecem;
-            # - pedidos que não estão na programação aparecem;
-            # - todos os pedidos da base continuam disponíveis.
-            #
-            # As outras filtragens (data, rota, produto etc.)
-            # continuam funcionando normalmente.
-            # ------------------------------------------------
+        if not dias_programacao_selecionados:
 
             pcs_programacao_dia = set()
 
             st.sidebar.caption(
-                "📦 Todos os pedidos da base estão sendo exibidos."
+                "📦 Todos os pedidos da base estão "
+                "sendo exibidos."
             )
 
         else:
@@ -841,39 +813,56 @@ try:
             # FILTRA O PERÍODO
             # ===================================
 
-            programacao_periodo = programacao[
-                (
-                    programacao[
-                        "Previsão Entrega"
-                    ].dt.date
-                    >=
-                    inicio_programacao
-                )
-                &
-                (
-                    programacao[
-                        "Previsão Entrega"
-                    ].dt.date
-                    <=
-                    fim_programacao
-                )
-            ].copy()
+            programacao_periodo = (
+                programacao[
+                    (
+                        programacao[
+                            "Previsão Entrega"
+                        ].dt.date
+                        >=
+                        inicio_programacao
+                    )
+                    &
+                    (
+                        programacao[
+                            "Previsão Entrega"
+                        ].dt.date
+                        <=
+                        fim_programacao
+                    )
+                ]
+                .copy()
+            )
 
             # ===================================
-            # FILTRA O DIA DA SEMANA
+            # MAPA DOS DIAS
             # ===================================
 
-            dia_numero = mapa_dias[
-                dia_programacao
+            mapa_dias = {
+                "SEGUNDA": 0,
+                "TERÇA": 1,
+                "QUARTA": 2,
+                "QUINTA": 3,
+                "SEXTA": 4
+            }
+
+            numeros_dias = [
+                mapa_dias[dia]
+                for dia
+                in dias_programacao_selecionados
             ]
+
+            # ===================================
+            # FILTRA TODOS OS DIAS SELECIONADOS
+            # ===================================
 
             programacao_dia = (
                 programacao_periodo[
                     programacao_periodo[
                         "Previsão Entrega"
-                    ].dt.weekday
-                    ==
-                    dia_numero
+                    ].dt.weekday.isin(
+                        numeros_dias
+                    )
                 ]
                 .copy()
             )
@@ -920,7 +909,7 @@ try:
                 )
 
             # ===================================
-            # APLICA FILTRO DO DIA
+            # APLICA FILTRO DOS DIAS
             # ===================================
 
             if pcs_programacao_dia:
@@ -933,19 +922,26 @@ try:
 
             else:
 
-                # Não existem PCs programados
-                # para o dia selecionado.
+                # Nenhum PC encontrado nos dias
+                # selecionados.
 
                 df = df.iloc[0:0].copy()
 
+            # ===================================
+            # MOSTRA DIAS SELECIONADOS
+            # ===================================
+
             st.sidebar.caption(
-                f"📌 Dia selecionado: "
-                f"{dia_programacao}"
+                "📌 Dias selecionados: "
+                +
+                ", ".join(
+                    dias_programacao_selecionados
+                )
             )
 
             st.sidebar.caption(
-                f"📦 {len(pcs_programacao_dia)} PC(s) "
-                f"na programação selecionada."
+                f"📦 {len(pcs_programacao_dia)} "
+                f"PC(s) na programação."
             )
 
         # ===================================
@@ -973,11 +969,7 @@ except Exception as e:
         f"⚠️ Não foi possível ler a "
         f"Programação de Carga: {e}"
     )
-
-
-
-
-
+        
 # ===================================
 # FILTRO DE PC
 # ===================================
