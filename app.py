@@ -25,10 +25,9 @@ from otimizador import (
 # FUNÇÕES
 # ===================================
 
-def codigo_material(texto):
+def normalizar_material(texto):
     """
-    Retorna o código padronizado do material
-    utilizando a tabela de equivalências.
+    Normaliza a descrição do material para comparação.
     """
 
     if pd.isna(texto):
@@ -36,65 +35,33 @@ def codigo_material(texto):
 
     texto = str(texto).upper().strip()
 
-    # Busca a equivalência cadastrada
-    return EQUIVALENCIAS.get(texto, texto)
-
-
-def descricao_material(texto):
-    """
-    Converte a descrição do consolidador
-    em um nome mais amigável.
-    """
-
-    if pd.isna(texto):
-        return ""
-
-    texto = str(texto).upper().strip()
-
-    # Remove CHAPARIA
-    texto = texto.replace("CHAPARIA", "")
-
-    # Remove medidas
-    texto = re.sub(
-        r"\d{4}\s*[Xx]\s*\d{4}",
-        "",
-        texto
-    )
-
     # Remove espaços extras
-    texto = re.sub(
-        r"\s+",
-        " ",
-        texto
-    ).strip()
+    texto = re.sub(r"\s+", " ", texto)
 
-    # Padroniza espessura
-    texto = re.sub(
-        r"\b0(\d)\s*MM\b",
-        r"\1 mm",
-        texto
-    )
+    # Padroniza medidas:
+    # 4MM, 04MM, 4 MM, 04 MM
+    # todos passam a ter espaço antes de MM
+    texto = re.sub(r"(\d+)\s*MM\b", r"\1 MM", texto)
 
-    return texto.upper()
+    # Padroniza espessuras de 1 dígito para 2 dígitos
+    # 4 MM -> 04 MM
+    texto = re.sub(r"\b(\d)\s+MM\b", r"0\1 MM", texto)
+
+    return texto
 
 
-def formatar_numero_br(valor):
+def codigo_material(texto):
     """
-    Formata números no padrão brasileiro.
-    Exemplo:
-    1234.50 -> 1.234,50
+    Retorna o código padronizado do material
+    utilizando a tabela de equivalências.
     """
 
-    if pd.isna(valor):
-        return ""
+    texto = normalizar_material(texto)
 
-    return (
-        f"{float(valor):,.2f}"
-        .replace(",", "X")
-        .replace(".", ",")
-        .replace("X", ".")
-    )
+    if texto is None:
+        return None
 
+    return EQUIVALENCIAS.get(texto, texto)
 
 # ===================================
 # CONFIGURAÇÃO DAS CHAPAS POR MATERIAL
