@@ -20,33 +20,10 @@ from otimizador import (
     otimizar_lista,
     resumo_otimizacao
 )
+
 # ===================================
 # FUNÇÕES
 # ===================================
-
-def normalizar_material(texto):
-    """
-    Normaliza a descrição do material para comparação.
-    """
-
-    if pd.isna(texto):
-        return None
-
-    texto = str(texto).upper().strip()
-
-    # Remove espaços extras
-    texto = re.sub(r"\s+", " ", texto)
-
-    # Padroniza medidas:
-    # 4MM, 04MM, 4 MM, 04 MM
-    texto = re.sub(r"(\d+)\s*MM\b", r"\1 MM", texto)
-
-    # Padroniza espessuras de 1 dígito para 2 dígitos
-    # 4 MM -> 04 MM
-    texto = re.sub(r"\b(\d)\s+MM\b", r"0\1 MM", texto)
-
-    return texto
-
 
 def codigo_material(texto):
     """
@@ -59,16 +36,7 @@ def codigo_material(texto):
 
     texto = str(texto).upper().strip()
 
-    # Normaliza espaços
-    texto = re.sub(r"\s+", " ", texto)
-
-    # 04mm -> 04 MM
-    # 04 mm -> 04 MM
-    texto = re.sub(r"(\d+)\s*MM\b", r"\1 MM", texto)
-
-    # 4 MM -> 04 MM
-    texto = re.sub(r"\b(\d)\s+MM\b", r"0\1 MM", texto)
-
+    # Busca a equivalência cadastrada
     return EQUIVALENCIAS.get(texto, texto)
 
 
@@ -126,7 +94,6 @@ def formatar_numero_br(valor):
         .replace(".", ",")
         .replace("X", ".")
     )
-
 
 
 # ===================================
