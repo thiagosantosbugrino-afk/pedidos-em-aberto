@@ -647,6 +647,335 @@ if "Produto" in df.columns:
             .astype(str)
             .isin(produtos_sel)
         ]
+        # ===================================
+# PROGRAMAÇÃO DE CARGA - FILTRO POR DIA
+# ===================================
+
+programacao_carregada = False
+pcs_programacao_dia = None
+dia_programacao = "TODOS"
+
+try:
+
+    programacao = pd.read_excel(
+        "programacao_carga.xlsx"
+    )
+
+    programacao.columns = (
+        programacao.columns
+        .astype(str)
+        .str.strip()
+    )
+
+    if {
+        "PC",
+        "Previsão Entrega"
+    }.issubset(programacao.columns):
+
+        # ===================================
+        # PADRONIZA PC
+        # ===================================
+
+        programacao["PC"] = (
+            programacao["PC"]
+            .astype("string")
+            .str.strip()
+            .str.replace(
+                r"\.0$",
+                "",
+                regex=True
+            )
+        )
+
+        # Converte valores vazios/nan para ""
+        programacao["PC"] = (
+            programacao["PC"]
+            .fillna("")
+            .replace(
+                ["nan", "NaN", "<NA>"],
+                ""
+            )
+            .astype(str)
+            .str.strip()
+        )
+
+        # ===================================
+        # PADRONIZA DATA
+        # ===================================
+
+        programacao["Previsão Entrega"] = (
+            pd.to_datetime(
+                programacao["Previsão Entrega"],
+                errors="coerce",
+                dayfirst=True
+            )
+        )
+
+        # IMPORTANTE:
+        # NÃO removemos registros sem PC aqui.
+        #
+        # Eles precisam continuar existindo quando
+        # o usuário selecionar "TODOS".
+        #
+        # Para a programação dos dias específicos,
+        # somente os PCs preenchidos serão utilizados.
+
+        programacao = programacao[
+            programacao["Previsão Entrega"].notna()
+        ].copy()
+
+        programacao_carregada = True
+
+        # ===================================
+        # PERÍODO DA PROGRAMAÇÃO
+        # ===================================
+
+        hoje = datetime.now().date()
+
+        inicio_semana = (
+            hoje
+            -
+            timedelta(
+                days=hoje.weekday()
+            )
+        )
+
+        fim_semana = (
+            inicio_semana
+            +
+            timedelta(
+                days=4
+            )
+        )
+
+        st.sidebar.markdown(
+            "### 📅 Período da Programação"
+        )
+
+        inicio_programacao = (
+            st.sidebar.date_input(
+                "De",
+                value=inicio_semana,
+                key="periodo_programacao_inicio",
+                format="DD/MM/YYYY"
+            )
+        )
+
+        fim_programacao = (
+            st.sidebar.date_input(
+                "Até",
+                value=fim_semana,
+                key="periodo_programacao_fim",
+                format="DD/MM/YYYY"
+            )
+        )
+
+        if inicio_programacao > fim_programacao:
+
+            st.sidebar.error(
+                "A data inicial não pode ser "
+                "maior que a data final."
+            )
+
+            st.stop()
+
+        # ===================================
+        # FILTRO POR DIA DA SEMANA
+        # ===================================
+
+        dias_programacao = [
+            "TODOS",
+            "SEGUNDA",
+            "TERÇA",
+            "QUARTA",
+            "QUINTA",
+            "SEXTA"
+        ]
+
+        dia_programacao = st.sidebar.selectbox(
+            "📅 Programação de carga por dia",
+            dias_programacao,
+            index=0,
+            key="dia_programacao_carga"
+        )
+
+        mapa_dias = {
+            "SEGUNDA": 0,
+            "TERÇA": 1,
+            "QUARTA": 2,
+            "QUINTA": 3,
+            "SEXTA": 4
+        }
+
+        # ===================================
+        # "TODOS" = TODOS OS PEDIDOS
+        # ===================================
+
+        if dia_programacao == "TODOS":
+
+            # ------------------------------------------------
+            # IMPORTANTE:
+            #
+            # Quando "TODOS" estiver selecionado, NÃO fazemos
+            # nenhum filtro pela planilha de programação.
+            #
+            # Dessa forma:
+            # - pedidos com PC aparecem;
+            # - pedidos sem PC aparecem;
+            # - pedidos que não estão na programação aparecem;
+            # - todos os pedidos da base continuam disponíveis.
+            #
+            # As outras filtragens (data, rota, produto etc.)
+            # continuam funcionando normalmente.
+            # ------------------------------------------------
+
+            pcs_programacao_dia = set()
+
+            st.sidebar.caption(
+                "📦 Todos os pedidos da base estão sendo exibidos."
+            )
+
+        else:
+
+            # ===================================
+            # FILTRA O PERÍODO
+            # ===================================
+
+            programacao_periodo = programacao[
+                (
+                    programacao[
+                        "Previsão Entrega"
+                    ].dt.date
+                    >=
+                    inicio_programacao
+                )
+                &
+                (
+                    programacao[
+                        "Previsão Entrega"
+                    ].dt.date
+                    <=
+                    fim_programacao
+                )
+            ].copy()
+
+            # ===================================
+            # FILTRA O DIA DA SEMANA
+            # ===================================
+
+            dia_numero = mapa_dias[
+                dia_programacao
+            ]
+
+            programacao_dia = (
+                programacao_periodo[
+                    programacao_periodo[
+                        "Previsão Entrega"
+                    ].dt.weekday
+                    ==
+                    dia_numero
+                ]
+                .copy()
+            )
+
+            # ===================================
+            # PEGA SOMENTE PCs VÁLIDOS
+            # ===================================
+
+            pcs_programacao_dia = set(
+                programacao_dia[
+                    programacao_dia["PC"].ne("")
+                ]["PC"]
+                .astype(str)
+                .str.strip()
+                .tolist()
+            )
+
+            # ===================================
+            # PADRONIZA PC DA BASE
+            # ===================================
+
+            if "PC" in df.columns:
+
+                df["PC"] = (
+                    df["PC"]
+                    .astype("string")
+                    .fillna("")
+                    .str.strip()
+                    .str.replace(
+                        r"\.0$",
+                        "",
+                        regex=True
+                    )
+                )
+
+                df["PC"] = (
+                    df["PC"]
+                    .replace(
+                        ["nan", "NaN", "<NA>"],
+                        ""
+                    )
+                    .astype(str)
+                    .str.strip()
+                )
+
+            # ===================================
+            # APLICA FILTRO DO DIA
+            # ===================================
+
+            if pcs_programacao_dia:
+
+                df = df[
+                    df["PC"].isin(
+                        pcs_programacao_dia
+                    )
+                ].copy()
+
+            else:
+
+                # Não existem PCs programados
+                # para o dia selecionado.
+
+                df = df.iloc[0:0].copy()
+
+            st.sidebar.caption(
+                f"📌 Dia selecionado: "
+                f"{dia_programacao}"
+            )
+
+            st.sidebar.caption(
+                f"📦 {len(pcs_programacao_dia)} PC(s) "
+                f"na programação selecionada."
+            )
+
+        # ===================================
+        # PERÍODO
+        # ===================================
+
+        st.sidebar.caption(
+            f"📅 Período: "
+            f"{inicio_programacao.strftime('%d/%m/%Y')} "
+            f"a "
+            f"{fim_programacao.strftime('%d/%m/%Y')}"
+        )
+
+except FileNotFoundError:
+
+    st.sidebar.info(
+        "📄 Carregue a Programação de Carga "
+        "na página Edição para habilitar "
+        "o filtro por dia."
+    )
+
+except Exception as e:
+
+    st.sidebar.warning(
+        f"⚠️ Não foi possível ler a "
+        f"Programação de Carga: {e}"
+    )
+
+
+
 
 
 # ===================================
@@ -886,209 +1215,204 @@ df_final = (
 
 configuracao_chapas = carregar_configuracao_chapas()
 
-mostrar_config_chapas = st.checkbox(
-    "📐 Mostrar Configuração de Chapas",
-    value=False,
-    key="mostrar_config_chapas"
+st.markdown("---")
+
+st.subheader(
+    "📐 Configuração de Chapas por Material"
 )
 
-if mostrar_config_chapas:
+st.caption(
+    "Selecione um material para consultar ou alterar "
+    "a medida da chapa utilizada na otimização."
+)
 
-    st.markdown("---")
 
-    st.subheader(
-        "📐 Configuração de Chapas por Material"
+# =====================================
+# IDENTIFICA OS MATERIAIS DA PLANILHA
+# =====================================
+
+if (
+    not df_final.empty
+    and "Produto" in df_final.columns
+):
+
+    materiais_disponiveis = (
+        df_final["Produto"]
+        .dropna()
+        .astype(str)
+        .apply(codigo_material)
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
     )
 
-    st.caption(
-        "Selecione um material para consultar ou alterar "
-        "a medida da chapa utilizada na otimização."
+    materiais_disponiveis = sorted(
+        materiais_disponiveis
     )
 
-    # =====================================
-    # IDENTIFICA OS MATERIAIS DA PLANILHA
-    # =====================================
+else:
 
-    if (
-        not df_final.empty
-        and "Produto" in df_final.columns
-    ):
+    materiais_disponiveis = []
 
-        materiais_disponiveis = (
-            df_final["Produto"]
-            .dropna()
-            .astype(str)
-            .apply(codigo_material)
+
+# =====================================
+# SELEÇÃO DO MATERIAL
+# =====================================
+
+if materiais_disponiveis:
+
+    material_selecionado = st.selectbox(
+        "🪵 Selecione o material",
+        options=materiais_disponiveis,
+        key="material_chapa_selecionado"
+    )
+
+
+    # =================================
+    # BUSCA A MEDIDA ATUAL
+    # =================================
+
+    largura_atual, altura_atual = (
+        obter_chapa_material(
+            material_selecionado,
+            configuracao_chapas
+        )
+    )
+
+
+    # =================================
+    # MOSTRA A DESCRIÇÃO DO MATERIAL
+    # =================================
+
+    descricao_atual = ""
+
+    try:
+
+        produtos_material = (
+            df_final[
+                df_final["Produto"]
+                .astype(str)
+                .apply(codigo_material)
+                == material_selecionado
+            ]["Produto"]
             .dropna()
             .astype(str)
             .unique()
-            .tolist()
         )
 
-        materiais_disponiveis = sorted(
-            materiais_disponiveis
-        )
+        if len(produtos_material) > 0:
 
-    else:
-
-        materiais_disponiveis = []
-
-    # =====================================
-    # SELEÇÃO DO MATERIAL
-    # =====================================
-
-    if materiais_disponiveis:
-
-        material_selecionado = st.selectbox(
-            "🪵 Selecione o material",
-            options=materiais_disponiveis,
-            key="material_chapa_selecionado"
-        )
-
-        # =================================
-        # BUSCA A MEDIDA ATUAL
-        # =================================
-
-        largura_atual, altura_atual = (
-            obter_chapa_material(
-                material_selecionado,
-                configuracao_chapas
+            descricao_atual = (
+                produtos_material[0]
             )
-        )
 
-        # =================================
-        # MOSTRA A DESCRIÇÃO DO MATERIAL
-        # =================================
+    except Exception:
 
         descricao_atual = ""
 
-        try:
 
-            produtos_material = (
-                df_final[
-                    df_final["Produto"]
-                    .astype(str)
-                    .apply(codigo_material)
-                    == material_selecionado
-                ]["Produto"]
-                .dropna()
-                .astype(str)
-                .unique()
-            )
+    if descricao_atual:
 
-            if len(produtos_material) > 0:
-
-                descricao_atual = (
-                    produtos_material[0]
-                )
-
-        except Exception:
-
-            descricao_atual = ""
-
-        if descricao_atual:
-
-            st.info(
-                f"Material selecionado: "
-                f"**{material_selecionado}** — "
-                f"{descricao_atual}"
-            )
-
-        else:
-
-            st.info(
-                f"Material selecionado: "
-                f"**{material_selecionado}**"
-            )
-
-        # =================================
-        # MEDIDAS DA CHAPA
-        # =================================
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-
-            nova_largura = st.number_input(
-                "📏 Largura da chapa (mm)",
-                min_value=100,
-                max_value=10000,
-                value=int(largura_atual),
-                step=1,
-                format="%d",
-                key=(
-                    f"largura_chapa_"
-                    f"{material_selecionado}"
-                )
-            )
-
-        with col2:
-
-            nova_altura = st.number_input(
-                "📐 Altura da chapa (mm)",
-                min_value=100,
-                max_value=10000,
-                value=int(altura_atual),
-                step=1,
-                format="%d",
-                key=(
-                    f"altura_chapa_"
-                    f"{material_selecionado}"
-                )
-            )
-
-        # =================================
-        # MOSTRA A MEDIDA ATUAL
-        # =================================
-
-        st.write(
-            f"**Medida configurada:** "
-            f"{nova_largura} × "
-            f"{nova_altura} mm"
+        st.info(
+            f"Material selecionado: "
+            f"**{material_selecionado}** — "
+            f"{descricao_atual}"
         )
-
-        # =================================
-        # SALVAR
-        # =================================
-
-        if st.button(
-            "💾 Salvar medida deste material",
-            type="primary",
-            key="salvar_medida_material"
-        ):
-
-            configuracao_chapas[
-                material_selecionado
-            ] = {
-
-                "largura": int(
-                    nova_largura
-                ),
-
-                "altura": int(
-                    nova_altura
-                )
-
-            }
-
-            salvar_configuracao_chapas(
-                configuracao_chapas
-            )
-
-            st.success(
-                f"✅ Medida salva para o material "
-                f"**{material_selecionado}**: "
-                f"{nova_largura} × "
-                f"{nova_altura} mm"
-            )
 
     else:
 
         st.info(
-            "Nenhum material foi encontrado "
-            "nas planilhas carregadas."
+            f"Material selecionado: "
+            f"**{material_selecionado}**"
         )
-        
+        # =================================
+    # =================================
+    # MEDIDAS DA CHAPA
+    # =================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        nova_largura = st.number_input(
+            "📏 Largura da chapa (mm)",
+            min_value=100,
+            max_value=10000,
+            value=int(largura_atual),
+            step=1,
+            format="%d",
+            key=(
+                f"largura_chapa_"
+                f"{material_selecionado}"
+            )
+        )
+
+    with col2:
+
+        nova_altura = st.number_input(
+            "📐 Altura da chapa (mm)",
+            min_value=100,
+            max_value=10000,
+            value=int(altura_atual),
+            step=1,
+            format="%d",
+            key=(
+                f"altura_chapa_"
+                f"{material_selecionado}"
+            )
+        )
+
+    # =================================
+    # MOSTRA A MEDIDA ATUAL
+    # =================================
+
+    st.write(
+        f"**Medida configurada:** "
+        f"{nova_largura} × "
+        f"{nova_altura} mm"
+    )
+
+    # =================================
+    # SALVAR
+    # =================================
+
+    if st.button(
+        "💾 Salvar medida deste material",
+        type="primary",
+        key="salvar_medida_material"
+    ):
+
+        configuracao_chapas[
+            material_selecionado
+        ] = {
+            "largura": int(
+                nova_largura
+            ),
+            "altura": int(
+                nova_altura
+            )
+        }
+
+        salvar_configuracao_chapas(
+            configuracao_chapas
+        )
+
+        st.success(
+            f"✅ Medida salva para o material "
+            f"**{material_selecionado}**: "
+            f"{nova_largura} × "
+            f"{nova_altura} mm"
+        )
+
+else:
+
+    st.info(
+        "Nenhum material foi encontrado "
+        "nas planilhas carregadas."
+    )
+
+
 # =====================================
 # VISÃO MATÉRIA-PRIMA
 # =====================================
@@ -2201,8 +2525,6 @@ if mostrar_mp:
             sortable=True,
             filter=True,
             resizable=True,
-            minWidth=95,
-            flex=1,
             cellStyle={
                 "textAlign": "center"
             },
@@ -2212,33 +2534,10 @@ if mostrar_mp:
         )
 
 
-        # Define larguras mínimas para manter todas as colunas
-        # importantes visíveis na tabela, sem esconder as colunas
-        # de planejamento e compra.
-        larguras_minimas = {
-            "Descricao": 170,
-            "Estoque": 95,
-            "Consumo": 95,
-            "Saldo": 95,
-            "Produz até": 115,
-            "Primeira Falta": 125,
-            "Qtd Chapas Otimizadas": 130,
-            "Compra c/ Perda": 120,
-            "Qtd Chapas a Comprar": 130,
-            "% Perda": 90,
-            "Status": 105
-        }
-
-
         for coluna in tabela.columns:
 
             gb.configure_column(
                 coluna,
-                minWidth=larguras_minimas.get(
-                    coluna,
-                    95
-                ),
-                flex=1,
                 cellStyle={
                     "textAlign": "center"
                 },
