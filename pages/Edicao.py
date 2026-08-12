@@ -79,6 +79,80 @@ arquivo_consolidador = st.file_uploader(
     type=["xlsx", "xlsm"],
     key="consolidador"
 )
+
+# =========================================
+# UPLOAD PROGRAMAÇÃO DE CARGA
+# =========================================
+
+arquivo_programacao = st.file_uploader(
+    "Importar Programação de Carga",
+    type=["xlsx", "xls", "xlsm"],
+    key="programacao_carga"
+)
+
+if arquivo_programacao is not None:
+
+    try:
+
+        df_programacao = pd.read_excel(
+            arquivo_programacao,
+            sheet_name=0
+        )
+
+        # A planilha de Programação de Carga usa:
+        # Coluna C = PC
+        # Coluna F = Previsão de Entrega
+        if df_programacao.shape[1] < 6:
+            st.error(
+                "❌ A Programação de Carga precisa ter "
+                "pelo menos 6 colunas."
+            )
+        else:
+
+            programacao = df_programacao.iloc[:, [2, 5]].copy()
+
+            programacao.columns = [
+                "PC",
+                "Previsão Entrega"
+            ]
+
+            programacao["PC"] = (
+                programacao["PC"]
+                .astype(str)
+                .str.replace(".0", "", regex=False)
+                .str.strip()
+            )
+
+            programacao["Previsão Entrega"] = (
+                pd.to_datetime(
+                    programacao["Previsão Entrega"],
+                    errors="coerce",
+                    dayfirst=True
+                )
+            )
+
+            programacao = programacao[
+                programacao["PC"].notna()
+                &
+                programacao["Previsão Entrega"].notna()
+            ].copy()
+
+            programacao.to_excel(
+                "programacao_carga.xlsx",
+                index=False,
+                engine="openpyxl"
+            )
+
+            st.success(
+                "✅ Programação de Carga salva com sucesso!"
+            )
+
+    except Exception as e:
+
+        st.error(
+            f"❌ Erro ao importar Programação de Carga: {e}"
+        )
+
 # =========================================
 # SE ENVIAR NOVA PLANILHA
 # =========================================
