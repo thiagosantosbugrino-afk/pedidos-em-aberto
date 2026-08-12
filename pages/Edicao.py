@@ -99,14 +99,15 @@ if arquivo_programacao is not None:
             sheet_name=0
         )
 
-        # A planilha de Programação de Carga usa:
         # Coluna C = PC
         # Coluna F = Previsão de Entrega
         if df_programacao.shape[1] < 6:
+
             st.error(
                 "❌ A Programação de Carga precisa ter "
                 "pelo menos 6 colunas."
             )
+
         else:
 
             programacao = df_programacao.iloc[:, [2, 5]].copy()
@@ -119,7 +120,11 @@ if arquivo_programacao is not None:
             programacao["PC"] = (
                 programacao["PC"]
                 .astype(str)
-                .str.replace(".0", "", regex=False)
+                .str.replace(
+                    ".0",
+                    "",
+                    regex=False
+                )
                 .str.strip()
             )
 
