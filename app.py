@@ -1063,6 +1063,8 @@ pedidos_manuais = (
         ]
     )
 )
+
+
 # ===================================
 # ROTAS MANUAIS
 # ===================================
@@ -1074,14 +1076,18 @@ st.sidebar.subheader(
 )
 
 lista_rotas = (
+
     sorted(
         df_base["Rota"]
         .dropna()
         .astype(str)
         .unique()
     )
+
     if "Rota" in df_base.columns
+
     else []
+
 )
 
 rotas_manuais = (
@@ -1089,26 +1095,28 @@ rotas_manuais = (
         "Selecionar rotas manuais",
         options=lista_rotas,
         default=[
+
             rota
+
             for rota in filtros.get(
                 "rotas_manuais",
                 []
             )
+
             if rota in lista_rotas
-        ],
-        key="rotas_manuais"
+
+        ]
     )
 )
+
 
 # ===================================
 # APLICAÇÃO DOS FILTROS MANUAIS
 # ===================================
 
-df_base_filtrada = df_base.copy()
-
-# ===================================
-# FILTRO DE DATA
-# ===================================
+df_base_filtrada = (
+    df_base.copy()
+)
 
 if (
     start_date is not None
@@ -1116,32 +1124,42 @@ if (
     and "Previsão" in df_base_filtrada.columns
 ):
 
-    df_base_filtrada = df_base_filtrada[
-        (
-            df_base_filtrada["Previsão"].dt.date
-            >= start_date
-        )
-        &
-        (
-            df_base_filtrada["Previsão"].dt.date
-            <= end_date
-        )
-    ].copy()
+    df_base_filtrada = (
+        df_base_filtrada[
+            (
+                df_base_filtrada[
+                    "Previsão"
+                ].dt.date
+                >= start_date
+            )
+            &
+            (
+                df_base_filtrada[
+                    "Previsão"
+                ].dt.date
+                <= end_date
+            )
+        ]
+    )
 
-# ===================================
-# PEDIDOS MANUAIS
-# ===================================
 
 if (
     pedidos_manuais
-    and "Pedido" in df_base_filtrada.columns
+    and "Pedido"
+    in df_base_filtrada.columns
 ):
 
-    df_extra = df_base_filtrada[
-        df_base_filtrada["Pedido"]
-        .astype(str)
-        .isin(pedidos_manuais)
-    ].copy()
+    df_extra = (
+        df_base_filtrada[
+            df_base_filtrada[
+                "Pedido"
+            ]
+            .astype(str)
+            .isin(
+                pedidos_manuais
+            )
+        ]
+    )
 
     df_final = pd.concat(
         [
@@ -1151,20 +1169,24 @@ if (
         ignore_index=True
     )
 
-# ===================================
-# ROTAS MANUAIS
-# ===================================
 
 if (
     rotas_manuais
-    and "Rota" in df_base_filtrada.columns
+    and "Rota"
+    in df_base_filtrada.columns
 ):
 
-    df_extra_rotas = df_base_filtrada[
-        df_base_filtrada["Rota"]
-        .astype(str)
-        .isin(rotas_manuais)
-    ].copy()
+    df_extra_rotas = (
+        df_base_filtrada[
+            df_base_filtrada[
+                "Rota"
+            ]
+            .astype(str)
+            .isin(
+                rotas_manuais
+            )
+        ]
+    )
 
     df_final = pd.concat(
         [
@@ -1174,18 +1196,11 @@ if (
         ignore_index=True
     )
 
-# ===================================
-# REMOVE DUPLICIDADES
-# ===================================
 
 df_final = (
     df_final
     .drop_duplicates()
-    .copy()
 )
-
-
-
 # =====================================
 # CONFIGURAÇÃO DE CHAPAS POR MATERIAL
 # =====================================
