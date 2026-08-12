@@ -36,14 +36,33 @@ def codigo_material(texto):
 
     texto = str(texto).upper().strip()
 
-    # Busca a equivalência cadastrada
-    return EQUIVALENCIAS.get(texto, texto)
+    # Remove espaços duplicados
+    texto = re.sub(
+        r"\s+",
+        " ",
+        texto
+    )
 
+    # Padroniza MM
+    # 4MM  -> 4 MM
+    # 04MM -> 04 MM
+    # 4 MM -> 4 MM
+    texto = re.sub(
+        r"(\d+)\s*MM\b",
+        r"\1 MM",
+        texto
+    )
+
+    # Busca a equivalência
+    return EQUIVALENCIAS.get(
+        texto,
+        texto
+    )
 
 def descricao_material(texto):
     """
     Converte a descrição do consolidador
-    em um nome mais amigável.
+    em um nome mais amigável e padronizado.
     """
 
     if pd.isna(texto):
@@ -52,9 +71,12 @@ def descricao_material(texto):
     texto = str(texto).upper().strip()
 
     # Remove CHAPARIA
-    texto = texto.replace("CHAPARIA", "")
+    texto = texto.replace(
+        "CHAPARIA",
+        ""
+    )
 
-    # Remove medidas
+    # Remove medidas da chapa
     texto = re.sub(
         r"\d{4}\s*[Xx]\s*\d{4}",
         "",
@@ -68,15 +90,25 @@ def descricao_material(texto):
         texto
     ).strip()
 
-    # Padroniza espessura
+    # Padroniza MM
+    # 4MM  -> 4 MM
+    # 04MM -> 04 MM
+    # 4 MM -> 4 MM
     texto = re.sub(
-        r"\b0(\d)\s*MM\b",
-        r"\1 mm",
+        r"(\d+)\s*MM\b",
+        r"\1 MM",
+        texto
+    )
+
+    # 04 MM -> 4 MM
+    # 08 MM -> 8 MM
+    texto = re.sub(
+        r"\b0(\d)\s+MM\b",
+        r"\1 MM",
         texto
     )
 
     return texto.upper()
-
 
 def formatar_numero_br(valor):
     """
