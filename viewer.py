@@ -1,14 +1,15 @@
+import json
+import os
+import re
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-# Usa o otimizador.py que já existe no seu projeto.
-try:
-    from otimizador import Peca, otimizar_lista
-except ImportError:
-    Peca = None
-    otimizar_lista = None
+from equivalencias import EQUIVALENCIAS
+from otimizador import Peca, otimizar_lista
+
 
 st.set_page_config(
     page_title="Pedidos Em Aberto - Viewer",
@@ -18,6 +19,72 @@ st.set_page_config(
 
 st.title("📊 Pedidos Em Aberto - Visualização")
 
+
+# ==========================================================
+# FUNÇÕES DE MATERIAL / CHAPAS
+# ==========================================================
+
+ARQUIVO_CHAPAS = "chapas_materiais.json"
+LARGURA_CHAPA_PADRAO = 3210
+ALTURA_CHAPA_PADRAO = 2400
+
+
+def codigo_material(texto):
+    if pd.isna(texto):
+        return None
+
+    texto = str(texto).upper().strip()
+    texto = re.sub(r"\s+", " ", texto)
+    texto = re.sub(r"(\d+)\s*MM\b", r"\1 MM", texto)
+
+    return EQUIVALENCIAS.get(texto, texto)
+
+
+def carregar_configuracao_chapas():
+    padrao = {
+        "_PADRAO": {
+            "largura": LARGURA_CHAPA_PADRAO,
+            "altura": ALTURA_CHAPA_PADRAO,
+        }
+    }
+
+    try:
+        if not os.path.exists(ARQUIVO_CHAPAS):
+            return padrao
+
+        with open(ARQUIVO_CHAPAS, "r", encoding="utf-8") as arquivo:
+            dados = json.load(arquivo)
+
+        if not isinstance(dados, dict):
+            return padrao
+
+        dados.setdefault("_PADRAO", padrao["_PADRAO"])
+        return dados
+
+    except Exception:
+        return padrao
+
+
+def obter_chapa_material(codigo, configuracao):
+    dados = configuracao.get(str(codigo))
+
+    if not isinstance(dados, dict):
+        dados = configuracao.get("_PADRAO", {})
+
+    try:
+        largura = float(
+            dados.get("largura", LARGURA_CHAPA_PADRAO)
+        )
+        altura = float(
+            dados.get("altura", ALTURA_CHAPA_PADRAO)
+        )
+    except (ValueError, TypeError):
+        largura = LARGURA_CHAPA_PADRAO
+        altura = ALTURA_CHAPA_PADRAO
+
+    return largura, altura
+
+
 # ==========================================================
 # LEITURA DA BASE
 # ==========================================================
@@ -25,32 +92,51 @@ st.title("📊 Pedidos Em Aberto - Visualização")
 try:
     df = pd.read_excel("dados.xlsx", sheet_name="Base")
 except FileNotFoundError:
-    st.error("⚠️ Nenhum arquivo foi carregado ainda no app principal.")
-    st.stop()
+    try:
+        df = pd.read_excel("dados.xlsx", sheet_name=0)
+    except FileNotFoundError:
+        st.error("⚠️ Nenhum arquivo foi carregado ainda no app principal.")
+        st.stop()
 
-df.columns = df.columns.astype(str)
+df.columns = df.columns.astype(str).str.strip()
+
 
 # ==========================================================
 # FILTROS
 # ==========================================================
 
 if "Cliente" in df.columns:
-    clientes = sorted(df["Cliente"].dropna().astype(str).unique())
+    clientes = sorted(
+        df["Cliente"].dropna().astype(str).unique()
+    )
     cliente = st.sidebar.multiselect("Cliente", clientes)
     if cliente:
-        df = df[df["Cliente"].astype(str).isin(cliente)]
+        df = df[
+            df["Cliente"].astype(str).isin(cliente)
+        ].copy()
+
 
 if "Rota" in df.columns:
-    rotas = sorted(df["Rota"].dropna().astype(str).unique())
+    rotas = sorted(
+        df["Rota"].dropna().astype(str).unique()
+    )
     rota = st.sidebar.multiselect("Rota", rotas)
     if rota:
-        df = df[df["Rota"].astype(str).isin(rota)]
+        df = df[
+            df["Rota"].astype(str).isin(rota)
+        ].copy()
+
 
 if "Produto" in df.columns:
-    produtos = sorted(df["Produto"].dropna().astype(str).unique())
+    produtos = sorted(
+        df["Produto"].dropna().astype(str).unique()
+    )
     produto = st.sidebar.multiselect("Produto", produtos)
     if produto:
-        df = df[df["Produto"].astype(str).isin(produto)]
+        df = df[
+            df["Produto"].astype(str).isin(produto)
+        ].copy()
+
 
 if "Previsão" in df.columns:
     df["Previsão"] = pd.to_datetime(
@@ -58,7 +144,10 @@ if "Previsão" in df.columns:
         errors="coerce",
         dayfirst=True
     )
-    df = df.dropna(subset=["Previsão"])
+
+    df = df.dropna(
+        subset=["Previsão"]
+    ).copy()
 
     if not df.empty:
         min_date = df["Previsão"].min().date()
@@ -87,8 +176,10 @@ if "Previsão" in df.columns:
         else:
             df = df[
                 (df["Previsão"].dt.date >= start_date)
-                & (df["Previsão"].dt.date <= end_date)
-            ]
+                &
+                (df["Previsão"].dt.date <= end_date)
+            ].copy()
+
 
 # ==========================================================
 # INDICADORES
@@ -105,13 +196,19 @@ total_pedidos = (
 total_pecas = len(df)
 
 total_m2 = (
-    pd.to_numeric(df["M2 Vendido"], errors="coerce").sum()
+    pd.to_numeric(
+        df["M2 Vendido"],
+        errors="coerce"
+    ).sum()
     if "M2 Vendido" in df.columns
     else 0
 )
 
 total_peso = (
-    pd.to_numeric(df["Peso"], errors="coerce").sum()
+    pd.to_numeric(
+        df["Peso"],
+        errors="coerce"
+    ).sum()
     if "Peso" in df.columns
     else 0
 )
@@ -130,13 +227,17 @@ c3.metric("Total M²", round(total_m2, 2))
 c4.metric("Peso Total", round(total_peso, 2))
 c5.metric("Rotas", total_rotas)
 
+
 # ==========================================================
 # TABELA
 # ==========================================================
 
 st.subheader("Pedidos Em Aberto")
 
-if "Rota" in df.columns and "M2 Vendido" in df.columns:
+if (
+    "Rota" in df.columns
+    and "M2 Vendido" in df.columns
+):
     tabela = pd.pivot_table(
         df,
         values="M2 Vendido",
@@ -153,13 +254,17 @@ if "Rota" in df.columns and "M2 Vendido" in df.columns:
         height=500
     )
 
+
 # ==========================================================
 # GRÁFICO
 # ==========================================================
 
 st.subheader("Produção por Rota")
 
-if "Rota" in df.columns and "M2 Vendido" in df.columns:
+if (
+    "Rota" in df.columns
+    and "M2 Vendido" in df.columns
+):
     grafico = (
         df.groupby("Rota")["M2 Vendido"]
         .sum()
@@ -179,477 +284,415 @@ if "Rota" in df.columns and "M2 Vendido" in df.columns:
         use_container_width=True
     )
 
+
 # ==========================================================
-# VISUALIZAÇÃO DA OTIMIZAÇÃO
+# OTIMIZAÇÃO / DESENHO DA CHAPA
 # ==========================================================
 
-st.divider()
+st.markdown("---")
 st.subheader("🧩 Visualização da Otimização")
 
-visualizar = st.checkbox(
-    "👁️ Visualizar desenho da otimização",
+st.caption(
+    "A visualização abaixo usa o mesmo módulo "
+    "`otimizador.py` do aplicativo principal. "
+    "A otimização é recalculada somente para os registros "
+    "que passaram pelos filtros deste Viewer."
+)
+
+visualizar_otimizacao = st.checkbox(
+    "☑️ 👁️ Visualizar desenho da otimização",
     value=False
 )
 
-if visualizar:
 
-    if Peca is None or otimizar_lista is None:
+if visualizar_otimizacao:
+
+    colunas_obrigatorias = [
+        "Produto",
+        "Largura",
+        "Altura",
+    ]
+
+    faltantes = [
+        coluna
+        for coluna in colunas_obrigatorias
+        if coluna not in df.columns
+    ]
+
+    if faltantes:
         st.error(
-            "❌ Não foi possível importar o otimizador.py. "
-            "Deixe o arquivo otimizador.py na mesma pasta deste viewer."
+            "❌ Não foi possível executar a otimização. "
+            "Faltam as colunas: "
+            + ", ".join(faltantes)
         )
     elif df.empty:
-        st.info("Não existem peças no filtro atual.")
+        st.info(
+            "Nenhum registro encontrado para os filtros selecionados."
+        )
     else:
-        st.caption(
-            "O desenho abaixo usa as posições calculadas pelo "
-            "otimizador.py. O algoritmo de nesting não é alterado."
+
+        configuracao_chapas = carregar_configuracao_chapas()
+
+        pecas = df.copy()
+
+        pecas["Codigo"] = (
+            pecas["Produto"]
+            .apply(codigo_material)
         )
 
-        # --------------------------------------------------
-        # Escolha das colunas
-        # --------------------------------------------------
-
-        colunas = list(df.columns)
-
-        def encontrar_coluna(nomes):
-            for nome in nomes:
-                if nome in colunas:
-                    return nome
-            return colunas[0] if colunas else None
-
-        def indice_coluna(nomes):
-            valor = encontrar_coluna(nomes)
-            return colunas.index(valor) if valor in colunas else 0
-
-        st.markdown("#### ⚙️ Configuração das peças")
-
-        a, b, c = st.columns(3)
-
-        with a:
-            material_col = st.selectbox(
-                "Material / Código",
-                colunas,
-                index=indice_coluna([
-                    "Código",
-                    "Codigo",
-                    "Material",
-                    "Produto",
-                    "Vidro"
-                ]),
-                key="opt_material_col"
-            )
-
-        with b:
-            largura_col = st.selectbox(
-                "Largura (mm)",
-                colunas,
-                index=indice_coluna([
-                    "Largura",
-                    "Largura (mm)",
-                    "Largura Corte",
-                    "Base"
-                ]),
-                key="opt_largura_col"
-            )
-
-        with c:
-            altura_col = st.selectbox(
-                "Altura (mm)",
-                colunas,
-                index=indice_coluna([
-                    "Altura",
-                    "Altura (mm)",
-                    "Altura Corte",
-                    "Altura peça"
-                ]),
-                key="opt_altura_col"
-            )
-
-        d, e, f = st.columns(3)
-
-        with d:
-            pedido_col = st.selectbox(
-                "Pedido",
-                colunas,
-                index=indice_coluna(["Pedido", "Nº Pedido", "Numero Pedido"]),
-                key="opt_pedido_col"
-            )
-
-        with e:
-            cliente_col = st.selectbox(
-                "Cliente",
-                ["(não usar)"] + colunas,
-                index=(
-                    1 + indice_coluna(["Cliente"])
-                    if "Cliente" in colunas
-                    else 0
-                ),
-                key="opt_cliente_col"
-            )
-
-        with f:
-            pc_col = st.selectbox(
-                "PC",
-                ["(não usar)"] + colunas,
-                index=(
-                    1 + indice_coluna(["PC", "Pc"])
-                    if ("PC" in colunas or "Pc" in colunas)
-                    else 0
-                ),
-                key="opt_pc_col"
-            )
-
-        rota_opcoes = ["(não usar)"] + colunas
-        rota_default = (
-            1 + indice_coluna(["Rota"])
-            if "Rota" in colunas
-            else 0
+        pecas["Largura"] = pd.to_numeric(
+            pecas["Largura"],
+            errors="coerce"
         )
 
-        rota_col = st.selectbox(
-            "Rota",
-            rota_opcoes,
-            index=rota_default,
-            key="opt_rota_col"
+        pecas["Altura"] = pd.to_numeric(
+            pecas["Altura"],
+            errors="coerce"
         )
 
-        # --------------------------------------------------
-        # Montagem das peças
-        # --------------------------------------------------
+        pecas = pecas.dropna(
+            subset=[
+                "Codigo",
+                "Largura",
+                "Altura"
+            ]
+        ).copy()
 
-        try:
-            largura_num = pd.to_numeric(
-                df[largura_col],
-                errors="coerce"
+        lista_otimizacao = []
+
+        for _, linha in pecas.iterrows():
+
+            largura = float(linha["Largura"]) + 4
+            altura = float(linha["Altura"]) + 4
+
+            # Mantém a mesma normalização usada
+            # pelo aplicativo principal antes de chamar
+            # o otimizador.
+            if altura > largura:
+                largura, altura = altura, largura
+
+            lista_otimizacao.append(
+                Peca(
+                    codigo=str(linha["Codigo"]),
+                    largura=largura,
+                    altura=altura,
+                    pedido=str(
+                        linha.get("Pedido", "")
+                    ),
+                    cliente=str(
+                        linha.get("Cliente", "")
+                    ),
+                    pc=str(
+                        linha.get("PC", "")
+                    ),
+                    rota=str(
+                        linha.get("Rota", "")
+                    )
+                )
             )
 
-            altura_num = pd.to_numeric(
-                df[altura_col],
-                errors="coerce"
+        if not lista_otimizacao:
+            st.warning(
+                "⚠️ Nenhuma peça válida foi encontrada "
+                "para a otimização."
             )
+        else:
 
-            base_opt = df.copy()
-            base_opt["_LARGURA_OPT"] = largura_num
-            base_opt["_ALTURA_OPT"] = altura_num
+            with st.spinner(
+                "Otimizando peças..."
+            ):
+                resultado_otimizacao = otimizar_lista(
+                    lista_otimizacao,
+                    configuracao_chapas
+                )
 
-            invalidas = base_opt[
-                base_opt["_LARGURA_OPT"].isna()
-                | base_opt["_ALTURA_OPT"].isna()
-                | (base_opt["_LARGURA_OPT"] <= 0)
-                | (base_opt["_ALTURA_OPT"] <= 0)
+            materiais = [
+                codigo
+                for codigo, chapas
+                in sorted(resultado_otimizacao.items())
+                if chapas
             ]
 
-            base_opt = base_opt[
-                ~base_opt.index.isin(invalidas.index)
-            ].copy()
-
-            if not invalidas.empty:
+            if not materiais:
                 st.warning(
-                    f"⚠️ {len(invalidas)} linha(s) não possuem "
-                    "largura/altura válidas e foram ignoradas."
-                )
-
-            lista_pecas = []
-
-            for _, row in base_opt.iterrows():
-
-                cliente_val = ""
-                if cliente_col != "(não usar)":
-                    cliente_val = str(row[cliente_col])
-
-                pc_val = ""
-                if pc_col != "(não usar)":
-                    pc_val = str(row[pc_col])
-
-                rota_val = ""
-                if rota_col != "(não usar)":
-                    rota_val = str(row[rota_col])
-
-                lista_pecas.append(
-                    Peca(
-                        codigo=str(row[material_col]),
-                        largura=float(row["_LARGURA_OPT"]),
-                        altura=float(row["_ALTURA_OPT"]),
-                        pedido=str(row[pedido_col]),
-                        cliente=cliente_val,
-                        pc=pc_val,
-                        rota=rota_val
-                    )
-                )
-
-            if not lista_pecas:
-                st.warning(
-                    "Não foi possível montar nenhuma peça "
-                    "com as colunas selecionadas."
+                    "Nenhuma chapa foi gerada pela otimização."
                 )
             else:
-                # --------------------------------------------------
-                # Executa a otimização somente quando solicitado.
-                # --------------------------------------------------
 
-                executar = st.button(
-                    "▶️ Gerar / atualizar otimização",
-                    type="primary",
-                    key="executar_visualizacao"
+                material_selecionado = st.selectbox(
+                    "🪵 Material",
+                    materiais,
+                    key="viewer_material_otimizacao"
                 )
 
-                if executar:
-                    with st.spinner(
-                        "Calculando otimização das chapas..."
+                chapas = resultado_otimizacao[
+                    material_selecionado
+                ]
+
+                if not chapas:
+                    st.info(
+                        "Nenhuma chapa encontrada para este material."
+                    )
+                else:
+
+                    numero_chapa = st.selectbox(
+                        "📄 Chapa",
+                        options=list(
+                            range(1, len(chapas) + 1)
+                        ),
+                        format_func=lambda numero:
+                            f"Chapa {numero} de {len(chapas)}",
+                        key="viewer_numero_chapa"
+                    )
+
+                    chapa = chapas[
+                        numero_chapa - 1
+                    ]
+
+                    largura_chapa = chapa.largura
+                    altura_chapa = chapa.altura
+
+                    # ------------------------------------------
+                    # INDICADORES DA CHAPA
+                    # ------------------------------------------
+
+                    area_total = (
+                        largura_chapa
+                        * altura_chapa
+                        / 1_000_000
+                    )
+
+                    area_utilizada = (
+                        chapa.area_utilizada
+                        / 1_000_000
+                    )
+
+                    desperdicio = (
+                        chapa.desperdicio
+                        / 1_000_000
+                    )
+
+                    aproveitamento = (
+                        chapa.aproveitamento
+                    )
+
+                    a, b, c, d = st.columns(4)
+
+                    a.metric(
+                        "📐 Chapa",
+                        f"{largura_chapa:.0f} × {altura_chapa:.0f} mm"
+                    )
+
+                    b.metric(
+                        "🧩 Peças",
+                        len(chapa.pecas)
+                    )
+
+                    c.metric(
+                        "📈 Aproveitamento",
+                        f"{aproveitamento:.2f}%"
+                    )
+
+                    d.metric(
+                        "⚠️ Desperdício",
+                        f"{desperdicio:.2f} m²"
+                    )
+
+                    # ------------------------------------------
+                    # DESENHO
+                    # ------------------------------------------
+
+                    fig_chapa = go.Figure()
+
+                    # Contorno da chapa.
+                    fig_chapa.add_shape(
+                        type="rect",
+                        x0=0,
+                        y0=0,
+                        x1=largura_chapa,
+                        y1=altura_chapa,
+                        line=dict(width=2),
+                    )
+
+                    # Cada peça posicionada pelo próprio
+                    # resultado do otimizador.
+                    for indice, posicionamento in enumerate(
+                        chapa.pecas,
+                        start=1
                     ):
-                        resultado_otimizacao = otimizar_lista(
-                            lista_pecas
-                        )
 
-                    st.session_state["resultado_visualizacao"] = (
-                        resultado_otimizacao
-                    )
+                        x = posicionamento.x
+                        y = posicionamento.y
+                        w = posicionamento.largura
+                        h = posicionamento.altura
 
-                resultado_otimizacao = st.session_state.get(
-                    "resultado_visualizacao"
-                )
+                        peca = posicionamento.peca
 
-                if resultado_otimizacao:
-
-                    materiais = sorted(
-                        [
-                            str(codigo)
-                            for codigo, chapas
-                            in resultado_otimizacao.items()
-                            if chapas
-                        ]
-                    )
-
-                    if materiais:
-
-                        material = st.selectbox(
-                            "Selecione o material",
-                            materiais,
-                            key="material_desenho"
-                        )
-
-                        chapas = resultado_otimizacao[material]
-
-                        chapa_labels = [
-                            f"Chapa {i + 1} de {len(chapas)}"
-                            for i in range(len(chapas))
-                        ]
-
-                        chapa_label = st.selectbox(
-                            "Selecione a chapa",
-                            chapa_labels,
-                            key=f"chapa_desenho_{material}"
-                        )
-
-                        indice = chapa_labels.index(chapa_label)
-                        chapa = chapas[indice]
-
-                        # --------------------------------------------------
-                        # Indicadores da chapa
-                        # --------------------------------------------------
-
-                        area_total = chapa.area_total
-                        area_utilizada = chapa.area_utilizada
-                        desperdicio = chapa.desperdicio
-                        aproveitamento = chapa.aproveitamento
-
-                        m1, m2, m3, m4 = st.columns(4)
-
-                        m1.metric(
-                            "Dimensão da chapa",
-                            f"{chapa.largura:.0f} × "
-                            f"{chapa.altura:.0f} mm"
-                        )
-
-                        m2.metric(
-                            "Peças",
-                            len(chapa.pecas)
-                        )
-
-                        m3.metric(
-                            "Aproveitamento",
-                            f"{aproveitamento:.2f}%"
-                        )
-
-                        m4.metric(
-                            "Perda",
-                            f"{desperdicio / 1_000_000:.3f} m²"
-                        )
-
-                        # --------------------------------------------------
-                        # DESENHO
-                        # --------------------------------------------------
-
-                        fig_chapa = go.Figure()
-
-                        # Contorno da chapa
                         fig_chapa.add_shape(
                             type="rect",
-                            x0=0,
-                            y0=0,
-                            x1=chapa.largura,
-                            y1=chapa.altura,
-                            line=dict(width=3),
-                            fillcolor="rgba(220,220,220,0.30)"
+                            x0=x,
+                            y0=y,
+                            x1=x + w,
+                            y1=y + h,
+                            line=dict(width=1),
+                            fillcolor="rgba(100, 149, 237, 0.35)",
                         )
 
-                        hover_x = []
-                        hover_y = []
-                        hover_text = []
+                        pedido = str(
+                            peca.pedido
+                        ).strip()
 
-                        for numero, pos in enumerate(
-                            chapa.pecas,
-                            start=1
-                        ):
-                            peca = pos.peca
+                        cliente = str(
+                            peca.cliente
+                        ).strip()
 
-                            # Posicionamento já calculado pelo MaxRects.
-                            largura = pos.largura
-                            altura = pos.altura
+                        pc = str(
+                            peca.pc
+                        ).strip()
 
-                            x0 = pos.x
-                            y0 = pos.y
-                            x1 = x0 + largura
-                            y1 = y0 + altura
+                        rota = str(
+                            peca.rota
+                        ).strip()
 
-                            fig_chapa.add_shape(
-                                type="rect",
-                                x0=x0,
-                                y0=y0,
-                                x1=x1,
-                                y1=y1,
-                                line=dict(width=1),
-                                fillcolor="rgba(100,149,237,0.35)"
+                        identificacao = (
+                            f"{indice} | Pedido: {pedido}"
+                            if pedido
+                            else f"{indice}"
+                        )
+
+                        detalhes = []
+
+                        if cliente:
+                            detalhes.append(
+                                f"Cliente: {cliente}"
                             )
 
-                            pedido = str(
-                                peca.pedido
-                            ).strip()
-
-                            if not pedido or pedido.lower() == "nan":
-                                pedido = f"Peça {numero}"
-
-                            orientacao = (
-                                "90° - girada"
-                                if pos.girada
-                                else "0°"
+                        if pc:
+                            detalhes.append(
+                                f"PC: {pc}"
                             )
 
-                            # Texto visível dentro da peça.
-                            fig_chapa.add_annotation(
-                                x=x0 + largura / 2,
-                                y=y0 + altura / 2,
-                                text=(
-                                    f"<b>{pedido}</b><br>"
-                                    f"{largura:.0f} × "
-                                    f"{altura:.0f} mm"
+                        if rota:
+                            detalhes.append(
+                                f"Rota: {rota}"
+                            )
+
+                        detalhes.append(
+                            f"{w:.0f} × {h:.0f} mm"
+                        )
+
+                        if posicionamento.girada:
+                            detalhes.append(
+                                "↻ girada"
+                            )
+
+                        texto = (
+                            identificacao
+                            + "<br>"
+                            + "<br>".join(detalhes)
+                        )
+
+                        fig_chapa.add_annotation(
+                            x=x + w / 2,
+                            y=y + h / 2,
+                            text=texto,
+                            showarrow=False,
+                            font=dict(size=9),
+                            align="center",
+                        )
+
+                    fig_chapa.update_xaxes(
+                        title="Largura (mm)",
+                        range=[0, largura_chapa],
+                        constrain="domain",
+                    )
+
+                    fig_chapa.update_yaxes(
+                        title="Altura (mm)",
+                        range=[0, altura_chapa],
+                        scaleanchor="x",
+                        scaleratio=1,
+                    )
+
+                    fig_chapa.update_layout(
+                        title=(
+                            f"{material_selecionado} — "
+                            f"Chapa {numero_chapa}/{len(chapas)}"
+                        ),
+                        height=700,
+                        margin=dict(
+                            l=20,
+                            r=20,
+                            t=60,
+                            b=20
+                        ),
+                        showlegend=False,
+                    )
+
+                    st.plotly_chart(
+                        fig_chapa,
+                        use_container_width=True
+                    )
+
+                    # ------------------------------------------
+                    # DETALHES DAS PEÇAS DA CHAPA
+                    # ------------------------------------------
+
+                    detalhes_chapa = []
+
+                    for indice, posicionamento in enumerate(
+                        chapa.pecas,
+                        start=1
+                    ):
+
+                        peca = posicionamento.peca
+
+                        detalhes_chapa.append(
+                            {
+                                "Peça": indice,
+                                "Material": peca.codigo,
+                                "Pedido": peca.pedido,
+                                "Cliente": peca.cliente,
+                                "PC": peca.pc,
+                                "Rota": peca.rota,
+                                "X (mm)": round(
+                                    posicionamento.x,
+                                    1
                                 ),
-                                showarrow=False,
-                                font=dict(size=10),
-                                align="center"
-                            )
-
-                            hover_x.append(
-                                x0 + largura / 2
-                            )
-                            hover_y.append(
-                                y0 + altura / 2
-                            )
-
-                            hover_text.append(
-                                f"<b>Pedido:</b> {pedido}"
-                                f"<br><b>Material:</b> {material}"
-                                f"<br><b>Dimensão:</b> "
-                                f"{largura:.0f} × {altura:.0f} mm"
-                                f"<br><b>Orientação:</b> {orientacao}"
-                                f"<br><b>Cliente:</b> "
-                                f"{peca.cliente}"
-                                f"<br><b>PC:</b> {peca.pc}"
-                                f"<br><b>Rota:</b> {peca.rota}"
-                                f"<br><b>Posição:</b> "
-                                f"X {x0:.0f} / Y {y0:.0f} mm"
-                            )
-
-                        if hover_x:
-                            fig_chapa.add_trace(
-                                go.Scatter(
-                                    x=hover_x,
-                                    y=hover_y,
-                                    mode="markers",
-                                    marker=dict(
-                                        size=18,
-                                        opacity=0
-                                    ),
-                                    text=hover_text,
-                                    hovertemplate=(
-                                        "%{text}<extra></extra>"
-                                    ),
-                                    showlegend=False
-                                )
-                            )
-
-                        fig_chapa.update_xaxes(
-                            range=[0, chapa.largura],
-                            title="Largura (mm)",
-                            showgrid=True,
-                            dtick=500
+                                "Y (mm)": round(
+                                    posicionamento.y,
+                                    1
+                                ),
+                                "Largura (mm)": round(
+                                    posicionamento.largura,
+                                    1
+                                ),
+                                "Altura (mm)": round(
+                                    posicionamento.altura,
+                                    1
+                                ),
+                                "Girou": (
+                                    "SIM"
+                                    if posicionamento.girada
+                                    else "NÃO"
+                                ),
+                            }
                         )
 
-                        # Inverte o Y para a origem ficar no topo,
-                        # como normalmente se espera em um desenho de corte.
-                        fig_chapa.update_yaxes(
-                            range=[chapa.altura, 0],
-                            title="Altura (mm)",
-                            showgrid=True,
-                            dtick=500,
-                            scaleanchor="x",
-                            scaleratio=1
-                        )
+                    st.dataframe(
+                        pd.DataFrame(detalhes_chapa),
+                        use_container_width=True,
+                        hide_index=True,
+                        height=350
+                    )
 
-                        fig_chapa.update_layout(
-                            height=700,
-                            margin=dict(
-                                l=30,
-                                r=30,
-                                t=30,
-                                b=30
-                            ),
-                            showlegend=False
-                        )
-
-                        st.plotly_chart(
-                            fig_chapa,
-                            use_container_width=True
-                        )
-
-                        st.caption(
-                            f"Área utilizada: "
-                            f"{area_utilizada / 1_000_000:.3f} m²"
-                            f"  |  Área da chapa: "
-                            f"{area_total / 1_000_000:.3f} m²"
-                            f"  |  Perda: "
-                            f"{desperdicio / 1_000_000:.3f} m²"
-                        )
-
-                    else:
-                        st.info(
-                            "Não foram encontradas chapas "
-                            "otimizadas."
-                        )
-
-        except Exception as erro:
-            st.error(
-                "❌ Não foi possível preparar a otimização."
-            )
-            st.exception(erro)
 
 # ==========================================================
 # BASE COMPLETA
 # ==========================================================
 
-st.divider()
 st.subheader("Base Completa")
+
 st.dataframe(
     df,
     use_container_width=True,
