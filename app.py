@@ -7,6 +7,7 @@ import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 from io import BytesIO
 from datetime import datetime, timedelta
@@ -2586,6 +2587,322 @@ if mostrar_mp:
             theme="streamlit",
             allow_unsafe_jscode=True,
         )
+
+        # =====================================
+        # VISUALIZAÇÃO DA OTIMIZAÇÃO
+        # =====================================
+
+        st.markdown("---")
+
+        visualizar_desenho = st.checkbox(
+            "👁️ Visualizar desenho da otimização",
+            value=False,
+            key="visualizar_desenho_otimizacao"
+        )
+
+        if visualizar_desenho:
+
+            st.subheader("🧩 Desenho da Chapa")
+
+            # Usa o resultado_otimizacao que já foi calculado
+            # acima. Não executa uma segunda otimização.
+            materiais_desenho = [
+                str(codigo)
+                for codigo, chapas
+                in resultado_otimizacao.items()
+                if chapas
+            ]
+
+            if not materiais_desenho:
+                st.info(
+                    "Nenhum resultado de otimização disponível "
+                    "para visualização."
+                )
+
+            else:
+
+                material_desenho = st.selectbox(
+                    "🪵 Material",
+                    sorted(materiais_desenho),
+                    key="material_desenho_otimizacao"
+                )
+
+                chapas_desenho = resultado_otimizacao[
+                    material_desenho
+                ]
+
+                numero_chapa_desenho = st.selectbox(
+                    "📄 Chapa",
+                    options=list(
+                        range(1, len(chapas_desenho) + 1)
+                    ),
+                    format_func=lambda n:
+                        f"Chapa {n} de {len(chapas_desenho)}",
+                    key="numero_chapa_desenho_otimizacao"
+                )
+
+                chapa_desenho = chapas_desenho[
+                    numero_chapa_desenho - 1
+                ]
+
+                largura_chapa = float(
+                    chapa_desenho.largura
+                )
+                altura_chapa = float(
+                    chapa_desenho.altura
+                )
+
+                area_chapa = (
+                    largura_chapa
+                    * altura_chapa
+                    / 1_000_000
+                )
+
+                area_utilizada = (
+                    float(chapa_desenho.area_utilizada)
+                    / 1_000_000
+                )
+
+                desperdicio = (
+                    float(chapa_desenho.desperdicio)
+                    / 1_000_000
+                )
+
+                aproveitamento = float(
+                    chapa_desenho.aproveitamento
+                )
+
+                c1, c2, c3, c4 = st.columns(4)
+
+                c1.metric(
+                    "📐 Chapa",
+                    f"{largura_chapa:.0f} × "
+                    f"{altura_chapa:.0f} mm"
+                )
+
+                c2.metric(
+                    "🧩 Peças",
+                    len(chapa_desenho.pecas)
+                )
+
+                c3.metric(
+                    "📈 Aproveitamento",
+                    f"{aproveitamento:.2f}%"
+                )
+
+                c4.metric(
+                    "⚠️ Desperdício",
+                    f"{desperdicio:.2f} m²"
+                )
+
+                # -------------------------------------
+                # DESENHO
+                # -------------------------------------
+
+                fig_chapa = go.Figure()
+
+                # Contorno da chapa.
+                fig_chapa.add_shape(
+                    type="rect",
+                    x0=0,
+                    y0=0,
+                    x1=largura_chapa,
+                    y1=altura_chapa,
+                    line=dict(width=2)
+                )
+
+                for indice, posicionamento in enumerate(
+                    chapa_desenho.pecas,
+                    start=1
+                ):
+
+                    x = float(posicionamento.x)
+                    y = float(posicionamento.y)
+                    w = float(posicionamento.largura)
+                    h = float(posicionamento.altura)
+
+                    peca = posicionamento.peca
+
+                    fig_chapa.add_shape(
+                        type="rect",
+                        x0=x,
+                        y0=y,
+                        x1=x + w,
+                        y1=y + h,
+                        line=dict(width=1),
+                        fillcolor="rgba(100, 149, 237, 0.35)"
+                    )
+
+                    pedido = str(
+                        getattr(peca, "pedido", "")
+                    ).strip()
+
+                    cliente = str(
+                        getattr(peca, "cliente", "")
+                    ).strip()
+
+                    pc = str(
+                        getattr(peca, "pc", "")
+                    ).strip()
+
+                    rota = str(
+                        getattr(peca, "rota", "")
+                    ).strip()
+
+                    detalhes = [
+                        f"Peça {indice}"
+                    ]
+
+                    if pedido:
+                        detalhes.append(
+                            f"Pedido: {pedido}"
+                        )
+
+                    if cliente:
+                        detalhes.append(
+                            f"Cliente: {cliente}"
+                        )
+
+                    if pc:
+                        detalhes.append(
+                            f"PC: {pc}"
+                        )
+
+                    if rota:
+                        detalhes.append(
+                            f"Rota: {rota}"
+                        )
+
+                    detalhes.append(
+                        f"{w:.0f} × {h:.0f} mm"
+                    )
+
+                    if getattr(
+                        posicionamento,
+                        "girada",
+                        False
+                    ):
+                        detalhes.append(
+                            "↻ Girada"
+                        )
+
+                    fig_chapa.add_annotation(
+                        x=x + w / 2,
+                        y=y + h / 2,
+                        text="<br>".join(
+                            detalhes
+                        ),
+                        showarrow=False,
+                        font=dict(size=9),
+                        align="center"
+                    )
+
+                fig_chapa.update_xaxes(
+                    title="Largura (mm)",
+                    range=[0, largura_chapa]
+                )
+
+                fig_chapa.update_yaxes(
+                    title="Altura (mm)",
+                    range=[0, altura_chapa],
+                    scaleanchor="x",
+                    scaleratio=1
+                )
+
+                fig_chapa.update_layout(
+                    title=(
+                        f"{material_desenho} — "
+                        f"Chapa "
+                        f"{numero_chapa_desenho}/"
+                        f"{len(chapas_desenho)}"
+                    ),
+                    height=700,
+                    margin=dict(
+                        l=20,
+                        r=20,
+                        t=60,
+                        b=20
+                    ),
+                    showlegend=False
+                )
+
+                st.plotly_chart(
+                    fig_chapa,
+                    use_container_width=True
+                )
+
+                # -------------------------------------
+                # DETALHES DAS PEÇAS
+                # -------------------------------------
+
+                detalhes_pecas = []
+
+                for indice, posicionamento in enumerate(
+                    chapa_desenho.pecas,
+                    start=1
+                ):
+
+                    peca = posicionamento.peca
+
+                    detalhes_pecas.append(
+                        {
+                            "Peça": indice,
+                            "Pedido": getattr(
+                                peca,
+                                "pedido",
+                                ""
+                            ),
+                            "Cliente": getattr(
+                                peca,
+                                "cliente",
+                                ""
+                            ),
+                            "PC": getattr(
+                                peca,
+                                "pc",
+                                ""
+                            ),
+                            "Rota": getattr(
+                                peca,
+                                "rota",
+                                ""
+                            ),
+                            "X (mm)": round(
+                                float(posicionamento.x),
+                                1
+                            ),
+                            "Y (mm)": round(
+                                float(posicionamento.y),
+                                1
+                            ),
+                            "Largura (mm)": round(
+                                float(posicionamento.largura),
+                                1
+                            ),
+                            "Altura (mm)": round(
+                                float(posicionamento.altura),
+                                1
+                            ),
+                            "Girou": (
+                                "SIM"
+                                if getattr(
+                                    posicionamento,
+                                    "girada",
+                                    False
+                                )
+                                else "NÃO"
+                            )
+                        }
+                    )
+
+                st.dataframe(
+                    pd.DataFrame(
+                        detalhes_pecas
+                    ),
+                    use_container_width=True,
+                    hide_index=True,
+                    height=350
+                )
                       
         # =====================================
         # DETALHAR MATERIAL
