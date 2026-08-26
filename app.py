@@ -3027,8 +3027,7 @@ if mostrar_mp:
         )
 
         st.caption(
-            "A visualização é separada da tabela. "
-            "Marque abaixo para abrir o desenho."
+           "Marque abaixo para abrir o desenho."
         )
 
         visualizar_desenho = st.checkbox(
