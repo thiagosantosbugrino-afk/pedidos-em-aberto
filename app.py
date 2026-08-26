@@ -2699,124 +2699,187 @@ if mostrar_mp:
 
 
         # =====================================
-        # TABELA DE MATÉRIA-PRIMA
+        # CONFIGURAÇÃO DO AGGRID
         # =====================================
 
-        # Mantém a tabela da matéria-prima sem depender
-        # de evento do AgGrid para abrir o desenho.
-        st.caption(
-            "☑️ Marque o material abaixo para visualizar "
-            "as peças dentro da chapa."
+        gb = (
+            GridOptionsBuilder
+            .from_dataframe(
+                tabela
+            )
         )
 
-        tabela_exibicao = tabela.drop(
-            columns=["_CodigoVisualizacao"],
-            errors="ignore"
-        ).copy()
+        gb.configure_default_column(
+            editable=False,
+            sortable=True,
+            filter=True,
+            resizable=True,
+            cellStyle={
+                "textAlign": "center"
+            },
+            headerClass=(
+                "ag-center-header"
+            )
+        )
 
-        st.dataframe(
-            tabela_exibicao,
-            use_container_width=True,
-            hide_index=True,
-            height=650
+
+        for coluna in tabela.columns:
+
+            gb.configure_column(
+                coluna,
+                cellStyle={
+                    "textAlign": "center"
+                },
+                headerClass=(
+                    "ag-center-header"
+                )
+            )
+
+        # Checkbox para marcar somente uma linha/material.
+        gb.configure_selection(
+            selection_mode="single",
+            use_checkbox=True
+        )
+
+        # Código técnico fica invisível.
+        gb.configure_column(
+            "_CodigoVisualizacao",
+            hide=True
+        )
+
+
+        gridOptions = gb.build()
+
+
+        # =====================================
+        # EXIBE A TABELA DE MATÉRIA-PRIMA
+        # =====================================
+
+        st.caption(
+            "☑️ Marque a caixa da linha do material "
+            "para visualizar as peças dentro da chapa."
+        )
+
+        retorno_grid = AgGrid(
+            tabela,
+            gridOptions=gridOptions,
+            fit_columns_on_grid_load=True,
+            height=650,
+            theme="streamlit",
+            allow_unsafe_jscode=True,
+            update_on=["selectionChanged"]
         )
 
         # =====================================
         # VISUALIZAÇÃO DA OTIMIZAÇÃO
         # =====================================
 
-        visualizar_desenho = st.checkbox(
-            "👁️ Visualizar desenho da otimização",
-            value=False,
-            key="visualizar_desenho_chapa_real"
-        )
+        linhas_selecionadas = []
 
-        if visualizar_desenho:
-
-            st.markdown("---")
-            st.subheader("🧩 Visualização da Otimização")
-
-            # IMPORTANTE:
-            # O resultado_otimizacao já foi calculado acima.
-            # Aqui apenas selecionamos uma das chapas prontas.
-            materiais_resultado = sorted(
-                [
-                    str(codigo)
-                    for codigo, chapas
-                    in resultado_otimizacao.items()
-                    if chapas is not None and len(chapas) > 0
-                ]
+        if isinstance(retorno_grid, dict):
+            linhas_selecionadas = (
+                retorno_grid.get("selected_rows", [])
+                or []
             )
 
-            if not materiais_resultado:
+        if isinstance(
+            linhas_selecionadas,
+            pd.DataFrame
+        ):
+            linhas_selecionadas = (
+                linhas_selecionadas.to_dict("records")
+            )
 
-                st.error(
-                    "❌ O otimizador não retornou nenhuma chapa "
-                    "para visualização."
+        if linhas_selecionadas:
+
+            linha_material = linhas_selecionadas[0]
+
+            codigo_visualizacao = str(
+                linha_material.get(
+                    "_CodigoVisualizacao",
+                    ""
                 )
+            ).strip()
 
-            else:
+            if codigo_visualizacao:
 
-                material_visualizacao = st.selectbox(
-                    "🪵 Material",
-                    materiais_resultado,
-                    key="material_visualizacao_chapa_real"
-                )
-
-                chapas_visualizacao = (
+                chapas_desenho = (
                     resultado_otimizacao.get(
-                        material_visualizacao,
+                        codigo_visualizacao,
                         []
                     )
                 )
 
-                st.success(
-                    f"👁️ Visualizando: **{material_visualizacao}** — "
-                    f"{len(chapas_visualizacao)} chapa(s)"
-                )
+                if chapas_desenho:
 
-                if chapas_visualizacao:
+                    st.markdown("---")
+                    st.subheader(
+                        "🧩 Visualização da Otimização"
+                    )
 
-                    numero_chapa = st.selectbox(
-                        "📄 Selecione a chapa",
-                        list(
-                            range(
-                                1,
-                                len(chapas_visualizacao) + 1
-                            )
-                        ),
-                        format_func=lambda n:
-                            f"Chapa {n} de {len(chapas_visualizacao)}",
-                        key=(
-                            "chapa_visualizacao_real_"
-                            + material_visualizacao
+                    descricao_visualizacao = (
+                        linha_material.get(
+                            "Descricao",
+                            codigo_visualizacao
                         )
                     )
 
-                    chapa_escolhida = (
-                        chapas_visualizacao[
-                            numero_chapa - 1
+                    st.success(
+                        f"👁️ Material selecionado: "
+                        f"**{descricao_visualizacao}** "
+                        f"({codigo_visualizacao})"
+                    )
+
+                    numero_chapa_desenho = (
+                        st.selectbox(
+                            "📄 Chapa",
+                            options=list(
+                                range(
+                                    1,
+                                    len(chapas_desenho) + 1
+                                )
+                            ),
+                            format_func=lambda numero:
+                                (
+                                    f"Chapa {numero} de "
+                                    f"{len(chapas_desenho)}"
+                                ),
+                            key=(
+                                "numero_chapa_desenho_"
+                                + codigo_visualizacao
+                            )
+                        )
+                    )
+
+                    chapa_desenho = (
+                        chapas_desenho[
+                            numero_chapa_desenho - 1
                         ]
                     )
 
-                    # Desenha a chapa que JÁ FOI otimizada.
                     desenhar_chapa_otimizacao(
-                        chapa_escolhida,
-                        material_visualizacao,
-                        numero_chapa,
-                        len(chapas_visualizacao)
+                        chapa_desenho,
+                        codigo_visualizacao,
+                        numero_chapa_desenho,
+                        len(chapas_desenho)
                     )
 
                 else:
 
                     st.warning(
-                        "⚠️ Esse material não possui chapas "
-                        "no resultado da otimização."
+                        "Não há chapas otimizadas "
+                        "para o material selecionado."
                     )
+
+            else:
+
+                st.warning(
+                    "Não foi possível identificar o "
+                    "material selecionado."
+                )
 
         # =====================================
         # DETALHAR MATERIAL
-
 
         # =====================================
 
