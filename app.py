@@ -285,6 +285,42 @@ def desenhar_chapa_otimizacao(
     total_chapas
 ):
     """Desenha o resultado já calculado pelo otimizador."""
+
+    cache = st.session_state.setdefault(
+        "_cache_figuras_chapas",
+        {}
+    )
+
+    chave = (
+        str(material)
+        + "|"
+        + str(numero_chapa)
+        + "|"
+        + str(id(chapa))
+    )
+
+    if chave in cache:
+        dados = cache[chave]
+
+        st.plotly_chart(
+            dados["fig"],
+            use_container_width=True,
+            key=f"fig_chapa_{hash(chave)}",
+            config={"displaylogo": False}
+        )
+
+        if dados["detalhes"]:
+            with st.expander(
+                "📋 Detalhes das peças desta chapa"
+            ):
+                st.dataframe(
+                    pd.DataFrame(dados["detalhes"]),
+                    use_container_width=True,
+                    hide_index=True,
+                    height=350
+                )
+        return
+
     largura_chapa = float(chapa.largura)
     altura_chapa = float(chapa.altura)
 
@@ -417,9 +453,16 @@ def desenhar_chapa_otimizacao(
         showlegend=False
     )
 
+    cache[chave] = {
+        "fig": fig,
+        "detalhes": detalhes_pecas
+    }
+
     st.plotly_chart(
         fig,
-        use_container_width=True
+        use_container_width=True,
+        key=f"fig_chapa_{hash(chave)}",
+        config={"displaylogo": False}
     )
 
     if detalhes_pecas:
@@ -2756,8 +2799,8 @@ if mostrar_mp:
         # =====================================
 
         st.caption(
-            "☑️ Marque a caixa da linha do material "
-            "para visualizar as peças dentro da chapa."
+            "A tabela de matéria-prima é apenas informativa. "
+            "A visualização da chapa fica separada abaixo."
         )
 
         retorno_grid = AgGrid(
@@ -2767,115 +2810,161 @@ if mostrar_mp:
             height=650,
             theme="streamlit",
             allow_unsafe_jscode=True,
-            update_on=["selectionChanged"]
+            update_on=[]
         )
 
         # =====================================
         # VISUALIZAÇÃO DA OTIMIZAÇÃO
         # =====================================
 
-        linhas_selecionadas = []
+        st.markdown("---")
+        st.subheader("🧩 Visualização da Otimização")
 
-        if isinstance(retorno_grid, dict):
-            linhas_selecionadas = (
-                retorno_grid.get("selected_rows", [])
-                or []
+        visualizar_desenho = st.checkbox(
+            "👁️ Visualizar desenho da otimização",
+            value=st.session_state.get(
+                "visualizar_desenho_otimizacao",
+                False
+            ),
+            key="visualizar_desenho_otimizacao"
+        )
+
+        if visualizar_desenho:
+
+            # Materiais que realmente possuem resultado de otimização.
+            materiais_visualizacao = sorted(
+                materiais_otimizacao.keys()
             )
 
-        if isinstance(
-            linhas_selecionadas,
-            pd.DataFrame
-        ):
-            linhas_selecionadas = (
-                linhas_selecionadas.to_dict("records")
-            )
+            if materiais_visualizacao:
 
-        if linhas_selecionadas:
-
-            linha_material = linhas_selecionadas[0]
-
-            codigo_visualizacao = str(
-                linha_material.get(
-                    "_CodigoVisualizacao",
-                    ""
+                codigo_visualizacao = st.selectbox(
+                    "🪵 Selecione o material",
+                    options=materiais_visualizacao,
+                    format_func=lambda codigo: str(codigo),
+                    key="material_visualizacao_otimizacao"
                 )
-            ).strip()
-
-            if codigo_visualizacao:
 
                 chapas_desenho = (
                     resultado_otimizacao.get(
                         codigo_visualizacao,
                         []
                     )
+                    if isinstance(
+                        resultado_otimizacao,
+                        dict
+                    )
+                    else []
                 )
 
                 if chapas_desenho:
 
-                    st.markdown("---")
-                    st.subheader(
-                        "🧩 Visualização da Otimização"
+                    total_chapas = len(chapas_desenho)
+
+                    # Guarda a posição atual por material.
+                    chave_indice = (
+                        "indice_chapa_visualizacao_"
+                        + str(codigo_visualizacao)
                     )
 
-                    descricao_visualizacao = (
-                        linha_material.get(
-                            "Descricao",
-                            codigo_visualizacao
+                    if chave_indice not in st.session_state:
+                        st.session_state[chave_indice] = 0
+
+                    indice_chapa = int(
+                        st.session_state[chave_indice]
+                    )
+
+                    indice_chapa = max(
+                        0,
+                        min(
+                            indice_chapa,
+                            total_chapas - 1
                         )
                     )
 
-                    st.success(
-                        f"👁️ Material selecionado: "
-                        f"**{descricao_visualizacao}** "
-                        f"({codigo_visualizacao})"
+                    # ---------------------------------
+                    # NAVEGAÇÃO
+                    # ---------------------------------
+
+                    nav1, nav2, nav3 = st.columns(
+                        [1, 2, 1]
                     )
 
-                    numero_chapa_desenho = (
-                        st.selectbox(
-                            "📄 Chapa",
-                            options=list(
-                                range(
-                                    1,
-                                    len(chapas_desenho) + 1
-                                )
-                            ),
-                            format_func=lambda numero:
-                                (
-                                    f"Chapa {numero} de "
-                                    f"{len(chapas_desenho)}"
-                                ),
+                    with nav1:
+                        if st.button(
+                            "◀ Anterior",
+                            disabled=indice_chapa <= 0,
+                            use_container_width=True,
                             key=(
-                                "numero_chapa_desenho_"
-                                + codigo_visualizacao
+                                "chapa_anterior_"
+                                + str(codigo_visualizacao)
                             )
-                        )
-                    )
+                        ):
+                            st.session_state[
+                                chave_indice
+                            ] = max(
+                                0,
+                                indice_chapa - 1
+                            )
+                            st.rerun()
 
-                    chapa_desenho = (
-                        chapas_desenho[
-                            numero_chapa_desenho - 1
-                        ]
-                    )
+                    with nav2:
+                        st.markdown(
+                            f"""
+                            <div style="
+                                text-align:center;
+                                font-size:20px;
+                                font-weight:600;
+                                padding-top:5px;
+                            ">
+                                Chapa {indice_chapa + 1}
+                                de {total_chapas}
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                    with nav3:
+                        if st.button(
+                            "Próxima ▶",
+                            disabled=(
+                                indice_chapa
+                                >= total_chapas - 1
+                            ),
+                            use_container_width=True,
+                            key=(
+                                "chapa_proxima_"
+                                + str(codigo_visualizacao)
+                            )
+                        ):
+                            st.session_state[
+                                chave_indice
+                            ] = min(
+                                total_chapas - 1,
+                                indice_chapa + 1
+                            )
+                            st.rerun()
+
+                    # ---------------------------------
+                    # DESENHO
+                    # ---------------------------------
 
                     desenhar_chapa_otimizacao(
-                        chapa_desenho,
+                        chapas_desenho[indice_chapa],
                         codigo_visualizacao,
-                        numero_chapa_desenho,
-                        len(chapas_desenho)
+                        indice_chapa + 1,
+                        total_chapas
                     )
 
                 else:
-
-                    st.warning(
-                        "Não há chapas otimizadas "
-                        "para o material selecionado."
+                    st.info(
+                        "Não existem chapas para este material."
                     )
 
             else:
-
-                st.warning(
-                    "Não foi possível identificar o "
-                    "material selecionado."
+                st.info(
+                    "Nenhum material possui chapas "
+                    "otimizadas para os filtros atuais."
                 )
 
         # =====================================
