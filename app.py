@@ -2,6 +2,7 @@ import io
 import re
 import json
 import math
+import hashlib
 import os
 
 import streamlit as st
@@ -284,7 +285,7 @@ def desenhar_chapa_otimizacao(
     numero_chapa,
     total_chapas
 ):
-    """Desenha uma chapa já otimizada, com cache para navegação rápida."""
+    """Desenha uma chapa já otimizada e reaproveita o gráfico em cache."""
 
     cache = st.session_state.setdefault(
         "_cache_figuras_chapas",
@@ -293,48 +294,104 @@ def desenhar_chapa_otimizacao(
 
     largura_chapa = float(chapa.largura)
     altura_chapa = float(chapa.altura)
+    desperdicio = (
+        float(chapa.desperdicio) / 1_000_000
+    )
+    aproveitamento = float(chapa.aproveitamento)
 
-    # Chave estável: se o Streamlit fizer rerun, a mesma chapa
-    # continua sendo reconhecida e o gráfico pronto é reutilizado.
+    # Assinatura estável da chapa.
     assinatura = [
+        str(
+            st.session_state.get(
+                "_chave_otimizacao_atual",
+                ""
+            )
+        ),
         str(material),
         str(numero_chapa),
         f"{largura_chapa:.3f}",
         f"{altura_chapa:.3f}",
-        str(len(chapa.pecas)),
     ]
 
     for posicionamento in chapa.pecas:
         peca = posicionamento.peca
-        assinatura.extend([
-            f"{float(posicionamento.x):.3f}",
-            f"{float(posicionamento.y):.3f}",
-            f"{float(posicionamento.largura):.3f}",
-            f"{float(posicionamento.altura):.3f}",
-            "1" if bool(
-                getattr(posicionamento, "girada", False)
-            ) else "0",
-            str(getattr(peca, "pedido", "")),
-            str(getattr(peca, "cliente", "")),
-            str(getattr(peca, "pc", "")),
-            str(getattr(peca, "rota", "")),
-        ])
+        assinatura.extend(
+            [
+                f"{float(posicionamento.x):.3f}",
+                f"{float(posicionamento.y):.3f}",
+                f"{float(posicionamento.largura):.3f}",
+                f"{float(posicionamento.altura):.3f}",
+                str(
+                    bool(
+                        getattr(
+                            posicionamento,
+                            "girada",
+                            False
+                        )
+                    )
+                ),
+                str(
+                    getattr(
+                        peca,
+                        "pedido",
+                        ""
+                    )
+                ),
+                str(
+                    getattr(
+                        peca,
+                        "cliente",
+                        ""
+                    )
+                ),
+                str(
+                    getattr(
+                        peca,
+                        "pc",
+                        ""
+                    )
+                ),
+                str(
+                    getattr(
+                        peca,
+                        "rota",
+                        ""
+                    )
+                ),
+            ]
+        )
 
-    chave = "|".join(assinatura)
+    chave_figura = hashlib.sha256(
+        "|".join(assinatura).encode("utf-8")
+    ).hexdigest()
 
-    if chave in cache:
-        dados = cache[chave]
+    if chave_figura in cache:
+
+        dados = cache[chave_figura]
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("📐 Chapa", dados["dimensoes"])
-        c2.metric("🧩 Peças", dados["qtd_pecas"])
-        c3.metric("📈 Aproveitamento", dados["aproveitamento"])
-        c4.metric("⚠️ Desperdício", dados["desperdicio"])
+
+        c1.metric(
+            "📐 Chapa",
+            dados["dimensoes"]
+        )
+        c2.metric(
+            "🧩 Peças",
+            dados["qtd_pecas"]
+        )
+        c3.metric(
+            "📈 Aproveitamento",
+            dados["aproveitamento"]
+        )
+        c4.metric(
+            "⚠️ Desperdício",
+            dados["desperdicio"]
+        )
 
         st.plotly_chart(
             dados["fig"],
             use_container_width=True,
-            key=f"fig_chapa_{abs(hash(chave))}",
+            key="fig_chapa_" + chave_figura,
             config={
                 "displaylogo": False,
                 "scrollZoom": True,
@@ -342,24 +399,40 @@ def desenhar_chapa_otimizacao(
             }
         )
 
-        if dados["detalhes"]:
-            with st.expander(
-                "📋 Detalhes das peças desta chapa"
-            ):
-                st.dataframe(
-                    pd.DataFrame(dados["detalhes"]),
-                    use_container_width=True,
-                    hide_index=True,
-                    height=350
-                )
+        with st.expander(
+            "📋 Detalhes das peças desta chapa"
+        ):
+            st.dataframe(
+                pd.DataFrame(
+                    dados["detalhes"]
+                ),
+                use_container_width=True,
+                hide_index=True,
+                height=350
+            )
+
         return
 
-    desperdicio = (
-        float(chapa.desperdicio) / 1_000_000
-    )
-    aproveitamento = float(chapa.aproveitamento)
+    c1, c2, c3, c4 = st.columns(4)
 
-    # Monta a figura somente na primeira vez.
+    c1.metric(
+        "📐 Chapa",
+        f"{largura_chapa:.0f} × "
+        f"{altura_chapa:.0f} mm"
+    )
+    c2.metric(
+        "🧩 Peças",
+        len(chapa.pecas)
+    )
+    c3.metric(
+        "📈 Aproveitamento",
+        f"{aproveitamento:.2f}%"
+    )
+    c4.metric(
+        "⚠️ Desperdício",
+        f"{desperdicio:.2f} m²"
+    )
+
     fig = go.Figure()
 
     fig.add_shape(
@@ -398,26 +471,43 @@ def desenhar_chapa_otimizacao(
         ).strip()
 
         girada = bool(
-            getattr(posicionamento, "girada", False)
+            getattr(
+                posicionamento,
+                "girada",
+                False
+            )
         )
 
-        detalhes = [f"Peça {indice}"]
+        detalhes = [
+            f"Peça {indice}"
+        ]
 
         if pedido:
-            detalhes.append(f"Pedido: {pedido}")
+            detalhes.append(
+                f"Pedido: {pedido}"
+            )
         if cliente:
-            detalhes.append(f"Cliente: {cliente}")
+            detalhes.append(
+                f"Cliente: {cliente}"
+            )
         if pc:
-            detalhes.append(f"PC: {pc}")
+            detalhes.append(
+                f"PC: {pc}"
+            )
         if rota:
-            detalhes.append(f"Rota: {rota}")
+            detalhes.append(
+                f"Rota: {rota}"
+            )
 
-        detalhes.append(f"{w:.0f} × {h:.0f} mm")
+        detalhes.append(
+            f"{w:.0f} × {h:.0f} mm"
+        )
 
         if girada:
-            detalhes.append("↻ Girada")
+            detalhes.append(
+                "↻ Girada"
+            )
 
-        # Shape da peça.
         fig.add_shape(
             type="rect",
             x0=x,
@@ -425,14 +515,17 @@ def desenhar_chapa_otimizacao(
             x1=x + w,
             y1=y + h,
             line=dict(width=1),
-            fillcolor="rgba(100, 149, 237, 0.35)"
+            fillcolor=(
+                "rgba(100, 149, 237, 0.35)"
+            )
         )
 
-        # Mantém o texto visual dentro das peças, como antes.
         fig.add_annotation(
             x=x + w / 2,
             y=y + h / 2,
-            text="<br>".join(detalhes),
+            text="<br>".join(
+                detalhes
+            ),
             showarrow=False,
             font=dict(size=9),
             align="center"
@@ -449,17 +542,28 @@ def desenhar_chapa_otimizacao(
                 "Y (mm)": round(y, 1),
                 "Largura (mm)": round(w, 1),
                 "Altura (mm)": round(h, 1),
-                "Girou": "SIM" if girada else "NÃO"
+                "Girou": (
+                    "SIM"
+                    if girada
+                    else "NÃO"
+                )
             }
         )
 
     fig.update_xaxes(
         title="Largura (mm)",
-        range=[0, largura_chapa]
+        range=[
+            0,
+            largura_chapa
+        ]
     )
+
     fig.update_yaxes(
         title="Altura (mm)",
-        range=[0, altura_chapa],
+        range=[
+            0,
+            altura_chapa
+        ],
         scaleanchor="x",
         scaleratio=1
     )
@@ -470,26 +574,37 @@ def desenhar_chapa_otimizacao(
             f"{numero_chapa}/{total_chapas}"
         ),
         height=700,
-        margin=dict(l=20, r=20, t=60, b=20),
+        margin=dict(
+            l=20,
+            r=20,
+            t=60,
+            b=20
+        ),
         showlegend=False
     )
 
-    cache[chave] = {
+    cache[chave_figura] = {
         "fig": fig,
         "detalhes": detalhes_pecas,
         "dimensoes": (
             f"{largura_chapa:.0f} × "
             f"{altura_chapa:.0f} mm"
         ),
-        "qtd_pecas": len(chapa.pecas),
-        "aproveitamento": f"{aproveitamento:.2f}%",
-        "desperdicio": f"{desperdicio:.2f} m²"
+        "qtd_pecas": len(
+            chapa.pecas
+        ),
+        "aproveitamento": (
+            f"{aproveitamento:.2f}%"
+        ),
+        "desperdicio": (
+            f"{desperdicio:.2f} m²"
+        )
     }
 
     st.plotly_chart(
         fig,
         use_container_width=True,
-        key=f"fig_chapa_{abs(hash(chave))}",
+        key="fig_chapa_" + chave_figura,
         config={
             "displaylogo": False,
             "scrollZoom": True,
@@ -497,19 +612,978 @@ def desenhar_chapa_otimizacao(
         }
     )
 
-    if detalhes_pecas:
-        with st.expander(
-            "📋 Detalhes das peças desta chapa"
-        ):
-            st.dataframe(
-                pd.DataFrame(detalhes_pecas),
-                use_container_width=True,
-                hide_index=True,
-                height=350
+    with st.expander(
+        "📋 Detalhes das peças desta chapa"
+    ):
+        st.dataframe(
+            pd.DataFrame(
+                detalhes_pecas
+            ),
+            use_container_width=True,
+            hide_index=True,
+            height=350
+        )
+
+
+
+# ===================================
+# CONFIGURAÇÃO
+# ===================================
+
+st.set_page_config(
+    page_title="Pedidos Em Aberto - Visualização",
+    page_icon="📊",
+    layout="wide"
+)
+
+st.title("📊 Pedidos Em Aberto - Visualização")
+# ===================================
+# CSS
+# ===================================
+st.markdown(
+    """
+    <style>
+
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        text-align: center !important;
+        font-size: 14px !important;
+    }
+
+    thead tr th {
+        text-align: center !important;
+        font-weight: bold !important;
+        background-color: #f0f2f6 !important;
+        padding: 8px !important;
+    }
+
+    tbody tr td {
+        text-align: center !important;
+        padding: 6px !important;
+    }
+
+    tbody tr:last-child {
+        font-weight: bold !important;
+        background-color: #f8f9fa !important;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ===================================
+# LEITURA DA PLANILHA
+# ===================================
+
+try:
+
+    df = pd.read_excel(
+        "dados.xlsx",
+        sheet_name=0
+    )
+
+    df_base = pd.read_excel(
+        "dados.xlsx",
+        sheet_name=0
+    )
+
+except Exception as erro:
+
+    st.error(
+        f"❌ Erro ao abrir dados.xlsx: {erro}"
+    )
+
+    st.stop()
+
+
+# ===================================
+# LIMPEZA DAS COLUNAS
+# ===================================
+
+for base in [df, df_base]:
+
+    base.columns = (
+        base.columns
+        .astype(str)
+        .str.strip()
+    )
+
+    # Pedido
+    if "Pedido" in base.columns:
+
+        base["Pedido"] = (
+            pd.to_numeric(
+                base["Pedido"],
+                errors="coerce"
+            )
+            .astype("Int64")
+            .astype(str)
+        )
+
+        base["Pedido"] = (
+            base["Pedido"]
+            .replace("<NA>", "")
+        )
+
+    # PC
+    if "PC" in base.columns:
+
+        base["PC"] = (
+            base["PC"]
+            .astype(str)
+            .str.replace(
+                ".0",
+                "",
+                regex=False
+            )
+        )
+
+        base["PC"] = (
+            base["PC"]
+            .replace("nan", "")
+        )
+
+    # Data
+    if "Previsão" in base.columns:
+
+        base["Previsão"] = (
+            pd.to_datetime(
+                base["Previsão"],
+                errors="coerce",
+                dayfirst=True
+            )
+        )
+
+    # M²
+    if "M2 Vendido" in base.columns:
+
+        base["M2 Vendido"] = (
+            pd.to_numeric(
+                base["M2 Vendido"],
+                errors="coerce"
+            )
+            .fillna(0)
+        )
+
+
+# ===================================
+# CONSOLIDADOR
+# ===================================
+
+try:
+
+    df_consolidador = pd.read_excel(
+        "consolidador.xlsx"
+    )
+
+    df_consolidador.columns = (
+        df_consolidador.columns
+        .astype(str)
+        .str.strip()
+    )
+
+    consolidador_carregado = True
+
+except Exception:
+
+    df_consolidador = pd.DataFrame()
+
+    consolidador_carregado = False
+
+
+# ===================================
+# ÚLTIMA ATUALIZAÇÃO
+# ===================================
+
+try:
+
+    with open(
+        "ultima_atualizacao.json",
+        "r"
+    ) as arquivo:
+
+        dados_update = json.load(
+            arquivo
+        )
+
+    data_update = datetime.strptime(
+        dados_update["ultima_atualizacao"],
+        "%Y-%m-%d %H:%M:%S"
+    )
+
+    data_update = (
+        data_update
+        - timedelta(hours=3)
+    )
+
+    data_formatada = (
+        data_update
+        .strftime("%d/%m/%Y %H:%M:%S")
+    )
+
+    st.info(
+        f"🕒 Última atualização: "
+        f"{data_formatada}"
+    )
+
+except Exception:
+
+    pass
+
+
+# ===================================
+# FILTROS SALVOS
+# ===================================
+
+try:
+
+    with open(
+        "filtros.json",
+        "r"
+    ) as arquivo:
+
+        dados_filtros = json.load(
+            arquivo
+        )
+
+    if isinstance(
+        dados_filtros,
+        list
+    ):
+
+        filtros = (
+            dados_filtros[0]
+            if dados_filtros
+            else {}
+        )
+
+    else:
+
+        filtros = dados_filtros
+
+except Exception:
+
+    filtros = {}
+
+
+# ===================================
+# SIDEBAR
+# ===================================
+
+st.sidebar.title("Filtros")
+
+
+# ===================================
+# FILTRO DE DATA
+# ===================================
+
+start_date = None
+end_date = None
+
+if "Previsão" in df.columns:
+
+    # Remove datas inválidas
+    datas_validas = pd.to_datetime(
+        df["Previsão"],
+        errors="coerce"
+    ).dropna()
+
+    if not datas_validas.empty:
+
+        min_data = datas_validas.min().date()
+        max_data = datas_validas.max().date()
+
+        try:
+            start_default = pd.to_datetime(
+                filtros.get("start_date", min_data)
+            ).date()
+        except Exception:
+            start_default = min_data
+
+        try:
+            end_default = pd.to_datetime(
+                filtros.get("end_date", max_data)
+            ).date()
+        except Exception:
+            end_default = max_data
+
+        # Garante que as datas estejam dentro do intervalo permitido
+        if start_default < min_data or start_default > max_data:
+            start_default = min_data
+
+        if end_default < min_data or end_default > max_data:
+            end_default = max_data
+
+        start_date = st.sidebar.date_input(
+            "Data inicial",
+            value=start_default,
+            min_value=min_data,
+            max_value=max_data,
+            format="DD/MM/YYYY"
+        )
+
+        end_date = st.sidebar.date_input(
+            "Data final",
+            value=end_default,
+            min_value=min_data,
+            max_value=max_data,
+            format="DD/MM/YYYY"
+        )
+
+        if start_date > end_date:
+            st.sidebar.error(
+                "A data inicial não pode ser maior que a data final."
+            )
+            st.stop()
+
+        df = df[
+            (df["Previsão"].dt.date >= start_date)
+            &
+            (df["Previsão"].dt.date <= end_date)
+        ]
+
+    else:
+
+        st.warning("Nenhuma data válida encontrada na coluna Previsão.")
+        st.stop()
+
+# ===================================
+# FILTRO DE ROTA
+# ===================================
+
+if "Rota" in df.columns:
+
+    rotas = sorted(
+        df["Rota"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    rotas_default = [
+
+        rota
+
+        for rota in filtros.get(
+            "rotas",
+            []
+        )
+
+        if rota in rotas
+
+    ]
+
+    rotas_sel = st.sidebar.multiselect(
+        "Rotas",
+        options=rotas,
+        default=rotas_default
+    )
+
+    if rotas_sel:
+
+        df = df[
+            df["Rota"]
+            .astype(str)
+            .isin(rotas_sel)
+        ]
+
+
+# ===================================
+# FILTRO DE PRODUTO
+# ===================================
+
+if "Produto" in df.columns:
+
+    produtos = sorted(
+        df["Produto"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    produtos_default = [
+
+        produto
+
+        for produto in filtros.get(
+            "produtos",
+            []
+        )
+
+        if produto in produtos
+
+    ]
+
+    produtos_sel = st.sidebar.multiselect(
+        "Produtos",
+        options=produtos,
+        default=produtos_default
+    )
+
+    if produtos_sel:
+
+        df = df[
+            df["Produto"]
+            .astype(str)
+            .isin(produtos_sel)
+        ]
+        # ===================================
+# PROGRAMAÇÃO DE CARGA - FILTRO POR DIA
+# ===================================
+
+programacao_carregada = False
+pcs_programacao_dia = None
+dias_programacao_selecionados = []
+
+try:
+
+    programacao = pd.read_excel(
+        "programacao_carga.xlsx"
+    )
+
+    programacao.columns = (
+        programacao.columns
+        .astype(str)
+        .str.strip()
+    )
+
+    if {
+        "PC",
+        "Previsão Entrega"
+    }.issubset(programacao.columns):
+
+        # ===================================
+        # PADRONIZA PC
+        # ===================================
+
+        programacao["PC"] = (
+            programacao["PC"]
+            .astype("string")
+            .fillna("")
+            .str.strip()
+            .str.replace(
+                r"\.0$",
+                "",
+                regex=True
+            )
+        )
+
+        programacao["PC"] = (
+            programacao["PC"]
+            .replace(
+                ["nan", "NaN", "<NA>"],
+                ""
+            )
+            .astype(str)
+            .str.strip()
+        )
+
+        # ===================================
+        # PADRONIZA DATA
+        # ===================================
+
+        programacao["Previsão Entrega"] = (
+            pd.to_datetime(
+                programacao["Previsão Entrega"],
+                errors="coerce",
+                dayfirst=True
+            )
+        )
+
+        # Mantém registros sem PC.
+        # Eles são importantes quando "TODOS"
+        # estiver selecionado.
+
+        programacao = programacao[
+            programacao["Previsão Entrega"].notna()
+        ].copy()
+
+        programacao_carregada = True
+
+        # ===================================
+        # PERÍODO DA PROGRAMAÇÃO
+        # ===================================
+
+        hoje = datetime.now().date()
+
+        inicio_semana = (
+            hoje
+            -
+            timedelta(
+                days=hoje.weekday()
+            )
+        )
+
+        fim_semana = (
+            inicio_semana
+            +
+            timedelta(
+                days=4
+            )
+        )
+
+        st.sidebar.markdown(
+            "### 📅 Período da Programação"
+        )
+
+        inicio_programacao = (
+            st.sidebar.date_input(
+                "De",
+                value=inicio_semana,
+                key="periodo_programacao_inicio",
+                format="DD/MM/YYYY"
+            )
+        )
+
+        fim_programacao = (
+            st.sidebar.date_input(
+                "Até",
+                value=fim_semana,
+                key="periodo_programacao_fim",
+                format="DD/MM/YYYY"
+            )
+        )
+
+        if inicio_programacao > fim_programacao:
+
+            st.sidebar.error(
+                "A data inicial não pode ser "
+                "maior que a data final."
             )
 
+            st.stop()
+
+        # ===================================
+        # FILTRO POR DIA DA SEMANA
+        # ===================================
+
+        dias_programacao = [
+            "SEGUNDA",
+            "TERÇA",
+            "QUARTA",
+            "QUINTA",
+            "SEXTA"
+        ]
+
+        dias_programacao_selecionados = (
+            st.sidebar.multiselect(
+                "📅 Programação de carga por dia",
+                options=dias_programacao,
+                default=[],
+                key="dias_programacao_carga"
+            )
+        )
+
+        # ===================================
+        # "NENHUM DIA" = TODOS
+        # ===================================
+
+        if not dias_programacao_selecionados:
+
+            pcs_programacao_dia = set()
+
+            st.sidebar.caption(
+                "📦 Todos os pedidos da base estão "
+                "sendo exibidos."
+            )
+
+        else:
+
+            # ===================================
+            # FILTRA O PERÍODO
+            # ===================================
+
+            programacao_periodo = (
+                programacao[
+                    (
+                        programacao[
+                            "Previsão Entrega"
+                        ].dt.date
+                        >=
+                        inicio_programacao
+                    )
+                    &
+                    (
+                        programacao[
+                            "Previsão Entrega"
+                        ].dt.date
+                        <=
+                        fim_programacao
+                    )
+                ]
+                .copy()
+            )
+
+            # ===================================
+            # MAPA DOS DIAS
+            # ===================================
+
+            mapa_dias = {
+                "SEGUNDA": 0,
+                "TERÇA": 1,
+                "QUARTA": 2,
+                "QUINTA": 3,
+                "SEXTA": 4
+            }
+
+            numeros_dias = [
+                mapa_dias[dia]
+                for dia
+                in dias_programacao_selecionados
+            ]
+
+            # ===================================
+            # FILTRA TODOS OS DIAS SELECIONADOS
+            # ===================================
+
+            programacao_dia = (
+                programacao_periodo[
+                    programacao_periodo[
+                        "Previsão Entrega"
+                    ].dt.weekday.isin(
+                        numeros_dias
+                    )
+                ]
+                .copy()
+            )
+
+            # ===================================
+            # PEGA SOMENTE PCs VÁLIDOS
+            # ===================================
+
+            pcs_programacao_dia = set(
+                programacao_dia[
+                    programacao_dia["PC"].ne("")
+                ]["PC"]
+                .astype(str)
+                .str.strip()
+                .tolist()
+            )
+
+            # ===================================
+            # PADRONIZA PC DA BASE
+            # ===================================
+
+            if "PC" in df.columns:
+
+                df["PC"] = (
+                    df["PC"]
+                    .astype("string")
+                    .fillna("")
+                    .str.strip()
+                    .str.replace(
+                        r"\.0$",
+                        "",
+                        regex=True
+                    )
+                )
+
+                df["PC"] = (
+                    df["PC"]
+                    .replace(
+                        ["nan", "NaN", "<NA>"],
+                        ""
+                    )
+                    .astype(str)
+                    .str.strip()
+                )
+
+            # ===================================
+            # APLICA FILTRO DOS DIAS
+            # ===================================
+
+            if pcs_programacao_dia:
+
+                df = df[
+                    df["PC"].isin(
+                        pcs_programacao_dia
+                    )
+                ].copy()
+
+            else:
+
+                # Nenhum PC encontrado nos dias
+                # selecionados.
+
+                df = df.iloc[0:0].copy()
+
+            # ===================================
+            # MOSTRA DIAS SELECIONADOS
+            # ===================================
+
+            st.sidebar.caption(
+                "📌 Dias selecionados: "
+                +
+                ", ".join(
+                    dias_programacao_selecionados
+                )
+            )
+
+            st.sidebar.caption(
+                f"📦 {len(pcs_programacao_dia)} "
+                f"PC(s) na programação."
+            )
+
+        # ===================================
+        # PERÍODO
+        # ===================================
+
+        st.sidebar.caption(
+            f"📅 Período: "
+            f"{inicio_programacao.strftime('%d/%m/%Y')} "
+            f"a "
+            f"{fim_programacao.strftime('%d/%m/%Y')}"
+        )
+
+except FileNotFoundError:
+
+    st.sidebar.info(
+        "📄 Carregue a Programação de Carga "
+        "na página Edição para habilitar "
+        "o filtro por dia."
+    )
+
+except Exception as e:
+
+    st.sidebar.warning(
+        f"⚠️ Não foi possível ler a "
+        f"Programação de Carga: {e}"
+    )
+        
+# ===================================
+# FILTRO DE PC
+# ===================================
+
+if "PC" in df.columns:
+
+    pcs = sorted(
+        df["PC"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    pcs_default = [
+
+        pc
+
+        for pc in filtros.get(
+            "pcs",
+            []
+        )
+
+        if pc in pcs
+
+    ]
+
+    pcs_sel = st.sidebar.multiselect(
+        "Programação de carga",
+        options=pcs,
+        default=pcs_default
+    )
+
+    if pcs_sel:
+
+        df = df[
+            df["PC"]
+            .astype(str)
+            .isin(pcs_sel)
+        ]
 
 
+# ===================================
+# BASE FILTRADA
+# ===================================
+
+df_filtrado = df.copy()
+
+df_final = df_filtrado.copy()
+
+
+# ===================================
+# PEDIDOS MANUAIS
+# ===================================
+
+st.sidebar.markdown("---")
+
+st.sidebar.subheader(
+    "📌 Pedidos manuais"
+)
+
+lista_pedidos = (
+
+    sorted(
+        df_base["Pedido"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    if "Pedido" in df_base.columns
+
+    else []
+
+)
+
+pedidos_manuais = (
+    st.sidebar.multiselect(
+        "Selecionar pedidos manuais",
+        options=lista_pedidos,
+        default=[
+
+            pedido
+
+            for pedido in filtros.get(
+                "pedidos_manuais",
+                []
+            )
+
+            if pedido in lista_pedidos
+
+        ]
+    )
+)
+
+
+# ===================================
+# ROTAS MANUAIS
+# ===================================
+
+st.sidebar.markdown("---")
+
+st.sidebar.subheader(
+    "🚚 Rotas manuais"
+)
+
+lista_rotas = (
+
+    sorted(
+        df_base["Rota"]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    if "Rota" in df_base.columns
+
+    else []
+
+)
+
+rotas_manuais = (
+    st.sidebar.multiselect(
+        "Selecionar rotas manuais",
+        options=lista_rotas,
+        default=[
+
+            rota
+
+            for rota in filtros.get(
+                "rotas_manuais",
+                []
+            )
+
+            if rota in lista_rotas
+
+        ]
+    )
+)
+
+
+# ===================================
+# APLICAÇÃO DOS FILTROS MANUAIS
+# ===================================
+
+df_base_filtrada = (
+    df_base.copy()
+)
+
+if (
+    start_date is not None
+    and end_date is not None
+    and "Previsão" in df_base_filtrada.columns
+):
+
+    df_base_filtrada = (
+        df_base_filtrada[
+            (
+                df_base_filtrada[
+                    "Previsão"
+                ].dt.date
+                >= start_date
+            )
+            &
+            (
+                df_base_filtrada[
+                    "Previsão"
+                ].dt.date
+                <= end_date
+            )
+        ]
+    )
+
+
+if (
+    pedidos_manuais
+    and "Pedido"
+    in df_base_filtrada.columns
+):
+
+    df_extra = (
+        df_base_filtrada[
+            df_base_filtrada[
+                "Pedido"
+            ]
+            .astype(str)
+            .isin(
+                pedidos_manuais
+            )
+        ]
+    )
+
+    df_final = pd.concat(
+        [
+            df_final,
+            df_extra
+        ],
+        ignore_index=True
+    )
+
+
+if (
+    rotas_manuais
+    and "Rota"
+    in df_base_filtrada.columns
+):
+
+    df_extra_rotas = (
+        df_base_filtrada[
+            df_base_filtrada[
+                "Rota"
+            ]
+            .astype(str)
+            .isin(
+                rotas_manuais
+            )
+        ]
+    )
+
+    df_final = pd.concat(
+        [
+            df_final,
+            df_extra_rotas
+        ],
+        ignore_index=True
+    )
+
+
+df_final = (
+    df_final
+    .drop_duplicates()
+)
 # =====================================
 # CONFIGURAÇÃO DE CHAPAS POR MATERIAL
 # =====================================
@@ -1106,13 +2180,71 @@ if mostrar_mp:
 
 
         # =================================
-        # EXECUTA A OTIMIZAÇÃO
+        # EXECUTA / RECUPERA A OTIMIZAÇÃO
         # =================================
+        #
+        # A navegação entre chapas provoca reruns do Streamlit.
+        # Sem cache, cada clique poderia executar novamente toda
+        # a otimização. Aqui guardamos o resultado por sessão.
+        assinatura_pecas = []
 
-        resultado_otimizacao = otimizar_lista(
-            lista_otimizacao,
-            configuracao_chapas
+        for peca in lista_otimizacao:
+            assinatura_pecas.append(
+                (
+                    str(getattr(peca, "codigo", "")),
+                    float(getattr(peca, "largura", 0)),
+                    float(getattr(peca, "altura", 0)),
+                    str(getattr(peca, "pedido", "")),
+                    str(getattr(peca, "cliente", "")),
+                    str(getattr(peca, "pc", "")),
+                    str(getattr(peca, "rota", ""))
+                )
+            )
+
+        assinatura_configuracao = json.dumps(
+            configuracao_chapas,
+            sort_keys=True,
+            ensure_ascii=False
         )
+
+        chave_otimizacao = hashlib.sha256(
+            (
+                repr(assinatura_pecas)
+                + "|"
+                + assinatura_configuracao
+            ).encode("utf-8")
+        ).hexdigest()
+
+        cache_otimizacao = st.session_state.get(
+            "_resultado_otimizacao_cache"
+        )
+
+        if (
+            isinstance(cache_otimizacao, dict)
+            and cache_otimizacao.get("chave")
+            == chave_otimizacao
+        ):
+            resultado_otimizacao = (
+                cache_otimizacao["resultado"]
+            )
+
+        else:
+            resultado_otimizacao = otimizar_lista(
+                lista_otimizacao,
+                configuracao_chapas
+            )
+
+            st.session_state[
+                "_resultado_otimizacao_cache"
+            ] = {
+                "chave": chave_otimizacao,
+                "resultado": resultado_otimizacao
+            }
+
+        # Usado também pelo cache dos desenhos.
+        st.session_state[
+            "_chave_otimizacao_atual"
+        ] = chave_otimizacao
 
         resumo_otimizado = pd.DataFrame(
             resumo_otimizacao(
@@ -1871,8 +3003,8 @@ if mostrar_mp:
         # =====================================
 
         st.caption(
-            "A tabela de matéria-prima é apenas informativa. "
-            "A visualização da chapa fica separada abaixo."
+            "☑️ Marque a caixa da linha do material "
+            "para visualizar as peças dentro da chapa."
         )
 
         retorno_grid = AgGrid(
@@ -1882,7 +3014,7 @@ if mostrar_mp:
             height=650,
             theme="streamlit",
             allow_unsafe_jscode=True,
-            update_on=[]
+            update_on=["selectionChanged"]
         )
 
         # =====================================
@@ -1890,31 +3022,41 @@ if mostrar_mp:
         # =====================================
 
         st.markdown("---")
-        st.subheader("🧩 Visualização da Otimização")
+        st.subheader(
+            "🧩 Visualização da Otimização"
+        )
+
+        st.caption(
+            "A visualização é separada da tabela. "
+            "Marque abaixo para abrir o desenho."
+        )
 
         visualizar_desenho = st.checkbox(
             "👁️ Visualizar desenho da otimização",
             value=st.session_state.get(
-                "visualizar_desenho_otimizacao",
+                "_visualizar_desenho",
                 False
             ),
-            key="visualizar_desenho_otimizacao"
+            key="_visualizar_desenho"
         )
 
         if visualizar_desenho:
 
-            # Materiais que realmente possuem resultado de otimização.
             materiais_visualizacao = sorted(
-                materiais_otimizacao.keys()
+                [
+                    str(codigo)
+                    for codigo, chapas
+                    in resultado_otimizacao.items()
+                    if chapas
+                ]
             )
 
             if materiais_visualizacao:
 
                 codigo_visualizacao = st.selectbox(
                     "🪵 Selecione o material",
-                    options=materiais_visualizacao,
-                    format_func=lambda codigo: str(codigo),
-                    key="material_visualizacao_otimizacao"
+                    materiais_visualizacao,
+                    key="material_visualizacao_separado"
                 )
 
                 chapas_desenho = (
@@ -1922,41 +3064,33 @@ if mostrar_mp:
                         codigo_visualizacao,
                         []
                     )
-                    if isinstance(
-                        resultado_otimizacao,
-                        dict
-                    )
-                    else []
                 )
 
                 if chapas_desenho:
 
-                    total_chapas = len(chapas_desenho)
+                    total_chapas = len(
+                        chapas_desenho
+                    )
 
-                    # Guarda a posição atual por material.
                     chave_indice = (
-                        "indice_chapa_visualizacao_"
-                        + str(codigo_visualizacao)
+                        "_indice_chapa_"
+                        + codigo_visualizacao
                     )
 
-                    if chave_indice not in st.session_state:
-                        st.session_state[chave_indice] = 0
-
-                    indice_chapa = int(
-                        st.session_state[chave_indice]
-                    )
-
-                    indice_chapa = max(
-                        0,
-                        min(
-                            indice_chapa,
-                            total_chapas - 1
+                    indice_atual = int(
+                        st.session_state.get(
+                            chave_indice,
+                            0
                         )
                     )
 
-                    # ---------------------------------
-                    # NAVEGAÇÃO
-                    # ---------------------------------
+                    indice_atual = max(
+                        0,
+                        min(
+                            indice_atual,
+                            total_chapas - 1
+                        )
+                    )
 
                     nav1, nav2, nav3 = st.columns(
                         [1, 2, 1]
@@ -1965,19 +3099,18 @@ if mostrar_mp:
                     with nav1:
                         if st.button(
                             "◀ Anterior",
-                            disabled=indice_chapa <= 0,
+                            disabled=(
+                                indice_atual <= 0
+                            ),
                             use_container_width=True,
                             key=(
-                                "chapa_anterior_"
-                                + str(codigo_visualizacao)
+                                "visual_anterior_"
+                                + codigo_visualizacao
                             )
                         ):
                             st.session_state[
                                 chave_indice
-                            ] = max(
-                                0,
-                                indice_chapa - 1
-                            )
+                            ] = indice_atual - 1
                             st.rerun()
 
                     with nav2:
@@ -1989,7 +3122,7 @@ if mostrar_mp:
                                 font-weight:600;
                                 padding-top:5px;
                             ">
-                                Chapa {indice_chapa + 1}
+                                Chapa {indice_atual + 1}
                                 de {total_chapas}
                             </div>
                             """,
@@ -2000,37 +3133,57 @@ if mostrar_mp:
                         if st.button(
                             "Próxima ▶",
                             disabled=(
-                                indice_chapa
+                                indice_atual
                                 >= total_chapas - 1
                             ),
                             use_container_width=True,
                             key=(
-                                "chapa_proxima_"
-                                + str(codigo_visualizacao)
+                                "visual_proxima_"
+                                + codigo_visualizacao
                             )
                         ):
                             st.session_state[
                                 chave_indice
-                            ] = min(
-                                total_chapas - 1,
-                                indice_chapa + 1
-                            )
+                            ] = indice_atual + 1
                             st.rerun()
 
-                    # ---------------------------------
-                    # DESENHO
-                    # ---------------------------------
+                    # Salto direto para uma chapa.
+                    numero_direto = st.number_input(
+                        "🔢 Ir diretamente para a chapa",
+                        min_value=1,
+                        max_value=total_chapas,
+                        value=indice_atual + 1,
+                        step=1,
+                        key=(
+                            "visual_ir_chapa_"
+                            + codigo_visualizacao
+                        )
+                    )
+
+                    if (
+                        int(numero_direto) - 1
+                        != indice_atual
+                    ):
+                        st.session_state[
+                            chave_indice
+                        ] = int(numero_direto) - 1
+                        st.rerun()
+
+                    chapa_desenho = (
+                        chapas_desenho[indice_atual]
+                    )
 
                     desenhar_chapa_otimizacao(
-                        chapas_desenho[indice_chapa],
+                        chapa_desenho,
                         codigo_visualizacao,
-                        indice_chapa + 1,
+                        indice_atual + 1,
                         total_chapas
                     )
 
                 else:
                     st.info(
-                        "Não existem chapas para este material."
+                        "Não existem chapas otimizadas "
+                        "para o material selecionado."
                     )
 
             else:
