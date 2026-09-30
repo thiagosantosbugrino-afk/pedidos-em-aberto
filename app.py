@@ -1,4 +1,4 @@
-import io
+import ioimport io
 import re
 import json
 import math
@@ -1584,6 +1584,80 @@ df_final = (
     df_final
     .drop_duplicates()
 )
+# =====================================
+# VISÃO PC x PRODUTO
+# =====================================
+
+mostrar_pc_produto = st.checkbox(
+    "📋 Mostrar PCs x Produto",
+    value=False,
+    key="mostrar_pc_produto"
+)
+
+if mostrar_pc_produto:
+
+    st.markdown("---")
+    st.subheader("📋 PCs x Produto")
+
+    if df_final.empty:
+
+        st.info(
+            "Nenhum registro foi encontrado nos filtros selecionados."
+        )
+
+    elif "PC" not in df_final.columns or "Produto" not in df_final.columns:
+
+        st.warning(
+            "⚠️ As colunas PC e/ou Produto não foram encontradas na base."
+        )
+
+    else:
+
+        tabela_pc_produto = (
+            df_final[["PC", "Produto"]]
+            .copy()
+        )
+
+        # Remove valores vazios e combinações repetidas.
+        tabela_pc_produto["PC"] = (
+            tabela_pc_produto["PC"]
+            .astype("string")
+            .fillna("")
+            .str.strip()
+            .str.replace(r"\.0$", "", regex=True)
+        )
+
+        tabela_pc_produto["Produto"] = (
+            tabela_pc_produto["Produto"]
+            .astype("string")
+            .fillna("")
+            .str.strip()
+        )
+
+        tabela_pc_produto = tabela_pc_produto[
+            (tabela_pc_produto["PC"] != "")
+            &
+            (tabela_pc_produto["Produto"] != "")
+        ]
+
+        tabela_pc_produto = (
+            tabela_pc_produto
+            .drop_duplicates(subset=["PC", "Produto"])
+            .sort_values(
+                ["PC", "Produto"],
+                ascending=[True, True]
+            )
+            .reset_index(drop=True)
+        )
+
+        st.dataframe(
+            tabela_pc_produto,
+            use_container_width=True,
+            hide_index=True,
+            height=min(500, 40 + (len(tabela_pc_produto) * 35))
+        )
+
+
 # =====================================
 # CONFIGURAÇÃO DE CHAPAS POR MATERIAL
 # =====================================
