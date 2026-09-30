@@ -4554,7 +4554,7 @@ if mostrar_pc_produto:
         # do Streamlit, mantendo a coluna PC também em negrito.
         tabela_pc_produto_exibicao = tabela_pc_produto.copy()
         tabela_pc_produto_exibicao["m²"] = tabela_pc_produto_exibicao["m²"].map(
-            lambda valor: f"{valor:.4f}"
+            lambda valor: f"{valor:.2f}"
         )
 
         # Adiciona o total como uma linha real do DataFrame,
@@ -4564,7 +4564,7 @@ if mostrar_pc_produto:
             "PC": "",
             "Produto": "TOTAL GERAL",
             "Dia da Entrega": "",
-            "m²": f"{total_m2_pc_produto:.4f}"
+            "m²": f"{total_m2_pc_produto:.2f}"
         }])
 
         tabela_pc_produto_exibicao = pd.concat(
