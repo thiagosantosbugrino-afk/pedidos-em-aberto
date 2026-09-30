@@ -4544,65 +4544,67 @@ if mostrar_pc_produto:
             .reset_index(drop=True)
         )
 
+        # Renderiza a tabela em HTML para garantir que o cabeçalho
+        # fique realmente centralizado e em negrito em todas as versões
+        # do Streamlit, mantendo a coluna PC também em negrito.
+        tabela_pc_produto_exibicao = tabela_pc_produto.copy()
+        tabela_pc_produto_exibicao["m²"] = tabela_pc_produto_exibicao["m²"].map(
+            lambda valor: f"{valor:.4f}"
+        )
+
+        tabela_html = tabela_pc_produto_exibicao.to_html(
+            index=False,
+            classes="pc-produto-table",
+            border=0,
+            escape=True
+        )
+
         st.markdown(
-            """
-            <style>
-            div[data-testid="stDataFrame"] [role="columnheader"] {
-                justify-content: center !important;
-                text-align: center !important;
-            }
-            div[data-testid="stDataFrame"] [role="columnheader"] * {
-                text-align: center !important;
-            }
-            </style>
+            f"""
+            <div style="max-height:500px; overflow-y:auto; width:100%;">
+                <style>
+                    .pc-produto-table {{
+                        width: 100%;
+                        border-collapse: collapse;
+                        table-layout: fixed;
+                        font-size: 14px;
+                    }}
+                    .pc-produto-table th {{
+                        text-align: center !important;
+                        font-weight: 700 !important;
+                        padding: 8px 10px;
+                        border: 1px solid #e5e7eb;
+                        background-color: #f8f9fa;
+                    }}
+                    .pc-produto-table td {{
+                        text-align: center !important;
+                        padding: 8px 10px;
+                        border: 1px solid #e5e7eb;
+                    }}
+                    .pc-produto-table td:first-child {{
+                        font-weight: 700 !important;
+                    }}
+                    .pc-produto-table th:first-child,
+                    .pc-produto-table td:first-child {{
+                        width: 25%;
+                    }}
+                    .pc-produto-table th:nth-child(2),
+                    .pc-produto-table td:nth-child(2) {{
+                        width: 25%;
+                    }}
+                    .pc-produto-table th:nth-child(3),
+                    .pc-produto-table td:nth-child(3) {{
+                        width: 25%;
+                    }}
+                    .pc-produto-table th:nth-child(4),
+                    .pc-produto-table td:nth-child(4) {{
+                        width: 25%;
+                    }}
+                </style>
+                {tabela_html}
+            </div>
             """,
             unsafe_allow_html=True
-        )
-
-        tabela_pc_produto_estilizada = (
-            tabela_pc_produto.style
-            .set_properties(
-                subset=["PC"],
-                **{"font-weight": "bold"}
-            )
-            .set_table_styles([
-                {
-                    "selector": "th",
-                    "props": [
-                        ("font-weight", "bold"),
-                        ("text-align", "center")
-                    ]
-                }
-            ])
-        )
-
-        st.dataframe(
-            tabela_pc_produto_estilizada,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "PC": st.column_config.TextColumn(
-                    "PC",
-                    alignment="center"
-                ),
-                "Produto": st.column_config.TextColumn(
-                    "Produto",
-                    alignment="center"
-                ),
-                "Dia da Entrega": st.column_config.TextColumn(
-                    "Dia da Entrega",
-                    alignment="center"
-                ),
-                "m²": st.column_config.NumberColumn(
-                    "m²",
-                    alignment="center",
-                    format="%.4f"
-                )
-            },
-            height=min(
-                500,
-                40 + (len(tabela_pc_produto) * 35)
-            )
         )
 
     else:
