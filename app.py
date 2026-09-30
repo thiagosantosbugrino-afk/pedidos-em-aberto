@@ -4548,6 +4548,25 @@ if mostrar_pc_produto:
             tabela_pc_produto,
             use_container_width=True,
             hide_index=True,
+            column_config={
+                "PC": st.column_config.TextColumn(
+                    "PC",
+                    alignment="center"
+                ),
+                "Produto": st.column_config.TextColumn(
+                    "Produto",
+                    alignment="center"
+                ),
+                "Dia da Entrega": st.column_config.TextColumn(
+                    "Dia da Entrega",
+                    alignment="center"
+                ),
+                "m²": st.column_config.NumberColumn(
+                    "m²",
+                    alignment="center",
+                    format="%.4f"
+                )
+            },
             height=min(
                 500,
                 40 + (len(tabela_pc_produto) * 35)
