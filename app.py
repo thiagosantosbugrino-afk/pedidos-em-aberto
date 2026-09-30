@@ -1050,6 +1050,14 @@ try:
         .str.strip()
     )
 
+    # A planilha de Programação de Carga utiliza "Número"
+    # para identificar a PC. Padroniza para "PC" para o
+    # restante do código continuar usando a mesma coluna.
+    if "PC" not in programacao.columns and "Número" in programacao.columns:
+        programacao = programacao.rename(
+            columns={"Número": "PC"}
+        )
+
     if {
         "PC",
         "Previsão Entrega"
