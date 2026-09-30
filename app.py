@@ -4544,8 +4544,40 @@ if mostrar_pc_produto:
             .reset_index(drop=True)
         )
 
+        st.markdown(
+            """
+            <style>
+            div[data-testid="stDataFrame"] [role="columnheader"] {
+                justify-content: center !important;
+                text-align: center !important;
+            }
+            div[data-testid="stDataFrame"] [role="columnheader"] * {
+                text-align: center !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
+        tabela_pc_produto_estilizada = (
+            tabela_pc_produto.style
+            .set_properties(
+                subset=["PC"],
+                **{"font-weight": "bold"}
+            )
+            .set_table_styles([
+                {
+                    "selector": "th",
+                    "props": [
+                        ("font-weight", "bold"),
+                        ("text-align", "center")
+                    ]
+                }
+            ])
+        )
+
         st.dataframe(
-            tabela_pc_produto,
+            tabela_pc_produto_estilizada,
             use_container_width=True,
             hide_index=True,
             column_config={
