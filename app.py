@@ -1585,80 +1585,6 @@ df_final = (
     .drop_duplicates()
 )
 # =====================================
-# VISÃO PC x PRODUTO
-# =====================================
-
-mostrar_pc_produto = st.checkbox(
-    "📋 Mostrar PCs x Produto",
-    value=False,
-    key="mostrar_pc_produto"
-)
-
-if mostrar_pc_produto:
-
-    st.markdown("---")
-    st.subheader("📋 PCs x Produto")
-
-    if df_final.empty:
-
-        st.info(
-            "Nenhum registro foi encontrado nos filtros selecionados."
-        )
-
-    elif "PC" not in df_final.columns or "Produto" not in df_final.columns:
-
-        st.warning(
-            "⚠️ As colunas PC e/ou Produto não foram encontradas na base."
-        )
-
-    else:
-
-        tabela_pc_produto = (
-            df_final[["PC", "Produto"]]
-            .copy()
-        )
-
-        # Remove valores vazios e combinações repetidas.
-        tabela_pc_produto["PC"] = (
-            tabela_pc_produto["PC"]
-            .astype("string")
-            .fillna("")
-            .str.strip()
-            .str.replace(r"\.0$", "", regex=True)
-        )
-
-        tabela_pc_produto["Produto"] = (
-            tabela_pc_produto["Produto"]
-            .astype("string")
-            .fillna("")
-            .str.strip()
-        )
-
-        tabela_pc_produto = tabela_pc_produto[
-            (tabela_pc_produto["PC"] != "")
-            &
-            (tabela_pc_produto["Produto"] != "")
-        ]
-
-        tabela_pc_produto = (
-            tabela_pc_produto
-            .drop_duplicates(subset=["PC", "Produto"])
-            .sort_values(
-                ["PC", "Produto"],
-                ascending=[True, True]
-            )
-            .reset_index(drop=True)
-        )
-
-        st.dataframe(
-            tabela_pc_produto,
-            use_container_width=True,
-            hide_index=True,
-            height=min(500, 40 + (len(tabela_pc_produto) * 35))
-        )
-
-
-# =====================================
 # CONFIGURAÇÃO DE CHAPAS POR MATERIAL
 # =====================================
 
@@ -4460,6 +4386,178 @@ if mostrar_rota_produto:
 
             "para montar a tabela."
 
+        )
+
+
+# ===================================
+# TABELA PC X PRODUTO
+# ===================================
+
+st.markdown("---")
+
+mostrar_pc_produto = (
+    st.checkbox(
+        "📋 Mostrar PC X Produto",
+        value=False,
+        key="mostrar_pc_produto"
+    )
+)
+
+
+if mostrar_pc_produto:
+
+    st.subheader(
+        "📋 PC X Produto"
+    )
+
+    if (
+
+        not df_final.empty
+
+        and
+
+        "PC"
+
+        in df_final.columns
+
+        and
+
+        "Produto"
+
+        in df_final.columns
+
+        and
+
+        "M2 Vendido"
+
+        in df_final.columns
+
+    ):
+
+        colunas_pc_produto = [
+            "PC",
+            "Produto",
+            "M2 Vendido"
+        ]
+
+        tabela_pc_produto = (
+            df_final[colunas_pc_produto]
+            .copy()
+        )
+
+        # Normaliza o PC para evitar duplicidades causadas por valores numéricos.
+        tabela_pc_produto["PC"] = (
+            tabela_pc_produto["PC"]
+            .astype("string")
+            .fillna("")
+            .str.strip()
+            .str.replace(r"\.0$", "", regex=True)
+        )
+
+        tabela_pc_produto["Produto"] = (
+            tabela_pc_produto["Produto"]
+            .astype("string")
+            .fillna("")
+            .str.strip()
+        )
+
+        tabela_pc_produto = tabela_pc_produto[
+            (tabela_pc_produto["PC"] != "")
+            &
+            (tabela_pc_produto["Produto"] != "")
+        ]
+
+        # Inclui o dia/data de entrega quando a programação de carga estiver disponível.
+        if (
+            "programacao" in locals()
+            and isinstance(programacao, pd.DataFrame)
+            and "PC" in programacao.columns
+            and "Previsão Entrega" in programacao.columns
+        ):
+
+            mapa_entrega = (
+                programacao[["PC", "Previsão Entrega"]]
+                .copy()
+            )
+
+            mapa_entrega["PC"] = (
+                mapa_entrega["PC"]
+                .astype("string")
+                .fillna("")
+                .str.strip()
+                .str.replace(r"\.0$", "", regex=True)
+            )
+
+            mapa_entrega["Previsão Entrega"] = pd.to_datetime(
+                mapa_entrega["Previsão Entrega"],
+                errors="coerce"
+            )
+
+            mapa_entrega = (
+                mapa_entrega
+                .dropna(subset=["PC"])
+                .drop_duplicates(subset=["PC"])
+            )
+
+            tabela_pc_produto = tabela_pc_produto.merge(
+                mapa_entrega,
+                on="PC",
+                how="left"
+            )
+
+            tabela_pc_produto["Dia da Entrega"] = (
+                tabela_pc_produto["Previsão Entrega"]
+                .dt.strftime("%d/%m/%Y")
+                .fillna("")
+            )
+
+            tabela_pc_produto = tabela_pc_produto.drop(
+                columns=["Previsão Entrega"]
+            )
+
+        else:
+
+            tabela_pc_produto["Dia da Entrega"] = ""
+
+        # Soma o M² por PC, Produto e dia de entrega.
+        tabela_pc_produto["M2 Vendido"] = pd.to_numeric(
+            tabela_pc_produto["M2 Vendido"],
+            errors="coerce"
+        ).fillna(0)
+
+        tabela_pc_produto = (
+            tabela_pc_produto
+            .groupby(
+                ["PC", "Produto", "Dia da Entrega"],
+                as_index=False
+            )["M2 Vendido"]
+            .sum()
+        )
+
+        tabela_pc_produto = (
+            tabela_pc_produto
+            .rename(columns={"M2 Vendido": "m²"})
+            .sort_values(
+                ["PC", "Produto", "Dia da Entrega"],
+                ascending=[True, True, True]
+            )
+            .reset_index(drop=True)
+        )
+
+        st.dataframe(
+            tabela_pc_produto,
+            use_container_width=True,
+            hide_index=True,
+            height=min(
+                500,
+                40 + (len(tabela_pc_produto) * 35)
+            )
+        )
+
+    else:
+
+        st.info(
+            "Não há dados suficientes para montar a tabela."
         )
 
 
