@@ -1050,18 +1050,32 @@ try:
         .str.strip()
     )
 
-    # A planilha de Programação de Carga utiliza "Número"
-    # para identificar a PC. Padroniza para "PC" para o
-    # restante do código continuar usando a mesma coluna.
-    if "PC" not in programacao.columns and "Número" in programacao.columns:
-        programacao = programacao.rename(
-            columns={"Número": "PC"}
-        )
+    # A planilha de Programação de Carga utiliza a coluna C ("Número")
+    # para identificar a PC e a coluna F ("Previsão Entrega") para a data.
+    # Mantém também compatibilidade caso os nomes das colunas mudem.
+    coluna_pc_programacao = None
+    coluna_data_programacao = None
 
-    if {
-        "PC",
-        "Previsão Entrega"
-    }.issubset(programacao.columns):
+    if "PC" in programacao.columns:
+        coluna_pc_programacao = "PC"
+    elif "Número" in programacao.columns:
+        coluna_pc_programacao = "Número"
+    elif len(programacao.columns) >= 3:
+        coluna_pc_programacao = programacao.columns[2]
+
+    if "Previsão Entrega" in programacao.columns:
+        coluna_data_programacao = "Previsão Entrega"
+    elif len(programacao.columns) >= 6:
+        coluna_data_programacao = programacao.columns[5]
+
+    if coluna_pc_programacao is not None and coluna_data_programacao is not None:
+
+        programacao = programacao.rename(
+            columns={
+                coluna_pc_programacao: "PC",
+                coluna_data_programacao: "Previsão Entrega"
+            }
+        )
 
         # ===================================
         # PADRONIZA PC
@@ -4453,14 +4467,25 @@ if mostrar_pc_produto:
             .copy()
         )
 
-        # Normaliza o PC para evitar duplicidades causadas por valores numéricos.
-        tabela_pc_produto["PC"] = (
-            tabela_pc_produto["PC"]
-            .astype("string")
-            .fillna("")
-            .str.strip()
-            .str.replace(r"\.0$", "", regex=True)
-        )
+        # Normaliza o PC para garantir o cruzamento correto com a
+        # coluna C (Número) da Programação de Carga.
+        def normalizar_pc(valor):
+            if pd.isna(valor):
+                return ""
+
+            texto = str(valor).strip()
+
+            if texto.endswith(".0"):
+                texto = texto[:-2]
+
+            numero = pd.to_numeric(texto, errors="coerce")
+
+            if pd.notna(numero):
+                return str(int(numero))
+
+            return texto
+
+        tabela_pc_produto["PC"] = tabela_pc_produto["PC"].map(normalizar_pc)
 
         tabela_pc_produto["Produto"] = (
             tabela_pc_produto["Produto"]
@@ -4488,13 +4513,9 @@ if mostrar_pc_produto:
                 .copy()
             )
 
-            mapa_entrega["PC"] = (
-                mapa_entrega["PC"]
-                .astype("string")
-                .fillna("")
-                .str.strip()
-                .str.replace(r"\.0$", "", regex=True)
-            )
+            # Normaliza a PC dos dois lados do cruzamento.
+            # Assim, 11920, 11920.0 e "11920" são tratados como a mesma PC.
+            mapa_entrega["PC"] = mapa_entrega["PC"].map(normalizar_pc)
 
             mapa_entrega["Previsão Entrega"] = pd.to_datetime(
                 mapa_entrega["Previsão Entrega"],
