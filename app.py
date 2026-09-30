@@ -4559,18 +4559,21 @@ if mostrar_pc_produto:
             escape=True
         )
 
-        # Total geral fica em uma linha própria, abaixo da última PC.
+        # Total geral fica em uma linha própria, imediatamente abaixo da última PC,
+        # dentro da mesma tabela.
         total_m2_pc_produto = tabela_pc_produto_exibicao["m²"].astype(float).sum()
         total_html = f"""
-            <table class="pc-produto-total">
-                <tfoot>
-                    <tr>
-                        <td colspan="3"><strong>TOTAL GERAL</strong></td>
-                        <td><strong>{total_m2_pc_produto:.4f}</strong></td>
-                    </tr>
-                </tfoot>
-            </table>
+            <tr class="pc-produto-total-row">
+                <td colspan="3"><strong>TOTAL GERAL</strong></td>
+                <td><strong>{total_m2_pc_produto:.4f}</strong></td>
+            </tr>
         """
+
+        # Insere o total antes do fechamento do corpo da tabela.
+        tabela_html = tabela_html.replace(
+            "</tbody>",
+            total_html + "</tbody>"
+        )
 
         st.markdown(
             f"""
@@ -4613,27 +4616,15 @@ if mostrar_pc_produto:
                     .pc-produto-table td:nth-child(4) {{
                         width: 25%;
                     }}
-                    .pc-produto-total {{
-                        width: 100%;
-                        border-collapse: collapse;
-                        table-layout: fixed;
-                        font-size: 14px;
-                    }}
-                    .pc-produto-total td {{
+                    .pc-produto-total-row td {{
                         text-align: center !important;
+                        font-weight: 700 !important;
                         padding: 8px 10px;
                         border: 1px solid #e5e7eb;
                         background-color: #f8f9fa;
                     }}
-                    .pc-produto-total td:first-child {{
-                        width: 75%;
-                    }}
-                    .pc-produto-total td:last-child {{
-                        width: 25%;
-                    }}
                 </style>
                 {tabela_html}
-                {total_html}
             </div>
             """,
             unsafe_allow_html=True
