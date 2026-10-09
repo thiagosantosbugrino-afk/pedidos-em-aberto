@@ -1516,6 +1516,117 @@ rotas_manuais = (
 
 
 # ===================================
+# TIPO DE PRODUÇÃO - FILTRO MANUAL
+# ===================================
+# O arquivo tipo_producao.json deve ficar no mesmo repositório/pasta
+# do aplicativo. No Streamlit Community Cloud, ele será publicado junto
+# com o código e poderá ser atualizado diretamente pelo GitHub.
+# JSON: cada item contém "tipo" e "previsao_pedido".
+# Dados: coluna R (índice 17) contém o Tipo de produção.
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("🏭 Tipo de produção")
+
+ARQUIVO_TIPO_PRODUCAO = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "tipo_producao.json"
+)
+
+lista_tipos_producao = []
+coluna_tipo_dados = None
+limite_previsao_pedido = 8
+
+
+def normalizar_tipo_producao(valor):
+    if pd.isna(valor):
+        return ""
+    return re.sub(r"\s+", " ", str(valor)).strip().casefold()
+
+
+try:
+    with open(ARQUIVO_TIPO_PRODUCAO, "r", encoding="utf-8") as arquivo_tipos:
+        dados_tipos_producao = json.load(arquivo_tipos)
+
+    limite_previsao_pedido = float(
+        dados_tipos_producao.get("limite_previsao_pedido", 8)
+    )
+    registros_tipos = dados_tipos_producao.get("tipos_producao", [])
+
+    if not isinstance(registros_tipos, list):
+        raise ValueError(
+            'O campo "tipos_producao" precisa ser uma lista no arquivo JSON.'
+        )
+
+    if len(df_base.columns) < 18:
+        st.sidebar.warning(
+            "A planilha Dados precisa ter pelo menos 18 colunas "
+            "para localizar o Tipo de produção na coluna R."
+        )
+    else:
+        coluna_tipo_dados = df_base.columns[17]
+        tipos_existentes_dados = {
+            normalizar_tipo_producao(valor)
+            for valor in df_base[coluna_tipo_dados].dropna()
+            if normalizar_tipo_producao(valor)
+        }
+
+        tipos_por_chave = {}
+        for registro in registros_tipos:
+            if not isinstance(registro, dict):
+                continue
+
+            tipo_texto = str(registro.get("tipo", "")).strip()
+            chave = normalizar_tipo_producao(tipo_texto)
+            try:
+                previsao = float(
+                    str(registro.get("previsao_pedido", "0"))
+                    .replace(",", ".")
+                )
+            except (TypeError, ValueError):
+                continue
+
+            # Valida o limite também na leitura para impedir que um tipo
+            # com previsão menor que 8 apareça se for incluído por engano.
+            if (
+                chave
+                and previsao >= limite_previsao_pedido
+                and chave in tipos_existentes_dados
+            ):
+                tipos_por_chave.setdefault(chave, tipo_texto)
+
+        lista_tipos_producao = sorted(
+            tipos_por_chave.values(),
+            key=lambda valor: valor.casefold()
+        )
+
+except FileNotFoundError:
+    st.sidebar.warning(
+        "Arquivo tipo_producao.json não encontrado. "
+        "Adicione-o ao mesmo repositório/pasta do aplicativo no GitHub."
+    )
+except Exception as erro_tipo:
+    st.sidebar.warning(
+        f"Não foi possível carregar Tipo de Produção do JSON: {erro_tipo}"
+    )
+
+tipos_producao_manuais = st.sidebar.multiselect(
+    "Selecionar tipos de produção manuais",
+    options=lista_tipos_producao,
+    default=[
+        tipo
+        for tipo in filtros.get("tipos_producao_manuais", [])
+        if tipo in lista_tipos_producao
+    ],
+    help=(
+        "Mostra somente tipos cadastrados em tipo_producao.json, "
+        "que também existem na coluna R da planilha Dados e têm "
+        f"previsão Pedido igual ou superior a {limite_previsao_pedido:g}."
+    ),
+    key="tipos_producao_manuais"
+)
+
+
+# ===================================
 # APLICAÇÃO DOS FILTROS MANUAIS
 # ===================================
 
@@ -1597,6 +1708,31 @@ if (
         [
             df_final,
             df_extra_rotas
+        ],
+        ignore_index=True
+    )
+
+
+# Inclui manualmente todas as linhas da planilha Dados cujo tipo
+# de produção corresponda a um dos tipos selecionados.
+if tipos_producao_manuais and coluna_tipo_dados is not None:
+    tipos_selecionados_chaves = {
+        normalizar_tipo_producao(tipo)
+        for tipo in tipos_producao_manuais
+    }
+
+    mascara_tipos = (
+        df_base_filtrada[coluna_tipo_dados]
+        .apply(normalizar_tipo_producao)
+        .isin(tipos_selecionados_chaves)
+    )
+
+    df_extra_tipos = df_base_filtrada[mascara_tipos].copy()
+
+    df_final = pd.concat(
+        [
+            df_final,
+            df_extra_tipos
         ],
         ignore_index=True
     )
