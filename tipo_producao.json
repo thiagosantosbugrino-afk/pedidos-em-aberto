@@ -1,0 +1,1198 @@
+{
+  "descricao": "Tipos de produção com previsão Pedido igual ou superior a 8. Edite este arquivo no GitHub para atualizar a lista.",
+  "limite_previsao_pedido": 8,
+  "tipos_producao": [
+    {
+      "tipo": "C3",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "CCEM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CCE_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CCJ5_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CCM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CCP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CCQ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CCR_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CC_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CEA",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "CEA_",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "CEKP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CEKP_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CEK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CEM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CEMPK",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CEP_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CEQ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CEQ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CER",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CER_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CE_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFA",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "CFA_",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "CFBK",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFBK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFBP",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "CFB_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFMB",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFMK",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFMP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFMPK",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFOB",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFOB_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFPK",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFPK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFP_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFQ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFQP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFQP_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFQ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFR",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFRB",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFRBP",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "CFRB_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFRP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFRP_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFR_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CFX_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "CF_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EB3",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "ECM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "ECR_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EC_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EEA",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "EEAI",
+      "previsao_pedido": 20
+    },
+    {
+      "tipo": "EEAI_",
+      "previsao_pedido": 20
+    },
+    {
+      "tipo": "EEBM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EEBQ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EEBQ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EEBR",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EEBR_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EEB_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EEM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EEQ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EEQ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EER",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EER_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EE_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EF0_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFA",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "EFA_",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "EFBA",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "EFBA_",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "EFBK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFBM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFBQ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFBQ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFBR",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFBR_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFBX_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFB_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFMK",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFO",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFOB",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFOB_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFQ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFQK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFQ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFR",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFR_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EFX_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "EF_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "ELXA",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "ICF",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "ICG",
+      "previsao_pedido": 20
+    },
+    {
+      "tipo": "ICGJ",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "ILTF",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "ILTF1",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "ILTF2",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "ILTFF",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "IPF",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "IPF2",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "IPFM",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "IPFQ",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "ITF",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "ITF1",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "ITFJ",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "ITFLE",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "ITFM",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "ITFQ",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "ITPF",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "L3",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "L3F",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "LC3",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "LCC",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCE",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCEM",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCEQ",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCER",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCF",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCFA",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCFD",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCFK",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCFM",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCFMK",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCFQ",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCFR",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LCFX",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTE",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTEA",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTEJ",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTEK",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTEM",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTEMI",
+      "previsao_pedido": 25
+    },
+    {
+      "tipo": "LTEMK",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTEQ",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTEQJ",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTER",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTEX",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTF",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTF3",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "LTFA",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTFG",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTFJ",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTFJK",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTFK",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTFM",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTFMK",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTFQ",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTFR",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "LTFX",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "P3",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "PCQ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PCQ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PC_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PE12_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PE16_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PEA",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "PEM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PEQ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PEQ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PE_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PFA",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "PFK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PFM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PFMK",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PFQ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PFQ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PFX_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "PF_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "T3",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "T3D",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "T3P",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TAJK_",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TE12_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TE16_",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TEA",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TEAB",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TEAI",
+      "previsao_pedido": 20
+    },
+    {
+      "tipo": "TEAI_",
+      "previsao_pedido": 20
+    },
+    {
+      "tipo": "TEAJ",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TEAJK",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TEAJ_",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TEAK",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TEAK_",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TEAS",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TEA_",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TEBP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEBS",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TEB_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEJ3",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "TEJ50",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEJ5_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEJK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEJ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEKX_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEM3",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "TEMB",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEMI",
+      "previsao_pedido": 20
+    },
+    {
+      "tipo": "TEMIK",
+      "previsao_pedido": 20
+    },
+    {
+      "tipo": "TEMJ",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TEMJ5",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEMK",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TEMKJ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEMP",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TEMPJ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEMS",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TEMSK",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TEP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEP12",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEP16",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEPK",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEQ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEQJ",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TEQJ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEQK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEQP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TEQS",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TEQ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TER",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TERP",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TERS",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TER_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TES",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TES1",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TES12",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TES16",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TESK",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TEX_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TE_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFA",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TFA2",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TFAB",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TFAB_",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TFAK",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TFAP",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TFAS",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TFA_",
+      "previsao_pedido": 12
+    },
+    {
+      "tipo": "TFBK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFBP",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TFBS",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TFBX_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFB_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFJ3",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "TFJ5_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFJ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFKJ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFM",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFM3",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "TFM3P",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFMB",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFMJ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFMK",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFMK3",
+      "previsao_pedido": 15
+    },
+    {
+      "tipo": "TFMP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFMPB",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFMPK",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFMS",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TFMSK",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TFO",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFO_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFPBK",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFPK",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFQ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFQJ",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFQJ5",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFQJ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFQK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFQP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFQS",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TFQ_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFR",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFRB",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFRBP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFRBS",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TFRB_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFRP",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFRS",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TFR_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFS",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TFSBK",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TFSK",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TFSX",
+      "previsao_pedido": 10
+    },
+    {
+      "tipo": "TFXK_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TFX_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TF_",
+      "previsao_pedido": 8
+    },
+    {
+      "tipo": "TJ3",
+      "previsao_pedido": 20
+    },
+    {
+      "tipo": "TJ503",
+      "previsao_pedido": 20
+    }
+  ]
+}
