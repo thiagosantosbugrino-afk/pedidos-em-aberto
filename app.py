@@ -1708,17 +1708,9 @@ if "produtos_sel" in locals() and produtos_sel and "Produto" in df_base_filtrada
         df_base_filtrada["Produto"].astype(str).isin(produtos_sel)
     ].copy()
 
-# As inclusões manuais de pedidos/rotas também devem respeitar Tipo de produção.
-if tipos_producao_manuais and coluna_tipo_dados is not None:
-    tipos_selecionados_chaves = {
-        normalizar_tipo_producao(tipo)
-        for tipo in tipos_producao_manuais
-    }
-    df_base_filtrada = df_base_filtrada[
-        df_base_filtrada[coluna_tipo_dados]
-        .apply(normalizar_tipo_producao)
-        .isin(tipos_selecionados_chaves)
-    ].copy()
+# Cada inclusão manual é aplicada separadamente:
+# pedidos, rotas e tipos de produção podem ser combinados (união),
+# sem que a seleção de tipos restrinja as rotas manuais e vice-versa.
 
 if (
     pedidos_manuais
@@ -5479,3 +5471,4 @@ st.download_button(
     )
 
 )
+
