@@ -24,6 +24,24 @@ from otimizador import (
 )
 
 # ===================================
+# LEITURA DE PLANILHAS COM CACHE
+# ===================================
+# Evita reler os mesmos arquivos Excel a cada interação dos filtros.
+# O horário de modificação invalida o cache quando o arquivo é atualizado.
+@st.cache_data(show_spinner=False)
+def _ler_excel_cacheado(caminho, nome_aba, modificacao):
+    return pd.read_excel(caminho, sheet_name=nome_aba)
+
+
+def ler_excel_cacheado(caminho, sheet_name=0):
+    try:
+        modificacao = os.path.getmtime(caminho)
+    except OSError:
+        modificacao = None
+    return _ler_excel_cacheado(caminho, sheet_name, modificacao)
+
+
+# ===================================
 # FUNÇÕES
 # ===================================
 
@@ -680,15 +698,9 @@ st.markdown(
 
 try:
 
-    df = pd.read_excel(
-        "dados.xlsx",
-        sheet_name=0
-    )
-
-    df_base = pd.read_excel(
-        "dados.xlsx",
-        sheet_name=0
-    )
+    df = ler_excel_cacheado("dados.xlsx", sheet_name=0)
+    # A base completa é uma cópia da mesma leitura em cache.
+    df_base = df.copy()
 
 except Exception as erro:
 
@@ -775,9 +787,7 @@ for base in [df, df_base]:
 
 try:
 
-    df_consolidador = pd.read_excel(
-        "consolidador.xlsx"
-    )
+    df_consolidador = ler_excel_cacheado("consolidador.xlsx")
 
     df_consolidador.columns = (
         df_consolidador.columns
@@ -1053,9 +1063,20 @@ def normalizar_tipo_producao(valor):
     texto = texto.replace("ã", "a").replace("ç", "c")
     return re.sub(r"\s+", " ", texto)
 
+@st.cache_data(show_spinner=False)
+def carregar_json_tipo_producao(caminho, modificacao):
+    with open(caminho, "r", encoding="utf-8") as arquivo_tipos:
+        return json.load(arquivo_tipos)
+
+
 try:
-    with open(ARQUIVO_TIPO_PRODUCAO, "r", encoding="utf-8") as arquivo_tipos:
-        dados_tipos_producao = json.load(arquivo_tipos)
+    try:
+        modificacao_json = os.path.getmtime(ARQUIVO_TIPO_PRODUCAO)
+    except OSError:
+        modificacao_json = None
+    dados_tipos_producao = carregar_json_tipo_producao(
+        ARQUIVO_TIPO_PRODUCAO, modificacao_json
+    )
 
     limite_previsao_pedido = float(
         dados_tipos_producao.get("limite_previsao_pedido", 8)
@@ -1134,9 +1155,7 @@ dias_programacao_selecionados = []
 
 try:
 
-    programacao = pd.read_excel(
-        "programacao_carga.xlsx"
-    )
+    programacao = ler_excel_cacheado("programacao_carga.xlsx")
 
     programacao.columns = (
         programacao.columns
@@ -1515,9 +1534,17 @@ if "PC" in df.columns:
 # ===================================
 if tipos_producao_global and coluna_tipo_dados is not None:
     chaves_global = {normalizar_tipo_producao(t) for t in tipos_producao_global}
-    df = df[
-        df[coluna_tipo_dados].apply(normalizar_tipo_producao).isin(chaves_global)
-    ].copy()
+    tipos_coluna_normalizados = (
+        df[coluna_tipo_dados]
+        .astype("string")
+        .fillna("")
+        .str.strip()
+        .str.casefold()
+        .str.replace("ã", "a", regex=False)
+        .str.replace("ç", "c", regex=False)
+        .str.replace(r"\s+", " ", regex=True)
+    )
+    df = df[tipos_coluna_normalizados.isin(chaves_global)].copy()
 
 # ===================================
 # BASE FILTRADA
@@ -5331,6 +5358,7 @@ st.download_button(
     )
 
 )
+
 
 
 
