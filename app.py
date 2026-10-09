@@ -1140,8 +1140,7 @@ tipos_producao_global = st.sidebar.multiselect(
     key="tipos_producao_global",
     help=(
         "Filtro global: atualiza todas as tabelas e visões. "
-        "A lista contém tipos presentes em Dados e com previsão Pedido >= "
-        f"{limite_previsao_pedido:g}. Se limpar a seleção, o filtro global não restringe os dados."
+        
     )
 )
 
@@ -1658,8 +1657,8 @@ tipos_producao_manuais = st.sidebar.multiselect(
     ],
     key="tipos_producao_manuais",
     help=(
-        "Acrescenta à visualização registros dos tipos selecionados, além dos "
-        "resultados dos filtros principais. Respeita data, rota e produto."
+        "Acrescenta o tipo de produção manualmente à visualização registros dos tipos selecionados. "
+        
     )
 )
 
