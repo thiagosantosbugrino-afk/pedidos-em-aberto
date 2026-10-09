@@ -4852,6 +4852,120 @@ if mostrar_pc_produto:
         )
 
 
+    # ===================================
+    # TABELA TIPO DE PRODUÇÃO X PRODUTO
+    # ===================================
+    st.markdown("---")
+    st.subheader("🏭 Tipo de produção x Produto")
+
+    # Usa a coluna de tipo de produção identificada no carregamento dos dados.
+    coluna_tipo_tabela = coluna_tipo_dados if (
+        coluna_tipo_dados is not None and coluna_tipo_dados in df_final.columns
+    ) else None
+
+    if coluna_tipo_tabela is None:
+        nomes_tipo_normalizados = {
+            "tipo producao", "tipo de producao"
+        }
+        for coluna_candidata in df_final.columns:
+            nome_normalizado = re.sub(
+                r"[^a-z0-9]+", " ",
+                str(coluna_candidata).strip().casefold()
+                .replace("ã", "a").replace("ç", "c")
+            ).strip()
+            if nome_normalizado in nomes_tipo_normalizados:
+                coluna_tipo_tabela = coluna_candidata
+                break
+
+    colunas_necessarias_tipo_produto = ["Produto", "M2 Vendido"]
+    if coluna_tipo_tabela is not None and all(
+        coluna in df_final.columns for coluna in colunas_necessarias_tipo_produto
+    ):
+        tabela_tipo_produto = df_final[
+            [coluna_tipo_tabela, "Produto", "M2 Vendido"]
+        ].copy()
+        tabela_tipo_produto.columns = [
+            "Tipo de produção", "Produto", "M2 Vendido"
+        ]
+        tabela_tipo_produto["Tipo de produção"] = (
+            tabela_tipo_produto["Tipo de produção"]
+            .astype("string").fillna("").str.strip()
+        )
+        tabela_tipo_produto["Produto"] = (
+            tabela_tipo_produto["Produto"]
+            .astype("string").fillna("").str.strip()
+        )
+        tabela_tipo_produto["M2 Vendido"] = pd.to_numeric(
+            tabela_tipo_produto["M2 Vendido"], errors="coerce"
+        ).fillna(0)
+        tabela_tipo_produto = tabela_tipo_produto[
+            (tabela_tipo_produto["Tipo de produção"] != "")
+            & (tabela_tipo_produto["Produto"] != "")
+        ]
+
+        if not tabela_tipo_produto.empty:
+            tabela_tipo_produto = (
+                tabela_tipo_produto.groupby(
+                    ["Tipo de produção", "Produto"], as_index=False
+                )["M2 Vendido"].sum()
+            )
+            total_tipo_produto = tabela_tipo_produto["M2 Vendido"].sum()
+            tabela_tipo_produto = tabela_tipo_produto.rename(
+                columns={"M2 Vendido": "m²"}
+            ).sort_values(
+                ["Tipo de produção", "Produto"],
+                ascending=[True, True]
+            ).reset_index(drop=True)
+            tabela_tipo_produto["m²"] = tabela_tipo_produto["m²"].map(
+                lambda valor: f"{valor:.2f}"
+            )
+            tabela_tipo_produto = pd.concat([
+                tabela_tipo_produto,
+                pd.DataFrame([{
+                    "Tipo de produção": "TOTAL GERAL",
+                    "Produto": "",
+                    "m²": f"{total_tipo_produto:.2f}"
+                }])
+            ], ignore_index=True)
+            html_tipo_produto = tabela_tipo_produto.to_html(
+                index=False,
+                classes="tipo-produto-table",
+                border=0,
+                escape=True
+            )
+            st.markdown(
+                f"""
+                <div style="max-height:500px; overflow-y:auto; width:100%;">
+                    <style>
+                        .tipo-produto-table {{
+                            width: 100%; border-collapse: collapse;
+                            table-layout: auto; font-size: 14px;
+                        }}
+                        .tipo-produto-table th {{
+                            text-align: center !important; font-weight: 700 !important;
+                            padding: 8px 10px; border: 1px solid #e5e7eb;
+                            background-color: #f8f9fa;
+                        }}
+                        .tipo-produto-table td {{
+                            text-align: center !important; padding: 8px 10px;
+                            border: 1px solid #e5e7eb;
+                        }}
+                        .tipo-produto-table tbody tr:last-child td {{
+                            font-weight: 700 !important;
+                            background-color: #f8f9fa;
+                        }}
+                    </style>
+                    {html_tipo_produto}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            st.info("Não há dados de Tipo de produção e Produto para montar a tabela.")
+    else:
+        st.info("Não foi possível localizar as colunas Tipo de produção, Produto e M2 Vendido.")
+
+
 # ===================================
 # GRÁFICO POR ROTA
 # ===================================
