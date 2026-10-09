@@ -1635,14 +1635,21 @@ if not lista_tipos_producao and coluna_tipo_dados is not None:
         "aos valores de 'tipo' em tipo_producao.json e se a previsão é >= 8."
     )
 
+# Na primeira abertura, deixa todos os tipos correspondentes selecionados.
+# Se houver uma seleção salva válida, restaura-a; o usuário pode marcar ou
+# desmarcar qualquer tipo no filtro normalmente.
+tipos_salvos = filtros.get("tipos_producao_manuais")
+if tipos_salvos:
+    tipos_padrao_selecionados = [
+        tipo for tipo in tipos_salvos if tipo in lista_tipos_producao
+    ]
+else:
+    tipos_padrao_selecionados = lista_tipos_producao.copy()
+
 tipos_producao_manuais = st.sidebar.multiselect(
     "Selecionar tipos de produção manuais",
     options=lista_tipos_producao,
-    default=[
-        tipo
-        for tipo in filtros.get("tipos_producao_manuais", [])
-        if tipo in lista_tipos_producao
-    ],
+    default=tipos_padrao_selecionados,
     help=(
         "Mostra somente tipos cadastrados em tipo_producao.json, "
         "que também existem na coluna R da planilha Dados e têm "
@@ -5338,4 +5345,5 @@ st.download_button(
     )
 
 )
+
 
