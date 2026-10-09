@@ -1652,7 +1652,7 @@ tipos_producao_manuais = st.sidebar.multiselect(
     default=tipos_padrao_selecionados,
     help=(
         "Mostra somente tipos cadastrados em tipo_producao.json, "
-        "que também existem na coluna R da planilha Dados e têm "
+        
         f"previsão Pedido igual ou superior a {limite_previsao_pedido:g}."
     ),
     key="tipos_producao_manuais"
