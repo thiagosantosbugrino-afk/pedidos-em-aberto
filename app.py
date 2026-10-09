@@ -1031,6 +1031,100 @@ if "Produto" in df.columns:
             .isin(produtos_sel)
         ]
         # ===================================
+# TIPO DE PRODUÇÃO - FILTRO GLOBAL
+# ===================================
+# O cadastro fica no arquivo tipo_producao.json, na raiz do repositório.
+# A coluna de Tipo de produção é localizada pelo cabeçalho; se necessário,
+# utiliza a coluna R (índice 17) como alternativa.
+
+ARQUIVO_TIPO_PRODUCAO = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "tipo_producao.json"
+)
+
+lista_tipos_producao = []
+coluna_tipo_dados = None
+limite_previsao_pedido = 8
+
+def normalizar_tipo_producao(valor):
+    if pd.isna(valor):
+        return ""
+    texto = str(valor).strip().casefold()
+    texto = texto.replace("ã", "a").replace("ç", "c")
+    return re.sub(r"\s+", " ", texto)
+
+try:
+    with open(ARQUIVO_TIPO_PRODUCAO, "r", encoding="utf-8") as arquivo_tipos:
+        dados_tipos_producao = json.load(arquivo_tipos)
+
+    limite_previsao_pedido = float(
+        dados_tipos_producao.get("limite_previsao_pedido", 8)
+    )
+    registros_tipos = dados_tipos_producao.get("tipos_producao", [])
+    if not isinstance(registros_tipos, list):
+        raise ValueError('O campo "tipos_producao" precisa ser uma lista.')
+
+    nomes_tipo_possiveis = {"tipo producao", "tipo de producao"}
+    coluna_tipo_dados = next(
+        (
+            coluna for coluna in df_base.columns
+            if re.sub(
+                r"[^a-z0-9]+", " ",
+                str(coluna).strip().casefold().replace("ã", "a").replace("ç", "c")
+            ).strip() in nomes_tipo_possiveis
+        ),
+        None
+    )
+    if coluna_tipo_dados is None and len(df_base.columns) >= 18:
+        coluna_tipo_dados = df_base.columns[17]
+
+    if coluna_tipo_dados is not None:
+        tipos_existentes_dados = {
+            normalizar_tipo_producao(v)
+            for v in df_base[coluna_tipo_dados].dropna()
+            if normalizar_tipo_producao(v)
+        }
+        tipos_por_chave = {}
+        for registro in registros_tipos:
+            if not isinstance(registro, dict):
+                continue
+            tipo_texto = str(registro.get("tipo", "")).strip()
+            chave = normalizar_tipo_producao(tipo_texto)
+            try:
+                previsao = float(str(registro.get("previsao_pedido", 0)).replace(",", "."))
+            except (TypeError, ValueError):
+                continue
+            if chave and previsao >= limite_previsao_pedido and chave in tipos_existentes_dados:
+                tipos_por_chave.setdefault(chave, tipo_texto)
+        lista_tipos_producao = sorted(tipos_por_chave.values(), key=str.casefold)
+    else:
+        st.sidebar.warning("Não foi possível localizar Tipo de produção na coluna R da planilha Dados.")
+except FileNotFoundError:
+    st.sidebar.warning("Arquivo tipo_producao.json não encontrado na raiz do repositório.")
+except Exception as erro_tipo:
+    st.sidebar.warning(f"Não foi possível carregar tipo_producao.json: {erro_tipo}")
+
+# O filtro global aparece logo abaixo de Produtos. Por padrão, seleciona os
+# tipos correspondentes; o usuário pode marcar/desmarcar e usar este filtro sozinho.
+tipos_global_salvos = filtros.get("tipos_producao_global")
+if tipos_global_salvos is None:
+    tipos_global_default = lista_tipos_producao.copy()
+else:
+    tipos_global_default = [t for t in tipos_global_salvos if t in lista_tipos_producao]
+
+tipos_producao_global = st.sidebar.multiselect(
+    "Tipo de produção",
+    options=lista_tipos_producao,
+    default=tipos_global_default,
+    key="tipos_producao_global",
+    help=(
+        "Filtro global: atualiza todas as tabelas e visões. "
+        "A lista contém tipos presentes em Dados e com previsão Pedido >= "
+        f"{limite_previsao_pedido:g}. Se limpar a seleção, o filtro global não restringe os dados."
+    )
+)
+
+# ===================================
 # PROGRAMAÇÃO DE CARGA - FILTRO POR DIA
 # ===================================
 
@@ -1417,6 +1511,15 @@ if "PC" in df.columns:
 
 
 # ===================================
+# APLICA FILTRO GLOBAL DE TIPO DE PRODUÇÃO
+# ===================================
+if tipos_producao_global and coluna_tipo_dados is not None:
+    chaves_global = {normalizar_tipo_producao(t) for t in tipos_producao_global}
+    df = df[
+        df[coluna_tipo_dados].apply(normalizar_tipo_producao).isin(chaves_global)
+    ].copy()
+
+# ===================================
 # BASE FILTRADA
 # ===================================
 
@@ -1516,148 +1619,22 @@ rotas_manuais = (
 
 
 # ===================================
-# TIPO DE PRODUÇÃO - FILTRO MANUAL
+# TIPO DE PRODUÇÃO - INCLUSÃO MANUAL
 # ===================================
-# O arquivo tipo_producao.json deve ficar no mesmo repositório/pasta
-# do aplicativo. No Streamlit Community Cloud, ele será publicado junto
-# com o código e poderá ser atualizado diretamente pelo GitHub.
-# JSON: cada item contém "tipo" e "previsao_pedido".
-# Dados: coluna R (índice 17) contém o Tipo de produção.
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("🏭 Tipo de produção")
-
-ARQUIVO_TIPO_PRODUCAO = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "tipo_producao.json"
-)
-
-lista_tipos_producao = []
-coluna_tipo_dados = None
-limite_previsao_pedido = 8
-
-
-def normalizar_tipo_producao(valor):
-    if pd.isna(valor):
-        return ""
-    return re.sub(r"\s+", " ", str(valor)).strip().casefold()
-
-
-try:
-    with open(ARQUIVO_TIPO_PRODUCAO, "r", encoding="utf-8") as arquivo_tipos:
-        dados_tipos_producao = json.load(arquivo_tipos)
-
-    limite_previsao_pedido = float(
-        dados_tipos_producao.get("limite_previsao_pedido", 8)
-    )
-    registros_tipos = dados_tipos_producao.get("tipos_producao", [])
-
-    if not isinstance(registros_tipos, list):
-        raise ValueError(
-            'O campo "tipos_producao" precisa ser uma lista no arquivo JSON.'
-        )
-
-    # Primeiro tenta localizar a coluna pelo nome, para não depender
-    # exclusivamente da posição R caso a planilha tenha sido alterada.
-    nomes_tipo_possiveis = {"tipo producao", "tipo de producao"}
-    coluna_tipo_dados = next(
-        (
-            coluna for coluna in df_base.columns
-            if re.sub(
-                r"[^a-z0-9]+", " ",
-                str(coluna).strip().casefold()
-                .replace("ã", "a").replace("ç", "c")
-            ).strip() in nomes_tipo_possiveis
-        ),
-        None
-    )
-
-    # Se o cabeçalho não for reconhecido, usa a coluna R como alternativa.
-    if coluna_tipo_dados is None and len(df_base.columns) >= 18:
-        coluna_tipo_dados = df_base.columns[17]
-
-    if coluna_tipo_dados is None:
-        st.sidebar.warning(
-            "Não foi possível localizar o Tipo de produção. "
-            "Confira se a coluna está na posição R da planilha Dados."
-        )
-    else:
-        tipos_existentes_dados = {
-            normalizar_tipo_producao(valor)
-            for valor in df_base[coluna_tipo_dados].dropna()
-            if normalizar_tipo_producao(valor)
-        }
-
-        tipos_por_chave = {}
-        for registro in registros_tipos:
-            if not isinstance(registro, dict):
-                continue
-
-            tipo_texto = str(registro.get("tipo", "")).strip()
-            chave = normalizar_tipo_producao(tipo_texto)
-            try:
-                previsao = float(
-                    str(registro.get("previsao_pedido", "0"))
-                    .replace(",", ".")
-                )
-            except (TypeError, ValueError):
-                continue
-
-            # Valida o limite também na leitura para impedir que um tipo
-            # com previsão menor que 8 apareça se for incluído por engano.
-            if (
-                chave
-                and previsao >= limite_previsao_pedido
-                and chave in tipos_existentes_dados
-            ):
-                tipos_por_chave.setdefault(chave, tipo_texto)
-
-        lista_tipos_producao = sorted(
-            tipos_por_chave.values(),
-            key=lambda valor: valor.casefold()
-        )
-
-except FileNotFoundError:
-    st.sidebar.warning(
-        "Arquivo tipo_producao.json não encontrado. "
-        "Adicione-o ao mesmo repositório/pasta do aplicativo no GitHub."
-    )
-except Exception as erro_tipo:
-    st.sidebar.warning(
-        f"Não foi possível carregar Tipo de Produção do JSON: {erro_tipo}"
-    )
-
-if not lista_tipos_producao and coluna_tipo_dados is not None:
-    st.sidebar.info(
-        "Nenhum tipo atende aos critérios de correspondência. "
-        f"Coluna consultada: {coluna_tipo_dados}. "
-        "Confira se os códigos da coluna R da planilha Dados são iguais "
-        "aos valores de 'tipo' em tipo_producao.json e se a previsão é >= 8."
-    )
-
-# Na primeira abertura, deixa todos os tipos correspondentes selecionados.
-# Se houver uma seleção salva válida, restaura-a; o usuário pode marcar ou
-# desmarcar qualquer tipo no filtro normalmente.
-tipos_salvos = filtros.get("tipos_producao_manuais")
-if tipos_salvos:
-    tipos_padrao_selecionados = [
-        tipo for tipo in tipos_salvos if tipo in lista_tipos_producao
-    ]
-else:
-    tipos_padrao_selecionados = lista_tipos_producao.copy()
-
+st.sidebar.subheader("🏭 Tipo de produção manual")
 tipos_producao_manuais = st.sidebar.multiselect(
-    "Selecionar tipos de produção manuais",
+    "Adicionar tipos manualmente",
     options=lista_tipos_producao,
-    default=tipos_padrao_selecionados,
+    default=[
+        tipo for tipo in filtros.get("tipos_producao_manuais", [])
+        if tipo in lista_tipos_producao
+    ],
+    key="tipos_producao_manuais",
     help=(
-        "Mostra somente tipos cadastrados em tipo_producao.json, "
-        
-        f"previsão Pedido igual ou superior a {limite_previsao_pedido:g}."
-    ),
-    key="tipos_producao_manuais"
+        "Acrescenta à visualização registros dos tipos selecionados, além dos "
+        "resultados dos filtros principais. Respeita data, rota e produto."
+    )
 )
-
 
 # ===================================
 # APLICAÇÃO DOS FILTROS MANUAIS
@@ -1691,6 +1668,31 @@ if (
         ]
     )
 
+# IMPORTANTE: os registros acrescentados pelos filtros manuais também
+# precisam respeitar os filtros principais de Rota e Produto. Sem isso,
+# pedidos/rotas/tipos adicionados manualmente podem reintroduzir linhas
+# que o usuário acabou de excluir pelos filtros da barra lateral.
+if "rotas_sel" in locals() and rotas_sel and "Rota" in df_base_filtrada.columns:
+    df_base_filtrada = df_base_filtrada[
+        df_base_filtrada["Rota"].astype(str).isin(rotas_sel)
+    ].copy()
+
+if "produtos_sel" in locals() and produtos_sel and "Produto" in df_base_filtrada.columns:
+    df_base_filtrada = df_base_filtrada[
+        df_base_filtrada["Produto"].astype(str).isin(produtos_sel)
+    ].copy()
+
+# As inclusões manuais de pedidos/rotas também devem respeitar Tipo de produção.
+if tipos_producao_manuais and coluna_tipo_dados is not None:
+    tipos_selecionados_chaves = {
+        normalizar_tipo_producao(tipo)
+        for tipo in tipos_producao_manuais
+    }
+    df_base_filtrada = df_base_filtrada[
+        df_base_filtrada[coluna_tipo_dados]
+        .apply(normalizar_tipo_producao)
+        .isin(tipos_selecionados_chaves)
+    ].copy()
 
 if (
     pedidos_manuais
@@ -1746,30 +1748,14 @@ if (
     )
 
 
-# Inclui manualmente todas as linhas da planilha Dados cujo tipo
-# de produção corresponda a um dos tipos selecionados.
 if tipos_producao_manuais and coluna_tipo_dados is not None:
-    tipos_selecionados_chaves = {
-        normalizar_tipo_producao(tipo)
-        for tipo in tipos_producao_manuais
-    }
-
-    mascara_tipos = (
+    tipos_manuais_chaves = {normalizar_tipo_producao(t) for t in tipos_producao_manuais}
+    df_extra_tipos = df_base_filtrada[
         df_base_filtrada[coluna_tipo_dados]
         .apply(normalizar_tipo_producao)
-        .isin(tipos_selecionados_chaves)
-    )
-
-    df_extra_tipos = df_base_filtrada[mascara_tipos].copy()
-
-    df_final = pd.concat(
-        [
-            df_final,
-            df_extra_tipos
-        ],
-        ignore_index=True
-    )
-
+        .isin(tipos_manuais_chaves)
+    ].copy()
+    df_final = pd.concat([df_final, df_extra_tipos], ignore_index=True)
 
 df_final = (
     df_final
@@ -5345,5 +5331,6 @@ st.download_button(
     )
 
 )
+
 
 
