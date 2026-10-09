@@ -4852,9 +4852,17 @@ if mostrar_pc_produto:
         )
 
 
-    # ===================================
-    # TABELA TIPO DE PRODUÇÃO X PRODUTO
-    # ===================================
+# ===================================
+# TABELA TIPO DE PRODUÇÃO X PRODUTO
+# ===================================
+
+mostrar_tipo_produto = st.checkbox(
+    "🏭 Mostrar Tipo de produção x Produto",
+    value=False,
+    key="mostrar_tipo_producao_produto"
+)
+
+if mostrar_tipo_produto:
     st.markdown("---")
     st.subheader("🏭 Tipo de produção x Produto")
 
@@ -5472,7 +5480,3 @@ st.download_button(
     )
 
 )
-
-
-
-
