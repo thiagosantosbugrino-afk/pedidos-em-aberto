@@ -1489,6 +1489,7 @@ except Exception as e:
         f"Programação de Carga: {e}"
     )
         
+
 # ===================================
 # FILTRO DE PC
 # ===================================
