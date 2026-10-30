@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 
 from io import BytesIO
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from equivalencias import EQUIVALENCIAS
 
@@ -5903,7 +5904,7 @@ def _montar_relatorio_html():
             f'<div class="table-wrap">{tabela_html}</div></section>'
         )
 
-    data_geracao = datetime.now().strftime("%d/%m/%Y às %H:%M")
+    data_geracao = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y às %H:%M")
     conteudo_tabelas = "\n".join(secoes_tabelas) or '<p class="muted">Nenhuma tabela disponível para exibição.</p>'
     return f'''<!DOCTYPE html>
 <html lang="pt-BR">
