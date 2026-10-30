@@ -5627,14 +5627,11 @@ for nome_filtro_rota in ("rotas_sel", "rotas_manuais"):
     if isinstance(valor_rotas, (list, tuple, set)):
         rotas_resumo.extend(str(r).strip() for r in valor_rotas if str(r).strip())
 
-# Se a RETIRA estiver presente na base e não possuir PC, incluí-la quando
-# os dias de programação estiverem filtrados.
-if dias_resumo and isinstance(df_rotas_fonte, pd.DataFrame) and "Rota" in df_rotas_fonte.columns:
-    col_pc_base = next((c for c in df_rotas_fonte.columns if str(c).strip().casefold() == "pc"), None)
-    if col_pc_base:
-        sem_pc = df_rotas_fonte[col_pc_base].fillna("").astype(str).str.strip().eq("")
-        rotas_sem_pc = df_rotas_fonte.loc[sem_pc, "Rota"].dropna().astype(str).str.strip().tolist()
-        rotas_resumo.extend(r for r in rotas_sem_pc if "RETIRA" in r.upper())
+# Inclui RETIRA somente se ela tiver sido selecionada manualmente
+if "rotas_manuais" in globals():
+    for rota in rotas_manuais:
+        if str(rota).strip().upper() == "RETIRA":
+            rotas_resumo.append("RETIRA")
 
 rotas_resumo = list(dict.fromkeys(r for r in rotas_resumo if r and r.casefold() not in {"nan", "none"}))
 linhas_resumo_exportacao.append({
