@@ -4611,16 +4611,6 @@ if mostrar_rota_produto:
                 planilha.freeze_panes = "B2"
             return saida.getvalue()
 
-        arquivo_rota_produto = _excel_rota_x_produto(
-            tabela_rota_produto_exportacao
-        )
-        st.download_button(
-            label="📥 Baixar tabela Rota X Produto (Excel)",
-            data=arquivo_rota_produto,
-            file_name="rota_x_produto.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key="download_rota_x_produto",
-        )
 
     else:
 
@@ -5685,6 +5675,119 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     key="download_todas_as_tabelas",
     help="Baixa as tabelas disponíveis em abas separadas, respeitando os filtros aplicados."
+)
+
+
+# ===================================
+# DOWNLOAD DO RELATÓRIO EM HTML
+# ===================================
+# Relatório independente, com aparência de sistema, mantendo as tabelas e filtros
+# que já estão disponíveis nesta execução do aplicativo.
+
+def _escapar_html_relatorio(texto):
+    import html
+    return html.escape(str(texto))
+
+
+def _montar_relatorio_html():
+    import html
+    from datetime import datetime
+
+    tabelas_relatorio = []
+    candidatos_relatorio = [
+        ("Base Filtrada", "df_final"),
+        ("Tabela por Produto", "tabela_produto"),
+        ("Rota X Produto", "tabela_rota_produto_exportacao"),
+        ("PC X Produto", "tabela_pc_produto_exibicao"),
+        ("Tipo de produção x Produto", "tabela_tipo_produto"),
+        ("Detalhamento", "df_detalhe"),
+    ]
+    incluidos = set()
+
+    for titulo, nome_variavel in candidatos_relatorio:
+        dataframe = globals().get(nome_variavel)
+        if isinstance(dataframe, pd.DataFrame) and not dataframe.empty:
+            tabelas_relatorio.append((titulo, dataframe.copy()))
+            incluidos.add(nome_variavel)
+
+    # Inclui tabelas adicionais já criadas pelo aplicativo, sem duplicar as acima.
+    for nome_variavel, dataframe in list(globals().items()):
+        if (nome_variavel.startswith("tabela_") and nome_variavel not in incluidos
+                and isinstance(dataframe, pd.DataFrame) and not dataframe.empty):
+            titulo = nome_variavel.replace("tabela_", "").replace("_", " ").title()
+            tabelas_relatorio.append((titulo, dataframe.copy()))
+            incluidos.add(nome_variavel)
+
+    resumo_html = (
+        resumo_filtros_exportacao.to_html(index=False, escape=True, border=0, classes="data-table")
+        if isinstance(globals().get("resumo_filtros_exportacao"), pd.DataFrame)
+        and not resumo_filtros_exportacao.empty
+        else '<p class="muted">Nenhum filtro específico foi identificado.</p>'
+    )
+
+    secoes_tabelas = []
+    for titulo, dataframe in tabelas_relatorio:
+        tabela_html = dataframe.to_html(
+            index=(titulo == "Rota X Produto"),
+            escape=True,
+            border=0,
+            classes="data-table",
+            na_rep="",
+            float_format=lambda valor: f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        )
+        secoes_tabelas.append(
+            f'<section class="table-section"><h2>{html.escape(titulo)}</h2>'
+            f'<div class="table-wrap">{tabela_html}</div></section>'
+        )
+
+    data_geracao = datetime.now().strftime("%d/%m/%Y às %H:%M")
+    conteudo_tabelas = "\n".join(secoes_tabelas) or '<p class="muted">Nenhuma tabela disponível para exibição.</p>'
+    return f'''<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pedidos em Aberto | Relatório Gerencial</title>
+<style>
+:root {{ --navy:#12345a; --blue:#1e5b91; --light:#eef4fa; --border:#d7e0ea; --text:#253449; }}
+* {{ box-sizing:border-box; }}
+body {{ margin:0; background:#f3f6fa; color:var(--text); font-family:Arial,Helvetica,sans-serif; }}
+header {{ background:linear-gradient(120deg,var(--navy),var(--blue)); color:white; padding:30px 5%; }}
+header h1 {{ margin:0 0 8px; font-size:28px; }} header p {{ margin:0; opacity:.9; }}
+main {{ max-width:1500px; margin:24px auto; padding:0 22px 40px; }}
+.card,.table-section {{ background:white; border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:22px; box-shadow:0 3px 12px rgba(18,52,90,.06); }}
+h2 {{ color:var(--navy); margin:0 0 16px; font-size:20px; }}
+.table-wrap {{ overflow-x:auto; width:100%; }}
+table.data-table {{ border-collapse:collapse; width:100%; font-size:13px; white-space:nowrap; }}
+table.data-table th {{ background:var(--light); color:var(--navy); font-weight:700; text-align:center; }}
+table.data-table th,table.data-table td {{ border:1px solid var(--border); padding:9px 11px; }}
+table.data-table td {{ text-align:right; }} table.data-table td:first-child {{ text-align:left; }}
+table.data-table tbody tr:nth-child(even) {{ background:#fafbfd; }}
+.muted {{ color:#64748b; }} .actions {{ display:flex; justify-content:flex-end; margin-bottom:16px; }}
+button {{ border:0; border-radius:8px; background:var(--navy); color:white; padding:11px 16px; cursor:pointer; font-weight:bold; }}
+footer {{ text-align:center; color:#64748b; font-size:12px; padding:18px; }}
+@media print {{ body {{ background:white; }} header {{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }} main {{ max-width:none; margin:0; padding:10px; }} .card,.table-section {{ box-shadow:none; break-inside:avoid; }} .actions {{ display:none; }} .table-wrap {{ overflow:visible; }} table.data-table {{ font-size:9px; white-space:normal; }} table.data-table th,table.data-table td {{ padding:4px; }} }}
+</style>
+</head>
+<body>
+<header><h1>Pedidos em Aberto</h1><p>Relatório gerencial de tabelas e filtros aplicados</p></header>
+<main>
+<div class="actions"><button onclick="window.print()">Imprimir / Salvar como PDF</button></div>
+<section class="card"><h2>Resumo dos filtros aplicados na exportação</h2><p class="muted">Gerado em {html.escape(data_geracao)}. Os valores abaixo representam o resumo registrado pelo aplicativo.</p>{resumo_html}</section>
+{conteudo_tabelas}
+</main>
+<footer>Pedidos em Aberto — Relatório gerado pelo aplicativo.</footer>
+</body></html>'''
+
+
+relatorio_html = _montar_relatorio_html()
+st.download_button(
+    label="🖥️ Baixar relatório em HTML",
+    data=relatorio_html.encode("utf-8"),
+    file_name="relatorio_pedidos_em_aberto.html",
+    mime="text/html",
+    key="download_relatorio_html",
+    help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 )
 
 
