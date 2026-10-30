@@ -5885,27 +5885,10 @@ def _montar_relatorio_html():
                 assinaturas_relatorio.add(assinatura)
                 titulos_relatorio.add(titulo_normalizado)
 
-    # Inclui tabelas adicionais somente se não forem cópias das tabelas principais
-    # nem repetirem um título já exibido no relatório.
-    for nome_variavel, dataframe in list(globals().items()):
-        nome_normalizado = str(nome_variavel).casefold()
-        if "material" in nome_normalizado:
-            continue
-        if (not nome_variavel.startswith("tabela_")
-                or nome_variavel in nomes_candidatos
-                or nome_variavel in nomes_incluidos
-                or not isinstance(dataframe, pd.DataFrame)
-                or dataframe.empty):
-            continue
-        assinatura = _assinatura_html_sem_indice(dataframe)
-        titulo = nome_variavel.replace("tabela_", "").replace("_", " ").title()
-        titulo_normalizado = titulo.strip().casefold()
-        if assinatura in assinaturas_relatorio or titulo_normalizado in titulos_relatorio:
-            continue
-        tabelas_relatorio.append((titulo, dataframe.copy()))
-        nomes_incluidos.add(nome_variavel)
-        assinaturas_relatorio.add(assinatura)
-        titulos_relatorio.add(titulo_normalizado)
+    # Exporta somente as tabelas canônicas listadas acima. O laço genérico que
+    # percorria todas as variáveis globais iniciadas por "tabela_" incluía
+    # cópias intermediárias criadas pelos filtros e acabava duplicando seções
+    # no HTML. As tabelas principais já representam as visualizações finais.
 
     resumo_html = (
         resumo_filtros_exportacao.to_html(index=False, escape=True, border=0, classes="data-table summary-table")
