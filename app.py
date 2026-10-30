@@ -4487,6 +4487,10 @@ if mostrar_rota_produto:
 
         )
 
+        # Mantém uma cópia numérica para exportar a tabela no Excel.
+        # A versão exibida abaixo continua com zeros ocultos e números formatados.
+        tabela_rota_produto_exportacao = tabela_rota_produto.copy()
+
         tabela_rota_produto = (
 
             tabela_rota_produto
@@ -4571,6 +4575,51 @@ if mostrar_rota_produto:
 
             unsafe_allow_html=True
 
+        )
+
+        # Exporta a tabela dinâmica no formato visual/estrutural exibido no app.
+        # O Excel mantém as rotas nas linhas, os produtos nas colunas e os totais.
+        def _excel_rota_x_produto(dataframe):
+            saida = BytesIO()
+            with pd.ExcelWriter(saida, engine="openpyxl") as writer:
+                dataframe.to_excel(writer, sheet_name="Rota X Produto", index=True)
+                planilha = writer.sheets["Rota X Produto"]
+                from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+                from openpyxl.utils import get_column_letter
+
+                preenchimento_cabecalho = PatternFill("solid", fgColor="D9E2F3")
+                preenchimento_total = PatternFill("solid", fgColor="EDEDED")
+                borda_fina = Side(style="thin", color="D9D9D9")
+                for celula in planilha[1]:
+                    celula.font = Font(bold=True, color="1F1F1F")
+                    celula.fill = preenchimento_cabecalho
+                    celula.alignment = Alignment(horizontal="center", vertical="center")
+                    celula.border = Border(left=borda_fina, right=borda_fina, top=borda_fina, bottom=borda_fina)
+
+                for linha in planilha.iter_rows(min_row=2):
+                    for celula in linha:
+                        celula.border = Border(left=borda_fina, right=borda_fina, top=borda_fina, bottom=borda_fina)
+                        if celula.column > 1 and isinstance(celula.value, (int, float)):
+                            celula.number_format = '#,##0.00'
+                        if str(linha[0].value).strip().upper() == "TOTAL GERAL":
+                            celula.font = Font(bold=True)
+                            celula.fill = preenchimento_total
+
+                for coluna_idx in range(1, planilha.max_column + 1):
+                    valores = [len(str(planilha.cell(row, coluna_idx).value or "")) for row in range(1, planilha.max_row + 1)]
+                    planilha.column_dimensions[get_column_letter(coluna_idx)].width = min(max(max(valores, default=10) + 2, 12), 24)
+                planilha.freeze_panes = "B2"
+            return saida.getvalue()
+
+        arquivo_rota_produto = _excel_rota_x_produto(
+            tabela_rota_produto_exportacao
+        )
+        st.download_button(
+            label="📥 Baixar tabela Rota X Produto (Excel)",
+            data=arquivo_rota_produto,
+            file_name="rota_x_produto.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download_rota_x_produto",
         )
 
     else:
@@ -5473,88 +5522,169 @@ st.download_button(
 )
 
 # ===================================
-# EXPORTAÇÃO DAS TABELAS + RESUMO DOS FILTROS
+# RESUMO DOS FILTROS APLICADOS NA EXPORTAÇÃO
 # ===================================
-# Funcionalidade adicional: preserva o aplicativo atual e acrescenta
-# a exportação da base/tabelas e o resumo dos filtros ativos.
+# Mantém a tela e o botão de download originais. Exibe um resumo dos filtros
+# considerados na base exportada, incluindo explicitamente PCs e rotas.
 
-def _valor_resumo_filtro_exportacao(valor):
+def _texto_resumo_exportacao(valor):
     if isinstance(valor, (list, tuple, set)):
-        return ", ".join(str(item) for item in valor) if valor else "Todos / não selecionado"
-    if isinstance(valor, dict):
-        return ", ".join(f"{k}: {v}" for k, v in valor.items())
+        return ", ".join(str(item) for item in valor) if valor else "Todos"
     if valor is None or (isinstance(valor, str) and not valor.strip()):
-        return "Todos / não selecionado"
+        return "Todos"
     return str(valor)
 
 
-def _montar_resumo_filtros_exportacao():
-    palavras_filtro = (
-        "filtro", "rota", "produto", "tipo", "status", "previs", "data",
-        "pc", "cliente", "pedido", "busca", "selecion", "periodo", "período"
-    )
-    linhas = []
-    for chave, valor in st.session_state.items():
-        chave_texto = str(chave)
-        chave_lower = chave_texto.lower()
-        if not any(palavra in chave_lower for palavra in palavras_filtro):
-            continue
-        if chave_lower.startswith(("mostrar_", "download_")):
-            continue
-        if isinstance(valor, bool):
-            continue
-        linhas.append({
-            "Filtro": chave_texto.replace("_", " ").strip().title(),
-            "Valor selecionado": _valor_resumo_filtro_exportacao(valor),
-        })
-    if not linhas:
-        linhas.append({
-            "Filtro": "Filtros aplicados",
-            "Valor selecionado": "A base exportada já considera os filtros ativos na tela.",
-        })
-    return pd.DataFrame(linhas)
+linhas_resumo_exportacao = []
 
+# Captura explicitamente os filtros de rota e programação de carga (PC).
+if "rotas_sel" in globals():
+    linhas_resumo_exportacao.append({
+        "Filtro": "Rotas",
+        "Valor selecionado": _texto_resumo_exportacao(rotas_sel),
+    })
+if "pcs_sel" in globals():
+    linhas_resumo_exportacao.append({
+        "Filtro": "PCs / Programação de carga",
+        "Valor selecionado": _texto_resumo_exportacao(pcs_sel),
+    })
+if "produtos_sel" in globals():
+    linhas_resumo_exportacao.append({
+        "Filtro": "Produtos",
+        "Valor selecionado": _texto_resumo_exportacao(produtos_sel),
+    })
+if "tipos_producao_global" in globals():
+    linhas_resumo_exportacao.append({
+        "Filtro": "Tipos de produção",
+        "Valor selecionado": _texto_resumo_exportacao(tipos_producao_global),
+    })
 
-def _montar_excel_tabelas_exportacao():
-    saida = BytesIO()
-    resumo_filtros = _montar_resumo_filtros_exportacao()
-    with pd.ExcelWriter(saida, engine="openpyxl") as writer:
-        df_final.to_excel(writer, index=False, sheet_name="Base Filtrada")
-        tabelas_exportadas = set()
-        # Usa globals() para capturar tabelas DataFrame criadas no escopo do app.
-        for nome, objeto in list(globals().items()):
-            if not isinstance(objeto, pd.DataFrame):
-                continue
-            nome_lower = nome.lower()
-            if not (nome_lower.startswith("tabela_") or nome_lower.startswith("df_detalhe")):
-                continue
-            if objeto is df_final or objeto.empty:
-                continue
-            nome_aba = nome.replace("tabela_", "").replace("df_", "")[:31] or "Tabela"
-            nome_aba = "".join(c for c in nome_aba if c not in "[]:*?/\\") or "Tabela"
-            nome_original = nome_aba
-            contador = 2
-            while nome_aba in tabelas_exportadas or nome_aba in {"Base Filtrada", "Resumo dos Filtros"}:
-                sufixo = f"_{contador}"
-                nome_aba = nome_original[:31-len(sufixo)] + sufixo
-                contador += 1
-            objeto.to_excel(writer, index=False, sheet_name=nome_aba)
-            tabelas_exportadas.add(nome_aba)
-        resumo_filtros.to_excel(writer, index=False, sheet_name="Resumo dos Filtros")
-    return saida.getvalue(), resumo_filtros
-
-
-excel_tabelas_exportacao, resumo_filtros_exportacao = _montar_excel_tabelas_exportacao()
-st.markdown("---")
-st.subheader("📥 Baixar tabelas e resumo dos filtros")
-st.download_button(
-    label="📥 Baixar tabelas + resumo dos filtros (Excel)",
-    data=excel_tabelas_exportacao,
-    file_name="tabelas_e_resumo_dos_filtros.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    key="download_tabelas_resumo_filtros",
+# Inclui outros filtros relevantes registrados no estado da sessão, sem repetir
+# as rotas e PCs já listados explicitamente.
+palavras_filtro_resumo = (
+    "filtro", "produto", "tipo", "status", "previs", "data", "cliente",
+    "pedido", "busca", "selecion", "periodo", "período", "rota", "pc"
 )
+for chave, valor in st.session_state.items():
+    chave_texto = str(chave)
+    chave_lower = chave_texto.lower()
+    if not any(palavra in chave_lower for palavra in palavras_filtro_resumo):
+        continue
+    if chave_lower.startswith(("mostrar_", "download_")) or isinstance(valor, bool):
+        continue
+    if chave_lower in {"rotas_sel", "pcs_sel", "produtos_sel", "tipos_producao_global"}:
+        continue
+    if isinstance(valor, (list, tuple, set)) and not valor:
+        continue
+    linhas_resumo_exportacao.append({
+        "Filtro": chave_texto.replace("_", " ").strip().title(),
+        "Valor selecionado": _texto_resumo_exportacao(valor),
+    })
+
+resumo_filtros_exportacao = pd.DataFrame(
+    linhas_resumo_exportacao,
+    columns=["Filtro", "Valor selecionado"]
+)
+
+st.markdown("---")
 st.subheader("🧾 Resumo dos filtros aplicados na exportação")
-st.caption("A planilha inclui a base filtrada, as tabelas de análise disponíveis e uma aba com este resumo.")
-st.dataframe(resumo_filtros_exportacao, use_container_width=True, hide_index=True)
+st.caption("O resumo abaixo identifica os filtros usados na base exportada, incluindo PCs e rotas.")
+if resumo_filtros_exportacao.empty:
+    st.info("Nenhum filtro específico selecionado. A exportação considera os dados exibidos na tela.")
+else:
+    st.dataframe(resumo_filtros_exportacao, use_container_width=True, hide_index=True)
+
+
+# ===================================
+# DOWNLOAD DE TODAS AS TABELAS
+# ===================================
+# Gera um único arquivo Excel com abas separadas para as tabelas calculadas
+# no aplicativo, preservando os filtros que já foram aplicados em df_final.
+def _montar_excel_todas_tabelas():
+    saida = BytesIO()
+    tabelas_disponiveis = {}
+
+    # Tabelas principais, com os mesmos dados e totais usados na visualização.
+    candidatos_tabelas = [
+        ("Base Filtrada", "df_final"),
+        ("Tabela por Produto", "tabela_produto"),
+        ("Rota X Produto", "tabela_rota_produto_exportacao"),
+        ("PC X Produto", "tabela_pc_produto_exibicao"),
+        ("Tipo Producao X Produto", "tabela_tipo_produto"),
+        ("Detalhamento", "df_detalhe"),
+        ("Resumo dos Filtros", "resumo_filtros_exportacao"),
+    ]
+
+    for nome_aba, nome_variavel in candidatos_tabelas:
+        dataframe = globals().get(nome_variavel)
+        if isinstance(dataframe, pd.DataFrame) and not dataframe.empty:
+            tabelas_disponiveis[nome_aba] = dataframe.copy()
+
+    # Inclui outras tabelas calculadas que existam nesta execução, sem duplicar
+    # as tabelas principais listadas acima.
+    nomes_ja_incluidos = {nome_variavel for _, nome_variavel in candidatos_tabelas}
+    for nome_variavel, dataframe in list(globals().items()):
+        if (
+            nome_variavel.startswith("tabela_")
+            and nome_variavel not in nomes_ja_incluidos
+            and isinstance(dataframe, pd.DataFrame)
+            and not dataframe.empty
+        ):
+            nome_aba = nome_variavel.replace("tabela_", "").replace("_", " ").title()
+            tabelas_disponiveis[nome_aba[:31]] = dataframe.copy()
+
+    with pd.ExcelWriter(saida, engine="openpyxl") as writer:
+        if not tabelas_disponiveis:
+            pd.DataFrame({"Aviso": ["Nenhuma tabela disponível para exportação."]}).to_excel(
+                writer, sheet_name="Aviso", index=False
+            )
+        else:
+            nomes_usados = set()
+            for nome_aba, dataframe in tabelas_disponiveis.items():
+                nome_seguro = nome_aba[:31]
+                base_nome = nome_seguro
+                contador = 2
+                while nome_seguro in nomes_usados:
+                    sufixo = f"_{contador}"
+                    nome_seguro = base_nome[:31-len(sufixo)] + sufixo
+                    contador += 1
+                nomes_usados.add(nome_seguro)
+                dataframe.to_excel(writer, sheet_name=nome_seguro, index=True if nome_aba == "Rota X Produto" else False)
+
+            # Formatação simples para facilitar leitura das planilhas exportadas.
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+            from openpyxl.utils import get_column_letter
+            preenchimento = PatternFill("solid", fgColor="D9E2F3")
+            preenchimento_total = PatternFill("solid", fgColor="EDEDED")
+            borda = Side(style="thin", color="D9D9D9")
+            for planilha in writer.book.worksheets:
+                planilha.freeze_panes = "A2"
+                planilha.auto_filter.ref = planilha.dimensions
+                for celula in planilha[1]:
+                    celula.font = Font(bold=True)
+                    celula.fill = preenchimento
+                    celula.alignment = Alignment(horizontal="center", vertical="center")
+                    celula.border = Border(left=borda, right=borda, top=borda, bottom=borda)
+                for coluna_idx in range(1, planilha.max_column + 1):
+                    valores = [len(str(planilha.cell(linha, coluna_idx).value or "")) for linha in range(1, planilha.max_row + 1)]
+                    planilha.column_dimensions[get_column_letter(coluna_idx)].width = min(max(max(valores, default=10) + 2, 12), 32)
+                for linha in planilha.iter_rows(min_row=2):
+                    if any(str(c.value).strip().upper() == "TOTAL GERAL" for c in linha if c.value is not None):
+                        for celula in linha:
+                            celula.font = Font(bold=True)
+                            celula.fill = preenchimento_total
+                            celula.border = Border(left=borda, right=borda, top=borda, bottom=borda)
+    return saida.getvalue()
+
+
+excel_todas_tabelas = _montar_excel_todas_tabelas()
+st.download_button(
+    label="📥 Baixar TODAS as tabelas (Excel)",
+    data=excel_todas_tabelas,
+    file_name="todas_as_tabelas_filtradas.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    key="download_todas_as_tabelas",
+    help="Baixa as tabelas disponíveis em abas separadas, respeitando os filtros aplicados."
+)
+
 
