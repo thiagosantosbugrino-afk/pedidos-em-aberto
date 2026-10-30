@@ -5639,11 +5639,6 @@ linhas_resumo_exportacao.append({
     "Filtro": "Rotas das programações e rotas manuais",
     "Valor selecionado": ", ".join(rotas_resumo) if rotas_resumo else "Todas / nenhuma rota específica",
 })
-if "pcs_sel" in globals():
-    linhas_resumo_exportacao.append({
-        "Filtro": "PCs / Programação de carga",
-        "Valor selecionado": _texto_resumo_exportacao(pcs_sel),
-    })
 if "produtos_sel" in globals():
     linhas_resumo_exportacao.append({
         "Filtro": "Produtos",
@@ -5895,10 +5890,10 @@ main {{ max-width:1500px; margin:24px auto; padding:0 22px 40px; }}
 .card,.table-section {{ background:white; border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:22px; box-shadow:0 3px 12px rgba(18,52,90,.06); }}
 h2 {{ color:var(--navy); margin:0 0 16px; font-size:20px; }}
 .table-wrap {{ overflow-x:auto; width:100%; }}
-table.data-table {{ border-collapse:collapse; width:100%; font-size:13px; white-space:normal; table-layout:fixed; }}
+table.data-table {{ border-collapse:collapse; width:100%; max-width:100%; font-size:13px; white-space:normal; table-layout:fixed; }}
 table.data-table th {{ background:var(--light); color:var(--navy); font-weight:700; text-align:center; }}
-table.data-table th,table.data-table td {{ border:1px solid var(--border); padding:9px 11px; overflow-wrap:anywhere; word-break:break-word; vertical-align:top; }}
-table.data-table td {{ text-align:right; }} table.data-table td:first-child {{ text-align:left; }}
+table.data-table th,table.data-table td {{ border:1px solid var(--border); padding:9px 11px; white-space:normal !important; overflow-wrap:anywhere !important; word-wrap:break-word; word-break:break-word; vertical-align:top; max-width:0; }}
+table.data-table td {{ text-align:right; }} table.data-table td:first-child {{ text-align:left; }} table.data-table td:nth-child(2) {{ text-align:left; }}
 table.data-table tbody tr:nth-child(even) {{ background:#fafbfd; }}
 .muted {{ color:#64748b; }} .actions {{ display:flex; justify-content:flex-end; margin-bottom:16px; }}
 button {{ border:0; border-radius:8px; background:var(--navy); color:white; padding:11px 16px; cursor:pointer; font-weight:bold; }}
@@ -5926,4 +5921,5 @@ st.download_button(
     key="download_relatorio_html",
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 )
+
 
