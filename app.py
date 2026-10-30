@@ -5852,6 +5852,7 @@ def _montar_relatorio_html():
 
     tabelas_relatorio = []
     assinaturas_relatorio = set()
+    titulos_relatorio = set()
     candidatos_relatorio = [
         ("Tabela por Produto", "tabela_produto"),
         ("Rota X Produto", "tabela_rota_produto_exportacao"),
@@ -5859,34 +5860,52 @@ def _montar_relatorio_html():
         ("Tipo de produção x Produto", "tabela_tipo_produto"),
         ("Detalhamento", "df_detalhe"),
     ]
-    incluidos = set()
+    # Não reconsiderar no laço genérico as variáveis já listadas como tabelas principais.
+    nomes_candidatos = {nome_variavel for _, nome_variavel in candidatos_relatorio}
+    nomes_incluidos = set()
+
+    def _assinatura_html_sem_indice(df):
+        # Ignora o índice para reconhecer cópias da mesma tabela com índices diferentes.
+        try:
+            normalizado = df.reset_index(drop=True)
+            return hashlib.sha256(normalizado.to_csv(index=False).encode("utf-8")).hexdigest()
+        except Exception:
+            return _assinatura_tabela_exportacao(df)
 
     for titulo, nome_variavel in candidatos_relatorio:
         if "material" in str(nome_variavel).casefold() or "material" in str(titulo).casefold():
             continue
         dataframe = globals().get(nome_variavel)
         if isinstance(dataframe, pd.DataFrame) and not dataframe.empty:
-            assinatura = _assinatura_tabela_exportacao(dataframe)
-            if assinatura not in assinaturas_relatorio:
+            assinatura = _assinatura_html_sem_indice(dataframe)
+            titulo_normalizado = str(titulo).strip().casefold()
+            if assinatura not in assinaturas_relatorio and titulo_normalizado not in titulos_relatorio:
                 tabelas_relatorio.append((titulo, dataframe.copy()))
-                incluidos.add(nome_variavel)
+                nomes_incluidos.add(nome_variavel)
                 assinaturas_relatorio.add(assinatura)
+                titulos_relatorio.add(titulo_normalizado)
 
-    # Inclui tabelas adicionais do aplicativo apenas quando ainda não foram incluídas.
+    # Inclui tabelas adicionais somente se não forem cópias das tabelas principais
+    # nem repetirem um título já exibido no relatório.
     for nome_variavel, dataframe in list(globals().items()):
-        # Exclui a tabela Material somente do relatório HTML.
         nome_normalizado = str(nome_variavel).casefold()
         if "material" in nome_normalizado:
             continue
-        if (nome_variavel.startswith("tabela_") and nome_variavel not in incluidos
-                and isinstance(dataframe, pd.DataFrame) and not dataframe.empty):
-            assinatura = _assinatura_tabela_exportacao(dataframe)
-            if assinatura in assinaturas_relatorio:
-                continue
-            titulo = nome_variavel.replace("tabela_", "").replace("_", " ").title()
-            tabelas_relatorio.append((titulo, dataframe.copy()))
-            incluidos.add(nome_variavel)
-            assinaturas_relatorio.add(assinatura)
+        if (not nome_variavel.startswith("tabela_")
+                or nome_variavel in nomes_candidatos
+                or nome_variavel in nomes_incluidos
+                or not isinstance(dataframe, pd.DataFrame)
+                or dataframe.empty):
+            continue
+        assinatura = _assinatura_html_sem_indice(dataframe)
+        titulo = nome_variavel.replace("tabela_", "").replace("_", " ").title()
+        titulo_normalizado = titulo.strip().casefold()
+        if assinatura in assinaturas_relatorio or titulo_normalizado in titulos_relatorio:
+            continue
+        tabelas_relatorio.append((titulo, dataframe.copy()))
+        nomes_incluidos.add(nome_variavel)
+        assinaturas_relatorio.add(assinatura)
+        titulos_relatorio.add(titulo_normalizado)
 
     resumo_html = (
         resumo_filtros_exportacao.to_html(index=False, escape=True, border=0, classes="data-table summary-table")
