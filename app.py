@@ -5862,6 +5862,8 @@ def _montar_relatorio_html():
     incluidos = set()
 
     for titulo, nome_variavel in candidatos_relatorio:
+        if "material" in str(nome_variavel).casefold() or "material" in str(titulo).casefold():
+            continue
         dataframe = globals().get(nome_variavel)
         if isinstance(dataframe, pd.DataFrame) and not dataframe.empty:
             assinatura = _assinatura_tabela_exportacao(dataframe)
@@ -5872,6 +5874,10 @@ def _montar_relatorio_html():
 
     # Inclui tabelas adicionais do aplicativo apenas quando ainda não foram incluídas.
     for nome_variavel, dataframe in list(globals().items()):
+        # Exclui a tabela Material somente do relatório HTML.
+        nome_normalizado = str(nome_variavel).casefold()
+        if "material" in nome_normalizado:
+            continue
         if (nome_variavel.startswith("tabela_") and nome_variavel not in incluidos
                 and isinstance(dataframe, pd.DataFrame) and not dataframe.empty):
             assinatura = _assinatura_tabela_exportacao(dataframe)
@@ -5959,4 +5965,3 @@ st.download_button(
     key="download_relatorio_html",
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 )
-
