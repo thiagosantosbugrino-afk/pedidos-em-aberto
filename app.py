@@ -5690,7 +5690,36 @@ st.caption("O resumo abaixo identifica os filtros usados na base exportada, incl
 if resumo_filtros_exportacao.empty:
     st.info("Nenhum filtro específico selecionado. A exportação considera os dados exibidos na tela.")
 else:
-    st.dataframe(resumo_filtros_exportacao, use_container_width=True, hide_index=True)
+    # Renderiza o resumo como HTML no próprio aplicativo para permitir quebra
+    # automática de linhas em listas longas de PCs e rotas (st.dataframe não
+    # quebra o texto de forma consistente em todas as versões do Streamlit).
+    _resumo_html_app = resumo_filtros_exportacao.copy()
+    _resumo_html_app = _resumo_html_app.fillna("")
+    _linhas_html_app = []
+    for _, _linha_resumo_app in _resumo_html_app.iterrows():
+        _filtro_html_app = html.escape(str(_linha_resumo_app["Filtro"]))
+        _valor_html_app = html.escape(str(_linha_resumo_app["Valor selecionado"]))
+        _linhas_html_app.append(
+            f"<tr><td class='resumo-filtro-label'>{_filtro_html_app}</td>"
+            f"<td class='resumo-filtro-valor'>{_valor_html_app}</td></tr>"
+        )
+    _tabela_resumo_html_app = (
+        "<style>"
+        ".resumo-filtros-wrap{width:100%;overflow-x:hidden;margin-bottom:1rem;}"
+        ".resumo-filtros-table{width:100%;border-collapse:collapse;table-layout:fixed;"
+        "font-size:14px;color:#253449;}"
+        ".resumo-filtros-table th,.resumo-filtros-table td{border:1px solid #d7e0ea;"
+        "padding:9px 11px;text-align:left;vertical-align:top;white-space:normal!important;"
+        "overflow-wrap:anywhere!important;word-break:break-word!important;word-wrap:break-word;}"
+        ".resumo-filtros-table th{background:#eef4fa;color:#12345a;font-weight:700;}"
+        ".resumo-filtros-table th:first-child,.resumo-filtro-label{width:34%;}"
+        ".resumo-filtro-valor{width:66%;}"
+        ".resumo-filtros-table tbody tr:nth-child(even){background:#fafbfd;}"
+        "</style><div class='resumo-filtros-wrap'><table class='resumo-filtros-table'>"
+        "<thead><tr><th>Filtro</th><th>Valor selecionado</th></tr></thead><tbody>"
+        + "".join(_linhas_html_app) + "</tbody></table></div>"
+    )
+    st.markdown(_tabela_resumo_html_app, unsafe_allow_html=True)
 
 
 # ===================================
@@ -5921,5 +5950,3 @@ st.download_button(
     key="download_relatorio_html",
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 )
-
-
