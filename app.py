@@ -5713,6 +5713,7 @@ else:
         "padding:9px 11px;text-align:left;vertical-align:top;white-space:normal!important;"
         "overflow-wrap:anywhere!important;word-break:break-word!important;word-wrap:break-word;}"
         ".resumo-filtros-table th{background:#eef4fa;color:#12345a;font-weight:700;}"
+        ".resumo-filtros-table td{font-weight:400!important;}"
         ".resumo-filtros-table th:first-child,.resumo-filtro-label{width:34%;}"
         ".resumo-filtro-valor{width:66%;}"
         ".resumo-filtros-table tbody tr:nth-child(even){background:#fafbfd;}"
