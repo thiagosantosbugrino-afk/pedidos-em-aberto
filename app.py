@@ -1488,10 +1488,11 @@ except Exception as e:
         f"⚠️ Não foi possível ler a "
         f"Programação de Carga: {e}"
     )
-
+        
 # ===================================
 # FILTRO DE PC
 # ===================================
+
 if "PC" in df.columns:
 
     pcs = sorted(
@@ -1501,26 +1502,18 @@ if "PC" in df.columns:
         .unique()
     )
 
-    if pcs_programacao_dia:
+    pcs_default = [
 
-        pcs_default = sorted(
-            [
-                pc
-                for pc in pcs_programacao_dia
-                if str(pc) in pcs
-            ]
+        pc
+
+        for pc in filtros.get(
+            "pcs",
+            []
         )
 
-    else:
+        if pc in pcs
 
-        pcs_default = [
-            pc
-            for pc in filtros.get(
-                "pcs",
-                []
-            )
-            if pc in pcs
-        ]
+    ]
 
     pcs_sel = st.sidebar.multiselect(
         "Programação de carga",
@@ -1535,6 +1528,7 @@ if "PC" in df.columns:
             .astype(str)
             .isin(pcs_sel)
         ]
+
 
 # ===================================
 # APLICA FILTRO GLOBAL DE TIPO DE PRODUÇÃO
