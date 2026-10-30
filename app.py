@@ -5527,6 +5527,48 @@ def _texto_resumo_exportacao(valor):
 
 linhas_resumo_exportacao = []
 
+# Primeiro, registrar o período da programação na ordem solicitada: início e fim.
+if "inicio_programacao" in globals():
+    linhas_resumo_exportacao.append({
+        "Filtro": "Data inicial da programação",
+        "Valor selecionado": inicio_programacao.strftime("%d/%m/%Y") if hasattr(inicio_programacao, "strftime") else str(inicio_programacao),
+    })
+if "fim_programacao" in globals():
+    linhas_resumo_exportacao.append({
+        "Filtro": "Data final da programação",
+        "Valor selecionado": fim_programacao.strftime("%d/%m/%Y") if hasattr(fim_programacao, "strftime") else str(fim_programacao),
+    })
+
+# Mostrar os dias da semana escolhidos e as PCs correspondentes.
+dias_resumo = globals().get("dias_programacao_selecionados", []) or []
+if dias_resumo:
+    linhas_resumo_exportacao.append({
+        "Filtro": "Dias da programação selecionados",
+        "Valor selecionado": ", ".join(str(dia).upper() for dia in dias_resumo),
+    })
+    pcs_dias_resumo = sorted(str(pc).strip() for pc in globals().get("pcs_programacao_dia", set()) if str(pc).strip())
+    linhas_resumo_exportacao.append({
+        "Filtro": "PCs correspondentes aos dias selecionados",
+        "Valor selecionado": ", ".join(pcs_dias_resumo) if pcs_dias_resumo else "Nenhuma PC encontrada",
+    })
+
+    # A Retira não possui PC. Se houver registro sem PC na programação dos dias
+    # selecionados, indicá-la separadamente no resumo.
+    programacao_dia_resumo = globals().get("programacao_dia")
+    retira_selecionada = False
+    if isinstance(programacao_dia_resumo, pd.DataFrame) and "PC" in programacao_dia_resumo.columns:
+        pcs_vazias = programacao_dia_resumo["PC"].fillna("").astype(str).str.strip().eq("")
+        colunas_texto = [col for col in programacao_dia_resumo.columns if programacao_dia_resumo[col].dtype == "object" or pd.api.types.is_string_dtype(programacao_dia_resumo[col])]
+        menciona_retira = pd.Series(False, index=programacao_dia_resumo.index)
+        for coluna in colunas_texto:
+            menciona_retira |= programacao_dia_resumo[coluna].fillna("").astype(str).str.contains("RETIRA", case=False, na=False)
+        retira_selecionada = bool((pcs_vazias & menciona_retira).any())
+    if retira_selecionada:
+        linhas_resumo_exportacao.append({
+            "Filtro": "Registro sem PC incluído",
+            "Valor selecionado": "RETIRA",
+        })
+
 # Captura explicitamente os filtros de rota e programação de carga (PC).
 if "rotas_sel" in globals():
     linhas_resumo_exportacao.append({
@@ -5549,22 +5591,29 @@ if "tipos_producao_global" in globals():
         "Valor selecionado": _texto_resumo_exportacao(tipos_producao_global),
     })
 
-# Inclui outros filtros relevantes registrados no estado da sessão, sem repetir
-# as rotas e PCs já listados explicitamente.
+# Inclui outros filtros relevantes da sessão, evitando dados técnicos e duplicações.
 palavras_filtro_resumo = (
     "filtro", "produto", "tipo", "status", "previs", "data", "cliente",
-    "pedido", "busca", "selecion", "periodo", "período", "rota", "pc"
+    "pedido", "busca", "selecion", "periodo", "período", "rota", "pc", "dia"
 )
+chaves_ja_exibidas = {
+    "rotas_sel", "pcs_sel", "produtos_sel", "tipos_producao_global",
+    "periodo_programacao_inicio", "periodo_programacao_fim", "dias_programacao_carga",
+    "material_chapa_selecionado", "material_chapa", "mostrar_base_filtrada"
+}
 for chave, valor in st.session_state.items():
     chave_texto = str(chave)
     chave_lower = chave_texto.lower()
+    if chave_lower in chaves_ja_exibidas or "material_chapa" in chave_lower:
+        continue
     if not any(palavra in chave_lower for palavra in palavras_filtro_resumo):
         continue
     if chave_lower.startswith(("mostrar_", "download_")) or isinstance(valor, bool):
         continue
-    if chave_lower in {"rotas_sel", "pcs_sel", "produtos_sel", "tipos_producao_global"}:
-        continue
     if isinstance(valor, (list, tuple, set)) and not valor:
+        continue
+    # As datas e os dias já aparecem no início, em formato amigável.
+    if chave_lower in {"periodo_programacao_inicio", "periodo_programacao_fim", "dias_programacao_carga"}:
         continue
     linhas_resumo_exportacao.append({
         "Filtro": chave_texto.replace("_", " ").strip().title(),
@@ -5590,13 +5639,23 @@ else:
 # ===================================
 # Gera um único arquivo Excel com abas separadas para as tabelas calculadas
 # no aplicativo, preservando os filtros que já foram aplicados em df_final.
+def _assinatura_tabela_exportacao(dataframe):
+    """Cria uma assinatura estável para evitar exportar a mesma tabela duas vezes."""
+    try:
+        conteudo = pd.util.hash_pandas_object(dataframe, index=True).values.tobytes()
+        metadados = repr((tuple(map(str, dataframe.columns)), tuple(map(str, dataframe.dtypes)), dataframe.shape)).encode("utf-8")
+        return hashlib.sha256(metadados + conteudo).hexdigest()
+    except Exception:
+        return hashlib.sha256(dataframe.to_csv(index=True).encode("utf-8")).hexdigest()
+
+
 def _montar_excel_todas_tabelas():
     saida = BytesIO()
     tabelas_disponiveis = {}
+    assinaturas_tabelas = set()
 
-    # Tabelas principais, com os mesmos dados e totais usados na visualização.
+    # Somente tabelas de análise exibidas no aplicativo; não exporta a base bruta filtrada.
     candidatos_tabelas = [
-        ("Base Filtrada", "df_final"),
         ("Tabela por Produto", "tabela_produto"),
         ("Rota X Produto", "tabela_rota_produto_exportacao"),
         ("PC X Produto", "tabela_pc_produto_exibicao"),
@@ -5608,7 +5667,10 @@ def _montar_excel_todas_tabelas():
     for nome_aba, nome_variavel in candidatos_tabelas:
         dataframe = globals().get(nome_variavel)
         if isinstance(dataframe, pd.DataFrame) and not dataframe.empty:
-            tabelas_disponiveis[nome_aba] = dataframe.copy()
+            assinatura = _assinatura_tabela_exportacao(dataframe)
+            if assinatura not in assinaturas_tabelas:
+                tabelas_disponiveis[nome_aba] = dataframe.copy()
+                assinaturas_tabelas.add(assinatura)
 
     # Inclui outras tabelas calculadas que existam nesta execução, sem duplicar
     # as tabelas principais listadas acima.
@@ -5620,8 +5682,12 @@ def _montar_excel_todas_tabelas():
             and isinstance(dataframe, pd.DataFrame)
             and not dataframe.empty
         ):
+            assinatura = _assinatura_tabela_exportacao(dataframe)
+            if assinatura in assinaturas_tabelas:
+                continue
             nome_aba = nome_variavel.replace("tabela_", "").replace("_", " ").title()
             tabelas_disponiveis[nome_aba[:31]] = dataframe.copy()
+            assinaturas_tabelas.add(assinatura)
 
     with pd.ExcelWriter(saida, engine="openpyxl") as writer:
         if not tabelas_disponiveis:
@@ -5694,8 +5760,8 @@ def _montar_relatorio_html():
     from datetime import datetime
 
     tabelas_relatorio = []
+    assinaturas_relatorio = set()
     candidatos_relatorio = [
-        ("Base Filtrada", "df_final"),
         ("Tabela por Produto", "tabela_produto"),
         ("Rota X Produto", "tabela_rota_produto_exportacao"),
         ("PC X Produto", "tabela_pc_produto_exibicao"),
@@ -5707,16 +5773,23 @@ def _montar_relatorio_html():
     for titulo, nome_variavel in candidatos_relatorio:
         dataframe = globals().get(nome_variavel)
         if isinstance(dataframe, pd.DataFrame) and not dataframe.empty:
-            tabelas_relatorio.append((titulo, dataframe.copy()))
-            incluidos.add(nome_variavel)
+            assinatura = _assinatura_tabela_exportacao(dataframe)
+            if assinatura not in assinaturas_relatorio:
+                tabelas_relatorio.append((titulo, dataframe.copy()))
+                incluidos.add(nome_variavel)
+                assinaturas_relatorio.add(assinatura)
 
-    # Inclui tabelas adicionais já criadas pelo aplicativo, sem duplicar as acima.
+    # Inclui tabelas adicionais do aplicativo apenas quando ainda não foram incluídas.
     for nome_variavel, dataframe in list(globals().items()):
         if (nome_variavel.startswith("tabela_") and nome_variavel not in incluidos
                 and isinstance(dataframe, pd.DataFrame) and not dataframe.empty):
+            assinatura = _assinatura_tabela_exportacao(dataframe)
+            if assinatura in assinaturas_relatorio:
+                continue
             titulo = nome_variavel.replace("tabela_", "").replace("_", " ").title()
             tabelas_relatorio.append((titulo, dataframe.copy()))
             incluidos.add(nome_variavel)
+            assinaturas_relatorio.add(assinatura)
 
     resumo_html = (
         resumo_filtros_exportacao.to_html(index=False, escape=True, border=0, classes="data-table")
@@ -5789,5 +5862,6 @@ st.download_button(
     key="download_relatorio_html",
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 )
+
 
 
