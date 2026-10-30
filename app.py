@@ -5587,25 +5587,54 @@ if dias_resumo:
             "Valor selecionado": "RETIRA",
         })
 
-# Combina as rotas encontradas nas programações selecionadas com as rotas
-# adicionadas manualmente e as rotas do filtro principal, sem duplicações.
+# Combina rotas ligadas às PCs selecionadas (mapeadas na base de pedidos),
+# rotas selecionadas no filtro principal e rotas manuais, sem duplicações.
 rotas_resumo = []
 programacao_dia_resumo = globals().get("programacao_dia")
+df_rotas_fonte = globals().get("df_base")
+if not isinstance(df_rotas_fonte, pd.DataFrame):
+    df_rotas_fonte = globals().get("df")
+
+# A planilha de programação pode não conter a coluna Rota; nesse caso usamos
+# as PCs selecionadas para localizar as rotas correspondentes na base principal.
+pcs_programacao_normalizadas = set()
 if isinstance(programacao_dia_resumo, pd.DataFrame) and not programacao_dia_resumo.empty:
-    coluna_rota_programacao = next(
-        (c for c in programacao_dia_resumo.columns if str(c).strip().casefold() in {"rota", "rotas"}),
-        None,
-    )
-    if coluna_rota_programacao is not None:
-        rotas_resumo.extend(
-            programacao_dia_resumo[coluna_rota_programacao]
-            .dropna().astype(str).str.strip().tolist()
-        )
-for nome_filtro_rota in ("rotas_manuais", "rotas_sel"):
+    col_pc_prog = next((c for c in programacao_dia_resumo.columns
+                        if str(c).strip().casefold() in {"pc", "número", "numero", "programação", "programacao"}), None)
+    if col_pc_prog:
+        pcs_programacao_normalizadas = {
+            str(v).strip() for v in programacao_dia_resumo[col_pc_prog].dropna()
+            if str(v).strip() and str(v).strip().casefold() not in {"nan", "none"}
+        }
+    col_rota_prog = next((c for c in programacao_dia_resumo.columns
+                          if str(c).strip().casefold() in {"rota", "rotas"}), None)
+    if col_rota_prog:
+        rotas_resumo.extend(programacao_dia_resumo[col_rota_prog].dropna().astype(str).str.strip().tolist())
+
+if pcs_programacao_normalizadas and isinstance(df_rotas_fonte, pd.DataFrame) and not df_rotas_fonte.empty:
+    col_pc_base = next((c for c in df_rotas_fonte.columns
+                        if str(c).strip().casefold() in {"pc", "número pc", "numero pc", "programação de carga", "programacao de carga"}), None)
+    col_rota_base = next((c for c in df_rotas_fonte.columns
+                          if str(c).strip().casefold() in {"rota", "rotas"}), None)
+    if col_pc_base and col_rota_base:
+        mask_pc = df_rotas_fonte[col_pc_base].fillna("").astype(str).str.strip().isin(pcs_programacao_normalizadas)
+        rotas_resumo.extend(df_rotas_fonte.loc[mask_pc, col_rota_base].dropna().astype(str).str.strip().tolist())
+
+for nome_filtro_rota in ("rotas_sel", "rotas_manuais"):
     valor_rotas = globals().get(nome_filtro_rota, []) or []
     if isinstance(valor_rotas, (list, tuple, set)):
         rotas_resumo.extend(str(r).strip() for r in valor_rotas if str(r).strip())
-rotas_resumo = list(dict.fromkeys(r for r in rotas_resumo if r))
+
+# Se a RETIRA estiver presente na base e não possuir PC, incluí-la quando
+# os dias de programação estiverem filtrados.
+if dias_resumo and isinstance(df_rotas_fonte, pd.DataFrame) and "Rota" in df_rotas_fonte.columns:
+    col_pc_base = next((c for c in df_rotas_fonte.columns if str(c).strip().casefold() == "pc"), None)
+    if col_pc_base:
+        sem_pc = df_rotas_fonte[col_pc_base].fillna("").astype(str).str.strip().eq("")
+        rotas_sem_pc = df_rotas_fonte.loc[sem_pc, "Rota"].dropna().astype(str).str.strip().tolist()
+        rotas_resumo.extend(r for r in rotas_sem_pc if "RETIRA" in r.upper())
+
+rotas_resumo = list(dict.fromkeys(r for r in rotas_resumo if r and r.casefold() not in {"nan", "none"}))
 linhas_resumo_exportacao.append({
     "Filtro": "Rotas das programações e rotas manuais",
     "Valor selecionado": ", ".join(rotas_resumo) if rotas_resumo else "Todas / nenhuma rota específica",
@@ -5866,15 +5895,15 @@ main {{ max-width:1500px; margin:24px auto; padding:0 22px 40px; }}
 .card,.table-section {{ background:white; border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:22px; box-shadow:0 3px 12px rgba(18,52,90,.06); }}
 h2 {{ color:var(--navy); margin:0 0 16px; font-size:20px; }}
 .table-wrap {{ overflow-x:auto; width:100%; }}
-table.data-table {{ border-collapse:collapse; width:100%; font-size:13px; white-space:nowrap; }}
+table.data-table {{ border-collapse:collapse; width:100%; font-size:13px; white-space:normal; table-layout:fixed; }}
 table.data-table th {{ background:var(--light); color:var(--navy); font-weight:700; text-align:center; }}
-table.data-table th,table.data-table td {{ border:1px solid var(--border); padding:9px 11px; }}
+table.data-table th,table.data-table td {{ border:1px solid var(--border); padding:9px 11px; overflow-wrap:anywhere; word-break:break-word; vertical-align:top; }}
 table.data-table td {{ text-align:right; }} table.data-table td:first-child {{ text-align:left; }}
 table.data-table tbody tr:nth-child(even) {{ background:#fafbfd; }}
 .muted {{ color:#64748b; }} .actions {{ display:flex; justify-content:flex-end; margin-bottom:16px; }}
 button {{ border:0; border-radius:8px; background:var(--navy); color:white; padding:11px 16px; cursor:pointer; font-weight:bold; }}
 footer {{ text-align:center; color:#64748b; font-size:12px; padding:18px; }}
-@media print {{ body {{ background:white; }} header {{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }} main {{ max-width:none; margin:0; padding:10px; }} .card,.table-section {{ box-shadow:none; break-inside:avoid; }} .actions {{ display:none; }} .table-wrap {{ overflow:visible; }} table.data-table {{ font-size:9px; white-space:normal; }} table.data-table th,table.data-table td {{ padding:4px; }} }}
+@media print {{ body {{ background:white; }} header {{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }} main {{ max-width:none; margin:0; padding:10px; }} .card,.table-section {{ box-shadow:none; break-inside:avoid; }} .actions {{ display:none; }} .table-wrap {{ overflow:visible; }} table.data-table {{ font-size:9px; white-space:normal; table-layout:fixed; overflow-wrap:anywhere; }} table.data-table th,table.data-table td {{ padding:4px; }} }}
 </style>
 </head>
 <body>
