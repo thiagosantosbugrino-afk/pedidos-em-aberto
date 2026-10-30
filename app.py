@@ -5648,7 +5648,7 @@ if "produtos_sel" in globals():
     })
 if "tipos_producao_global" in globals():
     linhas_resumo_exportacao.append({
-        "Filtro": "Tipos de produção",
+        "Filtro": "Tipo de produção manual",
         "Valor selecionado": _texto_resumo_exportacao(tipos_producao_global),
     })
 
