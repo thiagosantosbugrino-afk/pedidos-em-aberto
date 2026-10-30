@@ -1502,17 +1502,16 @@ if "PC" in df.columns:
         .unique()
     )
 
+    if pcs_programacao_dia:
+    pcs_default = sorted(list(pcs_programacao_dia))
+else:
     pcs_default = [
-
         pc
-
         for pc in filtros.get(
             "pcs",
             []
         )
-
         if pc in pcs
-
     ]
 
     pcs_sel = st.sidebar.multiselect(
