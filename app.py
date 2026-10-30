@@ -5527,16 +5527,34 @@ def _texto_resumo_exportacao(valor):
 
 linhas_resumo_exportacao = []
 
-# Primeiro, registrar o período da programação na ordem solicitada: início e fim.
+# Registrar os filtros gerais de data e, depois, o período específico da programação.
+def _formatar_data_resumo(valor):
+    if valor is None:
+        return "Não informado"
+    try:
+        return pd.to_datetime(valor).strftime("%d/%m/%Y")
+    except Exception:
+        return str(valor)
+
+if "start_date" in globals():
+    linhas_resumo_exportacao.append({
+        "Filtro": "Data inicial (filtro geral)",
+        "Valor selecionado": _formatar_data_resumo(start_date),
+    })
+if "end_date" in globals():
+    linhas_resumo_exportacao.append({
+        "Filtro": "Data final (filtro geral)",
+        "Valor selecionado": _formatar_data_resumo(end_date),
+    })
 if "inicio_programacao" in globals():
     linhas_resumo_exportacao.append({
         "Filtro": "Data inicial da programação",
-        "Valor selecionado": inicio_programacao.strftime("%d/%m/%Y") if hasattr(inicio_programacao, "strftime") else str(inicio_programacao),
+        "Valor selecionado": _formatar_data_resumo(inicio_programacao),
     })
 if "fim_programacao" in globals():
     linhas_resumo_exportacao.append({
         "Filtro": "Data final da programação",
-        "Valor selecionado": fim_programacao.strftime("%d/%m/%Y") if hasattr(fim_programacao, "strftime") else str(fim_programacao),
+        "Valor selecionado": _formatar_data_resumo(fim_programacao),
     })
 
 # Mostrar os dias da semana escolhidos e as PCs correspondentes.
@@ -5569,12 +5587,29 @@ if dias_resumo:
             "Valor selecionado": "RETIRA",
         })
 
-# Captura explicitamente os filtros de rota e programação de carga (PC).
-if "rotas_sel" in globals():
-    linhas_resumo_exportacao.append({
-        "Filtro": "Rotas",
-        "Valor selecionado": _texto_resumo_exportacao(rotas_sel),
-    })
+# Combina as rotas encontradas nas programações selecionadas com as rotas
+# adicionadas manualmente e as rotas do filtro principal, sem duplicações.
+rotas_resumo = []
+programacao_dia_resumo = globals().get("programacao_dia")
+if isinstance(programacao_dia_resumo, pd.DataFrame) and not programacao_dia_resumo.empty:
+    coluna_rota_programacao = next(
+        (c for c in programacao_dia_resumo.columns if str(c).strip().casefold() in {"rota", "rotas"}),
+        None,
+    )
+    if coluna_rota_programacao is not None:
+        rotas_resumo.extend(
+            programacao_dia_resumo[coluna_rota_programacao]
+            .dropna().astype(str).str.strip().tolist()
+        )
+for nome_filtro_rota in ("rotas_manuais", "rotas_sel"):
+    valor_rotas = globals().get(nome_filtro_rota, []) or []
+    if isinstance(valor_rotas, (list, tuple, set)):
+        rotas_resumo.extend(str(r).strip() for r in valor_rotas if str(r).strip())
+rotas_resumo = list(dict.fromkeys(r for r in rotas_resumo if r))
+linhas_resumo_exportacao.append({
+    "Filtro": "Rotas das programações e rotas manuais",
+    "Valor selecionado": ", ".join(rotas_resumo) if rotas_resumo else "Todas / nenhuma rota específica",
+})
 if "pcs_sel" in globals():
     linhas_resumo_exportacao.append({
         "Filtro": "PCs / Programação de carga",
@@ -5613,7 +5648,7 @@ for chave, valor in st.session_state.items():
     if isinstance(valor, (list, tuple, set)) and not valor:
         continue
     # As datas e os dias já aparecem no início, em formato amigável.
-    if chave_lower in {"periodo_programacao_inicio", "periodo_programacao_fim", "dias_programacao_carga"}:
+    if chave_lower in {"periodo_programacao_inicio", "periodo_programacao_fim", "dias_programacao_carga", "data inicial", "data final", "start_date", "end_date"}:
         continue
     linhas_resumo_exportacao.append({
         "Filtro": chave_texto.replace("_", " ").strip().title(),
@@ -5862,6 +5897,4 @@ st.download_button(
     key="download_relatorio_html",
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 )
-
-
 
