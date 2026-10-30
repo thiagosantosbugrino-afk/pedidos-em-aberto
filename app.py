@@ -5900,7 +5900,7 @@ def _montar_relatorio_html():
     secoes_tabelas = []
     for titulo, dataframe in tabelas_relatorio:
         tabela_html = dataframe.to_html(
-            index=(titulo == "Rota X Produto"),
+            index=(titulo in ("Rota X Produto", "Tabela por Produto")),
             escape=True,
             border=0,
             classes="data-table",
