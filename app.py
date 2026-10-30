@@ -5883,7 +5883,7 @@ def _montar_relatorio_html():
             assinaturas_relatorio.add(assinatura)
 
     resumo_html = (
-        resumo_filtros_exportacao.to_html(index=False, escape=True, border=0, classes="data-table")
+        resumo_filtros_exportacao.to_html(index=False, escape=True, border=0, classes="data-table summary-table")
         if isinstance(globals().get("resumo_filtros_exportacao"), pd.DataFrame)
         and not resumo_filtros_exportacao.empty
         else '<p class="muted">Nenhum filtro específico foi identificado.</p>'
@@ -5921,16 +5921,22 @@ header h1 {{ margin:0 0 8px; font-size:28px; }} header p {{ margin:0; opacity:.9
 main {{ max-width:1500px; margin:24px auto; padding:0 22px 40px; }}
 .card,.table-section {{ background:white; border:1px solid var(--border); border-radius:12px; padding:22px; margin-bottom:22px; box-shadow:0 3px 12px rgba(18,52,90,.06); }}
 h2 {{ color:var(--navy); margin:0 0 16px; font-size:20px; }}
-.table-wrap {{ overflow-x:auto; width:100%; }}
-table.data-table {{ border-collapse:collapse; width:100%; max-width:100%; font-size:13px; white-space:normal; table-layout:fixed; }}
-table.data-table th {{ background:var(--light); color:var(--navy); font-weight:700; text-align:center; }}
-table.data-table th,table.data-table td {{ border:1px solid var(--border); padding:9px 11px; white-space:normal !important; overflow-wrap:anywhere !important; word-wrap:break-word; word-break:break-word; vertical-align:top; max-width:0; }}
-table.data-table td {{ text-align:right; }} table.data-table td:first-child {{ text-align:left; }} table.data-table td:nth-child(2) {{ text-align:left; }}
+.table-wrap {{ overflow-x:auto; overflow-y:visible; width:100%; max-width:100%; -webkit-overflow-scrolling:touch; border:1px solid var(--border); border-radius:6px; }}
+/* Tabelas de dados mantêm largura suficiente para os cabeçalhos e podem ser roladas horizontalmente. */
+table.data-table {{ border-collapse:collapse; width:max-content; min-width:100%; max-width:none; font-size:13px; table-layout:auto; white-space:nowrap; }}
+table.data-table th {{ background:var(--light); color:var(--navy); font-weight:700; text-align:center; white-space:nowrap !important; min-width:92px; }}
+table.data-table th,table.data-table td {{ border:1px solid var(--border); padding:10px 13px; white-space:nowrap !important; overflow-wrap:normal !important; word-wrap:normal; word-break:normal; vertical-align:middle; }}
+table.data-table td {{ text-align:right; }} table.data-table td:first-child {{ text-align:left; min-width:110px; }} table.data-table td:nth-child(2) {{ text-align:left; }}
+/* O resumo dos filtros deve quebrar textos longos em vez de criar uma tabela muito larga. */
+table.summary-table {{ width:100%; min-width:0; max-width:100%; table-layout:fixed; white-space:normal; }}
+table.summary-table th,table.summary-table td {{ white-space:normal !important; overflow-wrap:anywhere !important; word-break:normal; }}
+table.summary-table th:first-child,table.summary-table td:first-child {{ width:38%; }}
+table.summary-table th:nth-child(2),table.summary-table td:nth-child(2) {{ width:62%; text-align:left; }}
 table.data-table tbody tr:nth-child(even) {{ background:#fafbfd; }}
 .muted {{ color:#64748b; }} .actions {{ display:flex; justify-content:flex-end; margin-bottom:16px; }}
 button {{ border:0; border-radius:8px; background:var(--navy); color:white; padding:11px 16px; cursor:pointer; font-weight:bold; }}
 footer {{ text-align:center; color:#64748b; font-size:12px; padding:18px; }}
-@media print {{ body {{ background:white; }} header {{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }} main {{ max-width:none; margin:0; padding:10px; }} .card,.table-section {{ box-shadow:none; break-inside:avoid; }} .actions {{ display:none; }} .table-wrap {{ overflow:visible; }} table.data-table {{ font-size:9px; white-space:normal; table-layout:fixed; overflow-wrap:anywhere; }} table.data-table th,table.data-table td {{ padding:4px; }} }}
+@media print {{ body {{ background:white; }} header {{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }} main {{ max-width:none; margin:0; padding:10px; }} .card,.table-section {{ box-shadow:none; break-inside:auto; }} .actions {{ display:none; }} .table-wrap {{ overflow:visible; border:0; }} table.data-table {{ width:100%; min-width:0; max-width:100%; font-size:8px; white-space:normal; table-layout:auto; }} table.data-table th,table.data-table td {{ padding:4px; white-space:normal !important; overflow-wrap:anywhere !important; }} }}
 </style>
 </head>
 <body>
@@ -5953,3 +5959,4 @@ st.download_button(
     key="download_relatorio_html",
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 )
+
