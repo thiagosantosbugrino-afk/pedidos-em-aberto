@@ -1502,10 +1502,17 @@ if "PC" in df.columns:
     )
 
     if pcs_programacao_dia:
+
         pcs_default = sorted(
-            list(pcs_programacao_dia)
+            [
+                pc
+                for pc in pcs_programacao_dia
+                if str(pc) in pcs
+            ]
         )
+
     else:
+
         pcs_default = [
             pc
             for pc in filtros.get(
@@ -1522,6 +1529,7 @@ if "PC" in df.columns:
     )
 
     if pcs_sel:
+
         df = df[
             df["PC"]
             .astype(str)
