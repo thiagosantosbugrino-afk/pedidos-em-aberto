@@ -1427,24 +1427,12 @@ try:
                     .str.strip()
                 )
 
-            # ===================================
-            # APLICA FILTRO DOS DIAS
-            # ===================================
-
-            if pcs_programacao_dia:
-
-                df = df[
-                    df["PC"].isin(
-                        pcs_programacao_dia
-                    )
-                ].copy()
-
-            else:
-
-                # Nenhum PC encontrado nos dias
-                # selecionados.
-
-                df = df.iloc[0:0].copy()
+            # IMPORTANTE:
+            # O filtro por dia gera a seleção inicial do filtro
+            # "Programação de carga", mas não filtra a base diretamente.
+            # Assim, o usuário pode remover PCs sugeridas ou acrescentar
+            # outras PCs manualmente. O filtro final de PCs será aplicado
+            # uma única vez mais abaixo, refletindo em todas as tabelas.
 
             # ===================================
             # MOSTRA DIAS SELECIONADOS
@@ -1495,39 +1483,71 @@ except Exception as e:
 
 if "PC" in df.columns:
 
-    pcs = sorted(
+    pcs_base = sorted(
         df["PC"]
         .dropna()
         .astype(str)
+        .str.strip()
+        .replace(["", "nan", "NaN", "<NA>"], pd.NA)
+        .dropna()
         .unique()
     )
 
-    pcs_default = [
+    # Inclui na lista as PCs encontradas pela programação por dia,
+    # mesmo que alguma delas não apareça na base já limitada por outros filtros.
+    pcs_sugeridas = sorted(
+        str(pc).strip()
+        for pc in globals().get("pcs_programacao_dia", set())
+        if str(pc).strip() and str(pc).strip().lower() not in {"nan", "<na>"}
+    )
+    pcs = sorted(set(pcs_base) | set(pcs_sugeridas))
 
-        pc
+    # A seleção do filtro por dia é apenas a seleção inicial.
+    # Atualiza automaticamente somente quando os dias mudam; alterações
+    # manuais feitas pelo usuário são preservadas nos reruns seguintes.
+    assinatura_dias_atual = tuple(sorted(
+        str(dia) for dia in globals().get("dias_programacao_selecionados", [])
+    ))
+    assinatura_dias_anterior = st.session_state.get("_assinatura_dias_pcs")
+    chave_pcs = "pcs_selecionadas_filtro"
 
-        for pc in filtros.get(
-            "pcs",
-            []
-        )
+    if assinatura_dias_anterior is None:
+        # Na primeira abertura, respeita PCs salvas quando nenhum dia foi
+        # escolhido; se já houver dias selecionados, usa as PCs sugeridas.
+        if assinatura_dias_atual:
+            st.session_state[chave_pcs] = pcs_sugeridas
+        else:
+            pcs_salvas = filtros.get("pcs", [])
+            if isinstance(pcs_salvas, str):
+                pcs_salvas = [pcs_salvas]
+            st.session_state[chave_pcs] = [str(pc) for pc in pcs_salvas if str(pc) in pcs]
+        st.session_state["_assinatura_dias_pcs"] = assinatura_dias_atual
+    elif assinatura_dias_anterior != assinatura_dias_atual:
+        st.session_state[chave_pcs] = pcs_sugeridas if assinatura_dias_atual else []
+        st.session_state["_assinatura_dias_pcs"] = assinatura_dias_atual
+    elif chave_pcs not in st.session_state:
+        st.session_state[chave_pcs] = []
 
-        if pc in pcs
-
+    # Evita manter valores que não existam mais nas opções do multiselect.
+    st.session_state[chave_pcs] = [
+        str(pc) for pc in st.session_state.get(chave_pcs, []) if str(pc) in pcs
     ]
 
     pcs_sel = st.sidebar.multiselect(
         "Programação de carga",
         options=pcs,
-        default=pcs_default
+        key=chave_pcs,
+        help="Os dias selecionados sugerem as PCs iniciais. Você pode retirar ou acrescentar PCs manualmente."
     )
 
+    # Esta é a seleção final efetiva, usada por todas as tabelas e exportações.
     if pcs_sel:
-
         df = df[
             df["PC"]
             .astype(str)
-            .isin(pcs_sel)
-        ]
+            .str.strip()
+            .isin([str(pc).strip() for pc in pcs_sel])
+        ].copy()
 
 
 # ===================================
@@ -5627,11 +5647,14 @@ for nome_filtro_rota in ("rotas_sel", "rotas_manuais"):
     if isinstance(valor_rotas, (list, tuple, set)):
         rotas_resumo.extend(str(r).strip() for r in valor_rotas if str(r).strip())
 
-# Inclui RETIRA somente se ela tiver sido selecionada manualmente
-if "rotas_manuais" in globals():
-    for rota in rotas_manuais:
-        if str(rota).strip().upper() == "RETIRA":
-            rotas_resumo.append("RETIRA")
+# Se a RETIRA estiver presente na base e não possuir PC, incluí-la quando
+# os dias de programação estiverem filtrados.
+if dias_resumo and isinstance(df_rotas_fonte, pd.DataFrame) and "Rota" in df_rotas_fonte.columns:
+    col_pc_base = next((c for c in df_rotas_fonte.columns if str(c).strip().casefold() == "pc"), None)
+    if col_pc_base:
+        sem_pc = df_rotas_fonte[col_pc_base].fillna("").astype(str).str.strip().eq("")
+        rotas_sem_pc = df_rotas_fonte.loc[sem_pc, "Rota"].dropna().astype(str).str.strip().tolist()
+        rotas_resumo.extend(r for r in rotas_sem_pc if "RETIRA" in r.upper())
 
 rotas_resumo = list(dict.fromkeys(r for r in rotas_resumo if r and r.casefold() not in {"nan", "none"}))
 linhas_resumo_exportacao.append({
@@ -5645,7 +5668,7 @@ if "produtos_sel" in globals():
     })
 if "tipos_producao_global" in globals():
     linhas_resumo_exportacao.append({
-        "Filtro": "Tipo de produção manual",
+        "Filtro": "Tipos de produção",
         "Valor selecionado": _texto_resumo_exportacao(tipos_producao_global),
     })
 
@@ -5964,3 +5987,4 @@ st.download_button(
     key="download_relatorio_html",
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 )
+
