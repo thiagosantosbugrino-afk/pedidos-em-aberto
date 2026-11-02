@@ -47,6 +47,16 @@ def ler_excel_cacheado(caminho, sheet_name=0):
 # FUNÇÕES
 # ===================================
 
+def normalizar_pc_filtro(valor):
+    """Padroniza o código da PC entre dados.xlsx e programação_carga.xlsx."""
+    if pd.isna(valor):
+        return ""
+    texto = str(valor).strip()
+    if texto.casefold() in {"nan", "<na>", "none", "null"}:
+        return ""
+    return re.sub(r"\.0$", "", texto).strip()
+
+
 def codigo_material(texto):
     """
     Retorna o código padronizado do material
@@ -1195,27 +1205,9 @@ try:
         # PADRONIZA PC
         # ===================================
 
-        programacao["PC"] = (
-            programacao["PC"]
-            .astype("string")
-            .fillna("")
-            .str.strip()
-            .str.replace(
-                r"\.0$",
-                "",
-                regex=True
-            )
-        )
-
-        programacao["PC"] = (
-            programacao["PC"]
-            .replace(
-                ["nan", "NaN", "<NA>"],
-                ""
-            )
-            .astype(str)
-            .str.strip()
-        )
+        # Padroniza o identificador da PC de forma consistente nas duas
+        # planilhas (evita diferenças como 123, 123.0, espaços ou valores nulos).
+        programacao["PC"] = programacao["PC"].apply(normalizar_pc_filtro)
 
         # ===================================
         # PADRONIZA DATA
@@ -1419,7 +1411,7 @@ try:
 
             st.sidebar.caption(
                 f"📦 {len(pcs_programacao_dia)} "
-                f"PC(s) na programação."
+                f"PC(s) na programação para os dias/período."
             )
 
         # ===================================
@@ -1456,12 +1448,8 @@ if "PC" in df.columns:
 
     # Opções de PCs respeitam os filtros principais já aplicados
     # (data, rota e produto), mas não são reduzidas pelo filtro por dia.
-    df["PC"] = (
-        df["PC"].astype("string").fillna("")
-        .str.strip().str.replace(r"\.0$", "", regex=True)
-        .replace(["nan", "NaN", "<NA>"], "")
-        .astype(str).str.strip()
-    )
+    # Usa exatamente a mesma normalização aplicada à planilha de programação.
+    df["PC"] = df["PC"].apply(normalizar_pc_filtro)
     pcs = sorted(pc for pc in df["PC"].unique() if pc)
 
     # Inicializa a seleção manual salva, se ainda não existir estado do widget.
@@ -1471,7 +1459,10 @@ if "PC" in df.columns:
             if str(pc).strip() in pcs
         ]
 
-    # Quando os dias mudarem e houver dias selecionados, sugere/seleciona
+    # PCs programadas nos dias selecionados que também existem na base atual.
+    pcs_dia_compativeis = set(pcs_programacao_dia or set()).intersection(pcs)
+
+    # Quando os dias mudarem e houver dias selecionados, seleciona
     # automaticamente as PCs correspondentes. Depois disso, o usuário pode
     # editar manualmente a seleção sem que ela seja sobrescrita a cada rerun.
     dias_atuais = list(dias_programacao_selecionados or [])
@@ -1506,6 +1497,14 @@ if "PC" in df.columns:
     # Com a seleção vazia, mantém todas as PCs disponíveis, como no comportamento original.
     if pcs_sel:
         df = df[df["PC"].astype(str).isin(pcs_sel)].copy()
+    elif dias_programacao_selecionados and not pcs_dia_compativeis:
+        # Se o dia/período não possui PCs compatíveis com a base, não pode cair
+        # no comportamento de seleção vazia = todos os pedidos.
+        st.sidebar.warning(
+            "Nenhuma PC encontrada para os dias e período selecionados. "
+            "Confira as datas da programação ou selecione uma PC manualmente."
+        )
+        df = df.iloc[0:0].copy()
 
 
 # ===================================
@@ -5945,5 +5944,6 @@ st.download_button(
     key="download_relatorio_html",
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 )
+
 
 
