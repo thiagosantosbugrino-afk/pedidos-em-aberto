@@ -47,6 +47,16 @@ def ler_excel_cacheado(caminho, sheet_name=0):
 # FUNÇÕES
 # ===================================
 
+def normalizar_pc_filtro(valor):
+    """Padroniza o código da PC entre dados.xlsx e programação_carga.xlsx."""
+    if pd.isna(valor):
+        return ""
+    texto = str(valor).strip()
+    if texto.casefold() in {"nan", "<na>", "none", "null"}:
+        return ""
+    return re.sub(r"\.0$", "", texto).strip()
+
+
 def codigo_material(texto):
     """
     Retorna o código padronizado do material
@@ -1195,27 +1205,9 @@ try:
         # PADRONIZA PC
         # ===================================
 
-        programacao["PC"] = (
-            programacao["PC"]
-            .astype("string")
-            .fillna("")
-            .str.strip()
-            .str.replace(
-                r"\.0$",
-                "",
-                regex=True
-            )
-        )
-
-        programacao["PC"] = (
-            programacao["PC"]
-            .replace(
-                ["nan", "NaN", "<NA>"],
-                ""
-            )
-            .astype(str)
-            .str.strip()
-        )
+        # Padroniza o identificador da PC de forma consistente nas duas
+        # planilhas (evita diferenças como 123, 123.0, espaços ou valores nulos).
+        programacao["PC"] = programacao["PC"].apply(normalizar_pc_filtro)
 
         # ===================================
         # PADRONIZA DATA
@@ -1399,52 +1391,11 @@ try:
                 .tolist()
             )
 
-            # ===================================
-            # PADRONIZA PC DA BASE
-            # ===================================
-
-            if "PC" in df.columns:
-
-                df["PC"] = (
-                    df["PC"]
-                    .astype("string")
-                    .fillna("")
-                    .str.strip()
-                    .str.replace(
-                        r"\.0$",
-                        "",
-                        regex=True
-                    )
-                )
-
-                df["PC"] = (
-                    df["PC"]
-                    .replace(
-                        ["nan", "NaN", "<NA>"],
-                        ""
-                    )
-                    .astype(str)
-                    .str.strip()
-                )
-
-            # ===================================
-            # APLICA FILTRO DOS DIAS
-            # ===================================
-
-            if pcs_programacao_dia:
-
-                df = df[
-                    df["PC"].isin(
-                        pcs_programacao_dia
-                    )
-                ].copy()
-
-            else:
-
-                # Nenhum PC encontrado nos dias
-                # selecionados.
-
-                df = df.iloc[0:0].copy()
+            # IMPORTANTE:
+            # A programação por dia apenas identifica as PCs sugeridas.
+            # Ela NÃO filtra a base df. A seleção final é feita no filtro
+            # "Programação de carga", permitindo adicionar/remover PCs
+            # manualmente e usar esse filtro de forma independente.
 
             # ===================================
             # MOSTRA DIAS SELECIONADOS
@@ -1460,7 +1411,7 @@ try:
 
             st.sidebar.caption(
                 f"📦 {len(pcs_programacao_dia)} "
-                f"PC(s) na programação."
+                f"PC(s) na programação para os dias/período."
             )
 
         # ===================================
@@ -1495,39 +1446,65 @@ except Exception as e:
 
 if "PC" in df.columns:
 
-    pcs = sorted(
-        df["PC"]
-        .dropna()
-        .astype(str)
-        .unique()
-    )
+    # Opções de PCs respeitam os filtros principais já aplicados
+    # (data, rota e produto), mas não são reduzidas pelo filtro por dia.
+    # Usa exatamente a mesma normalização aplicada à planilha de programação.
+    df["PC"] = df["PC"].apply(normalizar_pc_filtro)
+    pcs = sorted(pc for pc in df["PC"].unique() if pc)
 
-    pcs_default = [
+    # Inicializa a seleção manual salva, se ainda não existir estado do widget.
+    if "pcs_programacao_carga" not in st.session_state:
+        st.session_state["pcs_programacao_carga"] = [
+            str(pc).strip() for pc in filtros.get("pcs", [])
+            if str(pc).strip() in pcs
+        ]
 
-        pc
+    # PCs programadas nos dias selecionados que também existem na base atual.
+    pcs_dia_compativeis = set(pcs_programacao_dia or set()).intersection(pcs)
 
-        for pc in filtros.get(
-            "pcs",
-            []
+    # Quando os dias mudarem e houver dias selecionados, seleciona
+    # automaticamente as PCs correspondentes. Depois disso, o usuário pode
+    # editar manualmente a seleção sem que ela seja sobrescrita a cada rerun.
+    dias_atuais = list(dias_programacao_selecionados or [])
+    dias_anteriores = st.session_state.get("_dias_programacao_carga_anteriores")
+    if dias_atuais != dias_anteriores and dias_atuais:
+        pcs_sugeridas = sorted(
+            str(pc).strip() for pc in (pcs_programacao_dia or set())
+            if str(pc).strip() in pcs
         )
+        st.session_state["pcs_programacao_carga"] = pcs_sugeridas
+    st.session_state["_dias_programacao_carga_anteriores"] = dias_atuais
 
-        if pc in pcs
-
+    # Remove da seleção salva apenas PCs que deixaram de ser opções por
+    # causa dos filtros principais; mantém a seleção manual quando os dias
+    # não estão sendo usados.
+    st.session_state["pcs_programacao_carga"] = [
+        str(pc).strip() for pc in st.session_state["pcs_programacao_carga"]
+        if str(pc).strip() in pcs
     ]
 
     pcs_sel = st.sidebar.multiselect(
         "Programação de carga",
         options=pcs,
-        default=pcs_default
+        key="pcs_programacao_carga",
+        help=(
+            "Selecione as PCs manualmente ou use a programação por dia "
+            "para preencher esta seleção automaticamente. Esta seleção é a final."
+        )
     )
 
+    # Quando há PCs selecionadas, elas restringem a visualização.
+    # Com a seleção vazia, mantém todas as PCs disponíveis, como no comportamento original.
     if pcs_sel:
-
-        df = df[
-            df["PC"]
-            .astype(str)
-            .isin(pcs_sel)
-        ]
+        df = df[df["PC"].astype(str).isin(pcs_sel)].copy()
+    elif dias_programacao_selecionados and not pcs_dia_compativeis:
+        # Se o dia/período não possui PCs compatíveis com a base, não pode cair
+        # no comportamento de seleção vazia = todos os pedidos.
+        st.sidebar.warning(
+            "Nenhuma PC encontrada para os dias e período selecionados. "
+            "Confira as datas da programação ou selecione uma PC manualmente."
+        )
+        df = df.iloc[0:0].copy()
 
 
 # ===================================
@@ -5572,6 +5549,23 @@ if dias_resumo:
         "Valor selecionado": ", ".join(pcs_dias_resumo) if pcs_dias_resumo else "Nenhuma PC encontrada",
     })
 
+    # A Retira não possui PC. Se houver registro sem PC na programação dos dias
+    # selecionados, indicá-la separadamente no resumo.
+    programacao_dia_resumo = globals().get("programacao_dia")
+    retira_selecionada = False
+    if isinstance(programacao_dia_resumo, pd.DataFrame) and "PC" in programacao_dia_resumo.columns:
+        pcs_vazias = programacao_dia_resumo["PC"].fillna("").astype(str).str.strip().eq("")
+        colunas_texto = [col for col in programacao_dia_resumo.columns if programacao_dia_resumo[col].dtype == "object" or pd.api.types.is_string_dtype(programacao_dia_resumo[col])]
+        menciona_retira = pd.Series(False, index=programacao_dia_resumo.index)
+        for coluna in colunas_texto:
+            menciona_retira |= programacao_dia_resumo[coluna].fillna("").astype(str).str.contains("RETIRA", case=False, na=False)
+        retira_selecionada = bool((pcs_vazias & menciona_retira).any())
+    if retira_selecionada:
+        linhas_resumo_exportacao.append({
+            "Filtro": "Registro sem PC incluído",
+            "Valor selecionado": "RETIRA",
+        })
+
 # Combina rotas ligadas às PCs selecionadas (mapeadas na base de pedidos),
 # rotas selecionadas no filtro principal e rotas manuais, sem duplicações.
 rotas_resumo = []
@@ -5610,23 +5604,16 @@ for nome_filtro_rota in ("rotas_sel", "rotas_manuais"):
     if isinstance(valor_rotas, (list, tuple, set)):
         rotas_resumo.extend(str(r).strip() for r in valor_rotas if str(r).strip())
 
-rotas_explicitamente_selecionadas = []
-for nome_filtro_rota in ("rotas_sel", "rotas_manuais"):
-    valor_rotas = globals().get(nome_filtro_rota, []) or []
-    if isinstance(valor_rotas, (list, tuple, set)):
-        rotas_explicitamente_selecionadas.extend(
-            str(r).strip() for r in valor_rotas if str(r).strip()
-        )
+# Se a RETIRA estiver presente na base e não possuir PC, incluí-la quando
+# os dias de programação estiverem filtrados.
+if dias_resumo and isinstance(df_rotas_fonte, pd.DataFrame) and "Rota" in df_rotas_fonte.columns:
+    col_pc_base = next((c for c in df_rotas_fonte.columns if str(c).strip().casefold() == "pc"), None)
+    if col_pc_base:
+        sem_pc = df_rotas_fonte[col_pc_base].fillna("").astype(str).str.strip().eq("")
+        rotas_sem_pc = df_rotas_fonte.loc[sem_pc, "Rota"].dropna().astype(str).str.strip().tolist()
+        rotas_resumo.extend(r for r in rotas_sem_pc if "RETIRA" in r.upper())
 
-retira_foi_mantida_no_filtro = any(
-    "RETIRA" in rota.upper() for rota in rotas_explicitamente_selecionadas
-)
-rotas_resumo = [
-    r for r in rotas_resumo
-    if r and r.casefold() not in {"nan", "none"}
-    and ("RETIRA" not in r.upper() or retira_foi_mantida_no_filtro)
-]
-rotas_resumo = list(dict.fromkeys(rotas_resumo))
+rotas_resumo = list(dict.fromkeys(r for r in rotas_resumo if r and r.casefold() not in {"nan", "none"}))
 linhas_resumo_exportacao.append({
     "Filtro": "Rotas das programações e rotas manuais",
     "Valor selecionado": ", ".join(rotas_resumo) if rotas_resumo else "Todas / nenhuma rota específica",
@@ -5638,7 +5625,7 @@ if "produtos_sel" in globals():
     })
 if "tipos_producao_global" in globals():
     linhas_resumo_exportacao.append({
-        "Filtro": "Tipo de produção manual",
+        "Filtro": "Tipos de produção",
         "Valor selecionado": _texto_resumo_exportacao(tipos_producao_global),
     })
 
@@ -5655,14 +5642,7 @@ chaves_ja_exibidas = {
 for chave, valor in st.session_state.items():
     chave_texto = str(chave)
     chave_lower = chave_texto.lower()
-    chave_normalizada = (
-        chave_lower.replace(" ", "_").replace("-", "_")
-    )
-    if (
-        chave_lower in chaves_ja_exibidas
-        or "material_chapa" in chave_lower
-        or "dias_programacao_carga_anteriores" in chave_normalizada
-    ):
+    if chave_lower in chaves_ja_exibidas or "material_chapa" in chave_lower:
         continue
     if not any(palavra in chave_lower for palavra in palavras_filtro_resumo):
         continue
@@ -5964,6 +5944,3 @@ st.download_button(
     key="download_relatorio_html",
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 )
-
-
-
