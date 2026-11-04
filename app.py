@@ -1446,64 +1446,75 @@ except Exception as e:
 
 if "PC" in df.columns:
 
-    # Opções de PCs respeitam os filtros principais já aplicados
-    # (data, rota e produto), mas não são reduzidas pelo filtro por dia.
-    # Usa exatamente a mesma normalização aplicada à planilha de programação.
+    # As opções consideram os filtros principais (data, rota e produto),
+    # mas não são reduzidas pela programação por dia. Assim, o usuário
+    # pode acrescentar manualmente qualquer PC disponível.
     df["PC"] = df["PC"].apply(normalizar_pc_filtro)
     pcs = sorted(pc for pc in df["PC"].unique() if pc)
 
-    # Inicializa a seleção manual salva, se ainda não existir estado do widget.
-    if "pcs_programacao_carga" not in st.session_state:
-        st.session_state["pcs_programacao_carga"] = [
-            str(pc).strip() for pc in filtros.get("pcs", [])
-            if str(pc).strip() in pcs
-        ]
+    chave_widget_pc = "pcs_programacao_carga"
+    chave_assinatura_dias = "_assinatura_programacao_carga"
 
-    # PCs programadas nos dias selecionados que também existem na base atual.
-    pcs_dia_compativeis = set(pcs_programacao_dia or set()).intersection(pcs)
-
-    # Quando os dias mudarem e houver dias selecionados, seleciona
-    # automaticamente as PCs correspondentes. Depois disso, o usuário pode
-    # editar manualmente a seleção sem que ela seja sobrescrita a cada rerun.
-    dias_atuais = list(dias_programacao_selecionados or [])
-    dias_anteriores = st.session_state.get("_dias_programacao_carga_anteriores")
-    if dias_atuais != dias_anteriores and dias_atuais:
-        pcs_sugeridas = sorted(
-            str(pc).strip() for pc in (pcs_programacao_dia or set())
-            if str(pc).strip() in pcs
+    # A assinatura considera dias e período. Se qualquer um deles mudar,
+    # a seleção é sincronizada novamente com a programação correspondente.
+    if programacao_carregada:
+        assinatura_atual = (
+            tuple(dias_programacao_selecionados or []),
+            str(inicio_programacao),
+            str(fim_programacao),
         )
-        st.session_state["pcs_programacao_carga"] = pcs_sugeridas
-    st.session_state["_dias_programacao_carga_anteriores"] = dias_atuais
+    else:
+        assinatura_atual = (tuple(), None, None)
 
-    # Remove da seleção salva apenas PCs que deixaram de ser opções por
-    # causa dos filtros principais; mantém a seleção manual quando os dias
-    # não estão sendo usados.
-    st.session_state["pcs_programacao_carga"] = [
-        str(pc).strip() for pc in st.session_state["pcs_programacao_carga"]
-        if str(pc).strip() in pcs
+    assinatura_anterior = st.session_state.get(chave_assinatura_dias)
+
+    # Primeira inicialização: usa a programação dos dias selecionados.
+    # Sem dias selecionados, respeita o filtro salvo em filtros.json.
+    if chave_widget_pc not in st.session_state:
+        if dias_programacao_selecionados:
+            selecao_inicial = sorted(
+                pc for pc in (pcs_programacao_dia or set()) if pc in pcs
+            )
+        else:
+            selecao_inicial = [
+                normalizar_pc_filtro(pc)
+                for pc in filtros.get("pcs", [])
+            ]
+            selecao_inicial = [pc for pc in selecao_inicial if pc in pcs]
+        st.session_state[chave_widget_pc] = selecao_inicial
+
+    # Ao alterar dias ou período, atualiza automaticamente as PCs sugeridas.
+    # Depois da sincronização, o usuário continua livre para editar a lista.
+    elif assinatura_anterior != assinatura_atual and dias_programacao_selecionados:
+        st.session_state[chave_widget_pc] = sorted(
+            pc for pc in (pcs_programacao_dia or set()) if pc in pcs
+        )
+
+    st.session_state[chave_assinatura_dias] = assinatura_atual
+
+    # Descarta apenas códigos que deixaram de existir nas opções atuais.
+    st.session_state[chave_widget_pc] = [
+        normalizar_pc_filtro(pc)
+        for pc in st.session_state[chave_widget_pc]
+        if normalizar_pc_filtro(pc) in pcs
     ]
 
     pcs_sel = st.sidebar.multiselect(
         "Programação de carga",
         options=pcs,
-        key="pcs_programacao_carga",
+        key=chave_widget_pc,
         help=(
-            "Selecione as PCs manualmente ou use a programação por dia "
-            "para preencher esta seleção automaticamente. Esta seleção é a final."
-        )
+            "As PCs dos dias/período selecionados são marcadas automaticamente. "
+            "Você pode adicionar ou remover PCs manualmente; esta é a seleção final."
+        ),
     )
 
-    # Quando há PCs selecionadas, elas restringem a visualização.
-    # Com a seleção vazia, mantém todas as PCs disponíveis, como no comportamento original.
+    # Com dias ativos, seleção vazia significa nenhuma PC (não todas).
+    # Sem dias ativos, mantém o comportamento independente do filtro de PC:
+    # uma seleção vazia não restringe a base.
     if pcs_sel:
-        df = df[df["PC"].astype(str).isin(pcs_sel)].copy()
-    elif dias_programacao_selecionados and not pcs_dia_compativeis:
-        # Se o dia/período não possui PCs compatíveis com a base, não pode cair
-        # no comportamento de seleção vazia = todos os pedidos.
-        st.sidebar.warning(
-            "Nenhuma PC encontrada para os dias e período selecionados. "
-            "Confira as datas da programação ou selecione uma PC manualmente."
-        )
+        df = df[df["PC"].isin(pcs_sel)].copy()
+    elif dias_programacao_selecionados:
         df = df.iloc[0:0].copy()
 
 
