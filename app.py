@@ -1633,6 +1633,73 @@ rotas_manuais = (
     )
 )
 
+# ===================================
+# PERÍODO EXCLUSIVO DAS ROTAS MANUAIS
+# ===================================
+# Por padrão, acompanha o período do filtro principal. Quando o usuário
+# altera o período principal, o período manual volta a acompanhar esse novo
+# intervalo. Depois disso, pode ser ajustado sem alterar o filtro principal.
+if "Previsão" in df_base.columns:
+    _datas_validas_rotas = pd.to_datetime(
+        df_base["Previsão"], errors="coerce"
+    ).dropna()
+
+    if not _datas_validas_rotas.empty:
+        _min_data_rotas = _datas_validas_rotas.min().date()
+        _max_data_rotas = _datas_validas_rotas.max().date()
+
+        _inicio_padrao_rotas = start_date if start_date is not None else _min_data_rotas
+        _fim_padrao_rotas = end_date if end_date is not None else _max_data_rotas
+
+        _inicio_padrao_rotas = min(max(_inicio_padrao_rotas, _min_data_rotas), _max_data_rotas)
+        _fim_padrao_rotas = min(max(_fim_padrao_rotas, _min_data_rotas), _max_data_rotas)
+
+        _assinatura_periodo_principal = (
+            str(start_date), str(end_date)
+        )
+        _assinatura_anterior_rotas = st.session_state.get(
+            "_assinatura_periodo_principal_rotas_manuais"
+        )
+
+        if (
+            "periodo_rotas_manuais_inicio" not in st.session_state
+            or _assinatura_anterior_rotas != _assinatura_periodo_principal
+        ):
+            st.session_state["periodo_rotas_manuais_inicio"] = _inicio_padrao_rotas
+            st.session_state["periodo_rotas_manuais_fim"] = _fim_padrao_rotas
+
+        st.session_state["_assinatura_periodo_principal_rotas_manuais"] = (
+            _assinatura_periodo_principal
+        )
+
+        st.sidebar.markdown("**📅 Período de produção – Rotas manuais**")
+        periodo_rotas_inicio = st.sidebar.date_input(
+            "Data inicial das rotas",
+            min_value=_min_data_rotas,
+            max_value=_max_data_rotas,
+            key="periodo_rotas_manuais_inicio",
+            format="DD/MM/YYYY",
+        )
+        periodo_rotas_fim = st.sidebar.date_input(
+            "Data final das rotas",
+            min_value=_min_data_rotas,
+            max_value=_max_data_rotas,
+            key="periodo_rotas_manuais_fim",
+            format="DD/MM/YYYY",
+        )
+
+        if periodo_rotas_inicio > periodo_rotas_fim:
+            st.sidebar.error(
+                "A data inicial das rotas manuais não pode ser maior que a data final."
+            )
+            st.stop()
+    else:
+        periodo_rotas_inicio = start_date
+        periodo_rotas_fim = end_date
+else:
+    periodo_rotas_inicio = start_date
+    periodo_rotas_fim = end_date
+
 
 # ===================================
 # TIPO DE PRODUÇÃO - INCLUSÃO MANUAL
@@ -1731,27 +1798,39 @@ if (
 
 if (
     rotas_manuais
-    and "Rota"
-    in df_base_filtrada.columns
+    and "Rota" in df_base.columns
 ):
+    # A rota manual usa uma base própria: seu período não depende do filtro
+    # principal de datas. Os filtros principais de Rota e Produto continuam
+    # sendo respeitados, como acontecia anteriormente.
+    df_base_rotas_manuais = df_base.copy()
 
-    df_extra_rotas = (
-        df_base_filtrada[
-            df_base_filtrada[
-                "Rota"
-            ]
-            .astype(str)
-            .isin(
-                rotas_manuais
-            )
-        ]
-    )
+    if (
+        periodo_rotas_inicio is not None
+        and periodo_rotas_fim is not None
+        and "Previsão" in df_base_rotas_manuais.columns
+    ):
+        df_base_rotas_manuais = df_base_rotas_manuais[
+            (df_base_rotas_manuais["Previsão"].dt.date >= periodo_rotas_inicio)
+            & (df_base_rotas_manuais["Previsão"].dt.date <= periodo_rotas_fim)
+        ].copy()
+
+    if rotas_sel and "Rota" in df_base_rotas_manuais.columns:
+        df_base_rotas_manuais = df_base_rotas_manuais[
+            df_base_rotas_manuais["Rota"].astype(str).isin(rotas_sel)
+        ].copy()
+
+    if produtos_sel and "Produto" in df_base_rotas_manuais.columns:
+        df_base_rotas_manuais = df_base_rotas_manuais[
+            df_base_rotas_manuais["Produto"].astype(str).isin(produtos_sel)
+        ].copy()
+
+    df_extra_rotas = df_base_rotas_manuais[
+        df_base_rotas_manuais["Rota"].astype(str).isin(rotas_manuais)
+    ].copy()
 
     df_final = pd.concat(
-        [
-            df_final,
-            df_extra_rotas
-        ],
+        [df_final, df_extra_rotas],
         ignore_index=True
     )
 
