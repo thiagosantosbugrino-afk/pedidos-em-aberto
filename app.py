@@ -5732,7 +5732,11 @@ chaves_ja_exibidas = {
 for chave, valor in st.session_state.items():
     chave_texto = str(chave)
     chave_lower = chave_texto.lower()
-    if chave_lower in chaves_ja_exibidas or "material_chapa" in chave_lower:
+    if (
+        chave_lower in chaves_ja_exibidas
+        or chave_lower == "_assinatura_periodo_principal_rotas_manuais"
+        or "material_chapa" in chave_lower
+    ):
         continue
     if not any(palavra in chave_lower for palavra in palavras_filtro_resumo):
         continue
@@ -5743,9 +5747,17 @@ for chave, valor in st.session_state.items():
     # As datas e os dias já aparecem no início, em formato amigável.
     if chave_lower in {"periodo_programacao_inicio", "periodo_programacao_fim", "dias_programacao_carga", "data inicial", "data final", "start_date", "end_date"}:
         continue
+
+    # Exibe o período das rotas manuais no padrão brasileiro, assim como
+    # as demais datas do resumo da exportação.
+    if chave_lower in {"periodo_rotas_manuais_inicio", "periodo_rotas_manuais_fim"}:
+        valor_resumo = _formatar_data_resumo(valor)
+    else:
+        valor_resumo = _texto_resumo_exportacao(valor)
+
     linhas_resumo_exportacao.append({
         "Filtro": chave_texto.replace("_", " ").strip().title(),
-        "Valor selecionado": _texto_resumo_exportacao(valor),
+        "Valor selecionado": valor_resumo,
     })
 
 resumo_filtros_exportacao = pd.DataFrame(
