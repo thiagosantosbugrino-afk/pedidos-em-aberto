@@ -1314,8 +1314,8 @@ try:
             pcs_programacao_dia = set()
 
             st.sidebar.caption(
-                "📦 Nenhum dia selecionado. O filtro de PCs fica sob "
-                "controle manual; com a lista vazia, ele não restringe a base."
+                "📦 Todos os pedidos da base estão "
+                "sendo exibidos."
             )
 
         else:
@@ -1722,106 +1722,111 @@ tipos_producao_manuais = st.sidebar.multiselect(
 # ===================================
 # APLICAÇÃO DOS FILTROS MANUAIS
 # ===================================
-# Regra central:
-# - A base principal (df_final) respeita TODOS os filtros principais,
-#   incluindo PC/programação por dia e Tipo de produção global.
-# - Inclusões manuais são acréscimos explícitos (união), não novos filtros
-#   sobre a base principal. Por isso, cada inclusão parte de df_base e recebe
-#   somente os filtros comuns que devem continuar valendo.
-# - Pedidos manuais e tipos manuais respeitam o período principal, Rota e
-#   Produto; não são limitados pela seleção de PC.
-# - Rotas manuais respeitam seu próprio período, além dos filtros principais
-#   de Rota e Produto, conforme o comportamento já definido para o sistema.
-# - Tipos manuais podem acrescentar tipos que não estejam no filtro global.
 
-def aplicar_filtros_comuns(
-    base,
-    data_inicio=None,
-    data_fim=None,
-    rotas_selecionadas=None,
-    produtos_selecionados=None
-):
-    """Aplica, em uma cópia, os filtros comuns de data, rota e produto."""
-    resultado = base.copy()
-
-    if (
-        data_inicio is not None
-        and data_fim is not None
-        and "Previsão" in resultado.columns
-    ):
-        datas = pd.to_datetime(resultado["Previsão"], errors="coerce")
-        mascara_data = (
-            datas.notna()
-            & (datas.dt.date >= data_inicio)
-            & (datas.dt.date <= data_fim)
-        )
-        resultado = resultado.loc[mascara_data].copy()
-
-    if rotas_selecionadas and "Rota" in resultado.columns:
-        resultado = resultado.loc[
-            resultado["Rota"].astype("string").fillna("").isin(
-                [str(v) for v in rotas_selecionadas]
-            )
-        ].copy()
-
-    if produtos_selecionados and "Produto" in resultado.columns:
-        resultado = resultado.loc[
-            resultado["Produto"].astype("string").fillna("").isin(
-                [str(v) for v in produtos_selecionados]
-            )
-        ].copy()
-
-    return resultado
-
-
-# A base principal já está filtrada por data, rota, produto, PC e tipo global.
-df_filtrado = df.copy()
-df_final = df_filtrado.copy()
-
-# Base comum para pedidos manuais e tipos manuais.
-df_base_filtrada = aplicar_filtros_comuns(
-    df_base,
-    data_inicio=start_date,
-    data_fim=end_date,
-    rotas_selecionadas=rotas_sel if "rotas_sel" in locals() else [],
-    produtos_selecionados=produtos_sel if "produtos_sel" in locals() else []
+df_base_filtrada = (
+    df_base.copy()
 )
 
-# -----------------------------------
-# 1. PEDIDOS MANUAIS
-# -----------------------------------
-if pedidos_manuais and "Pedido" in df_base_filtrada.columns:
-    pedidos_normalizados = {str(p).strip() for p in pedidos_manuais}
-    df_extra_pedidos = df_base_filtrada.loc[
-        df_base_filtrada["Pedido"].astype("string").fillna("").str.strip().isin(
-            pedidos_normalizados
-        )
+if (
+    start_date is not None
+    and end_date is not None
+    and "Previsão" in df_base_filtrada.columns
+):
+
+    df_base_filtrada = (
+        df_base_filtrada[
+            (
+                df_base_filtrada[
+                    "Previsão"
+                ].dt.date
+                >= start_date
+            )
+            &
+            (
+                df_base_filtrada[
+                    "Previsão"
+                ].dt.date
+                <= end_date
+            )
+        ]
+    )
+
+# IMPORTANTE: os registros acrescentados pelos filtros manuais também
+# precisam respeitar os filtros principais de Rota e Produto. Sem isso,
+# pedidos/rotas/tipos adicionados manualmente podem reintroduzir linhas
+# que o usuário acabou de excluir pelos filtros da barra lateral.
+if "rotas_sel" in locals() and rotas_sel and "Rota" in df_base_filtrada.columns:
+    df_base_filtrada = df_base_filtrada[
+        df_base_filtrada["Rota"].astype(str).isin(rotas_sel)
     ].copy()
 
+if "produtos_sel" in locals() and produtos_sel and "Produto" in df_base_filtrada.columns:
+    df_base_filtrada = df_base_filtrada[
+        df_base_filtrada["Produto"].astype(str).isin(produtos_sel)
+    ].copy()
+
+# Cada inclusão manual é aplicada separadamente:
+# pedidos, rotas e tipos de produção podem ser combinados (união),
+# sem que a seleção de tipos restrinja as rotas manuais e vice-versa.
+
+if (
+    pedidos_manuais
+    and "Pedido"
+    in df_base_filtrada.columns
+):
+
+    df_extra = (
+        df_base_filtrada[
+            df_base_filtrada[
+                "Pedido"
+            ]
+            .astype(str)
+            .isin(
+                pedidos_manuais
+            )
+        ]
+    )
+
     df_final = pd.concat(
-        [df_final, df_extra_pedidos],
+        [
+            df_final,
+            df_extra
+        ],
         ignore_index=True
     )
 
-# -----------------------------------
-# 2. ROTAS MANUAIS
-# -----------------------------------
-if rotas_manuais and "Rota" in df_base.columns:
-    # O período manual é independente do período principal.
-    # Rota e Produto continuam respeitando as seleções principais.
-    df_base_rotas_manuais = aplicar_filtros_comuns(
-        df_base,
-        data_inicio=periodo_rotas_inicio,
-        data_fim=periodo_rotas_fim,
-        rotas_selecionadas=rotas_sel if "rotas_sel" in locals() else [],
-        produtos_selecionados=produtos_sel if "produtos_sel" in locals() else []
-    )
 
-    rotas_manuais_normalizadas = {str(r).strip() for r in rotas_manuais}
-    df_extra_rotas = df_base_rotas_manuais.loc[
-        df_base_rotas_manuais["Rota"].astype("string").fillna("").str.strip().isin(
-            rotas_manuais_normalizadas
-        )
+if (
+    rotas_manuais
+    and "Rota" in df_base.columns
+):
+    # A rota manual usa uma base própria: seu período não depende do filtro
+    # principal de datas. Os filtros principais de Rota e Produto continuam
+    # sendo respeitados, como acontecia anteriormente.
+    df_base_rotas_manuais = df_base.copy()
+
+    if (
+        periodo_rotas_inicio is not None
+        and periodo_rotas_fim is not None
+        and "Previsão" in df_base_rotas_manuais.columns
+    ):
+        df_base_rotas_manuais = df_base_rotas_manuais[
+            (df_base_rotas_manuais["Previsão"].dt.date >= periodo_rotas_inicio)
+            & (df_base_rotas_manuais["Previsão"].dt.date <= periodo_rotas_fim)
+        ].copy()
+
+    if rotas_sel and "Rota" in df_base_rotas_manuais.columns:
+        df_base_rotas_manuais = df_base_rotas_manuais[
+            df_base_rotas_manuais["Rota"].astype(str).isin(rotas_sel)
+        ].copy()
+
+    if produtos_sel and "Produto" in df_base_rotas_manuais.columns:
+        df_base_rotas_manuais = df_base_rotas_manuais[
+            df_base_rotas_manuais["Produto"].astype(str).isin(produtos_sel)
+        ].copy()
+
+    df_extra_rotas = df_base_rotas_manuais[
+        df_base_rotas_manuais["Rota"].astype(str).isin(rotas_manuais)
     ].copy()
 
     df_final = pd.concat(
@@ -1829,30 +1834,20 @@ if rotas_manuais and "Rota" in df_base.columns:
         ignore_index=True
     )
 
-# -----------------------------------
-# 3. TIPOS DE PRODUÇÃO MANUAIS
-# -----------------------------------
-if tipos_producao_manuais and coluna_tipo_dados is not None:
-    tipos_manuais_chaves = {
-        normalizar_tipo_producao(tipo)
-        for tipo in tipos_producao_manuais
-    }
 
-    df_extra_tipos = df_base_filtrada.loc[
+if tipos_producao_manuais and coluna_tipo_dados is not None:
+    tipos_manuais_chaves = {normalizar_tipo_producao(t) for t in tipos_producao_manuais}
+    df_extra_tipos = df_base_filtrada[
         df_base_filtrada[coluna_tipo_dados]
         .apply(normalizar_tipo_producao)
         .isin(tipos_manuais_chaves)
     ].copy()
+    df_final = pd.concat([df_final, df_extra_tipos], ignore_index=True)
 
-    df_final = pd.concat(
-        [df_final, df_extra_tipos],
-        ignore_index=True
-    )
-
-# Remove linhas repetidas geradas quando um mesmo pedido entra por mais de
-# um caminho (base principal, pedido manual, rota manual ou tipo manual).
-df_final = df_final.drop_duplicates().reset_index(drop=True)
-
+df_final = (
+    df_final
+    .drop_duplicates()
+)
 # =====================================
 # CONFIGURAÇÃO DE CHAPAS POR MATERIAL
 # =====================================
