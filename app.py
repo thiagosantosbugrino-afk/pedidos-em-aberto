@@ -1751,10 +1751,10 @@ if (
         ]
     )
 
-# IMPORTANTE: os registros acrescentados pelos filtros manuais também
-# precisam respeitar os filtros principais de Rota e Produto. Sem isso,
-# pedidos/rotas/tipos adicionados manualmente podem reintroduzir linhas
-# que o usuário acabou de excluir pelos filtros da barra lateral.
+# Base auxiliar para inclusões manuais que devem respeitar o período
+# principal e os filtros principais de Rota e Produto (pedidos e tipos).
+# As rotas manuais usam uma base separada mais abaixo: ignoram a seleção
+# principal de Rota, mas preservam o filtro de Produto e seu período próprio.
 if "rotas_sel" in locals() and rotas_sel and "Rota" in df_base_filtrada.columns:
     df_base_filtrada = df_base_filtrada[
         df_base_filtrada["Rota"].astype(str).isin(rotas_sel)
@@ -1800,9 +1800,11 @@ if (
     rotas_manuais
     and "Rota" in df_base.columns
 ):
-    # A rota manual usa uma base própria: seu período não depende do filtro
-    # principal de datas. Os filtros principais de Rota e Produto continuam
-    # sendo respeitados, como acontecia anteriormente.
+    # A rota manual é uma inclusão adicional (união) à seleção principal.
+    # Por isso, NÃO deve ser limitada por rotas_sel: o usuário pode acrescentar
+    # qualquer rota disponível, mesmo que ela não esteja marcada no filtro
+    # principal. Ela respeita o período exclusivo das rotas manuais e mantém
+    # o filtro de Produto, para não reintroduzir materiais que foram excluídos.
     df_base_rotas_manuais = df_base.copy()
 
     if (
@@ -1810,14 +1812,13 @@ if (
         and periodo_rotas_fim is not None
         and "Previsão" in df_base_rotas_manuais.columns
     ):
+        _datas_rotas_manuais = pd.to_datetime(
+            df_base_rotas_manuais["Previsão"], errors="coerce"
+        ).dt.date
         df_base_rotas_manuais = df_base_rotas_manuais[
-            (df_base_rotas_manuais["Previsão"].dt.date >= periodo_rotas_inicio)
-            & (df_base_rotas_manuais["Previsão"].dt.date <= periodo_rotas_fim)
-        ].copy()
-
-    if rotas_sel and "Rota" in df_base_rotas_manuais.columns:
-        df_base_rotas_manuais = df_base_rotas_manuais[
-            df_base_rotas_manuais["Rota"].astype(str).isin(rotas_sel)
+            _datas_rotas_manuais.notna()
+            & (_datas_rotas_manuais >= periodo_rotas_inicio)
+            & (_datas_rotas_manuais <= periodo_rotas_fim)
         ].copy()
 
     if produtos_sel and "Produto" in df_base_rotas_manuais.columns:
@@ -6045,4 +6046,6 @@ st.download_button(
     mime="text/html",
     key="download_relatorio_html",
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
+
 )
+
