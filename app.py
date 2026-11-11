@@ -1723,88 +1723,45 @@ tipos_producao_manuais = st.sidebar.multiselect(
 # APLICAÇÃO DOS FILTROS MANUAIS
 # ===================================
 
-df_base_filtrada = (
-    df_base.copy()
-)
+# IMPORTANTE:
+# As inclusões manuais consultam a base original (df_base), e não a base já
+# reduzida pelos filtros globais de rota, produto, PC ou tipo de produção.
+# Assim, elas funcionam como uma UNIÃO à visualização principal.
+# Os períodos continuam sendo respeitados: pedidos e tipos usam o período
+# principal; rotas manuais usam o período exclusivo configurado acima.
+
+# Base de inclusões manuais no período principal, sem filtros globais.
+df_base_manuais_periodo = df_base.copy()
 
 if (
     start_date is not None
     and end_date is not None
-    and "Previsão" in df_base_filtrada.columns
+    and "Previsão" in df_base_manuais_periodo.columns
 ):
-
-    df_base_filtrada = (
-        df_base_filtrada[
-            (
-                df_base_filtrada[
-                    "Previsão"
-                ].dt.date
-                >= start_date
-            )
-            &
-            (
-                df_base_filtrada[
-                    "Previsão"
-                ].dt.date
-                <= end_date
-            )
-        ]
-    )
-
-# Base auxiliar para inclusões manuais que devem respeitar o período
-# principal e os filtros principais de Rota e Produto (pedidos e tipos).
-# As rotas manuais usam uma base separada mais abaixo: ignoram a seleção
-# principal de Rota, mas preservam o filtro de Produto e seu período próprio.
-if "rotas_sel" in locals() and rotas_sel and "Rota" in df_base_filtrada.columns:
-    df_base_filtrada = df_base_filtrada[
-        df_base_filtrada["Rota"].astype(str).isin(rotas_sel)
+    _datas_manuais = pd.to_datetime(
+        df_base_manuais_periodo["Previsão"], errors="coerce"
+    ).dt.date
+    df_base_manuais_periodo = df_base_manuais_periodo[
+        _datas_manuais.notna()
+        & (_datas_manuais >= start_date)
+        & (_datas_manuais <= end_date)
     ].copy()
 
-if "produtos_sel" in locals() and produtos_sel and "Produto" in df_base_filtrada.columns:
-    df_base_filtrada = df_base_filtrada[
-        df_base_filtrada["Produto"].astype(str).isin(produtos_sel)
+# 1) PEDIDOS MANUAIS: busca na base original, sem limitar por rota,
+# produto, PC ou tipo de produção selecionados nos filtros globais.
+if pedidos_manuais and "Pedido" in df_base_manuais_periodo.columns:
+    df_extra_pedidos = df_base_manuais_periodo[
+        df_base_manuais_periodo["Pedido"].astype(str).isin(
+            [str(p) for p in pedidos_manuais]
+        )
     ].copy()
-
-# Cada inclusão manual é aplicada separadamente:
-# pedidos, rotas e tipos de produção podem ser combinados (união),
-# sem que a seleção de tipos restrinja as rotas manuais e vice-versa.
-
-if (
-    pedidos_manuais
-    and "Pedido"
-    in df_base_filtrada.columns
-):
-
-    df_extra = (
-        df_base_filtrada[
-            df_base_filtrada[
-                "Pedido"
-            ]
-            .astype(str)
-            .isin(
-                pedidos_manuais
-            )
-        ]
-    )
-
     df_final = pd.concat(
-        [
-            df_final,
-            df_extra
-        ],
-        ignore_index=True
+        [df_final, df_extra_pedidos], ignore_index=True, sort=False
     )
 
-
-if (
-    rotas_manuais
-    and "Rota" in df_base.columns
-):
-    # A rota manual é uma inclusão adicional (união) à seleção principal.
-    # Por isso, NÃO deve ser limitada por rotas_sel: o usuário pode acrescentar
-    # qualquer rota disponível, mesmo que ela não esteja marcada no filtro
-    # principal. Ela respeita o período exclusivo das rotas manuais e mantém
-    # o filtro de Produto, para não reintroduzir materiais que foram excluídos.
+# 2) ROTAS MANUAIS: busca na base original, sem limitar pela seleção
+# global de rotas, produtos, PCs ou tipos. Usa somente o período próprio.
+if rotas_manuais and "Rota" in df_base.columns:
     df_base_rotas_manuais = df_base.copy()
 
     if (
@@ -1821,34 +1778,36 @@ if (
             & (_datas_rotas_manuais <= periodo_rotas_fim)
         ].copy()
 
-    if produtos_sel and "Produto" in df_base_rotas_manuais.columns:
-        df_base_rotas_manuais = df_base_rotas_manuais[
-            df_base_rotas_manuais["Produto"].astype(str).isin(produtos_sel)
-        ].copy()
-
     df_extra_rotas = df_base_rotas_manuais[
-        df_base_rotas_manuais["Rota"].astype(str).isin(rotas_manuais)
+        df_base_rotas_manuais["Rota"].astype(str).isin(
+            [str(r) for r in rotas_manuais]
+        )
     ].copy()
-
     df_final = pd.concat(
-        [df_final, df_extra_rotas],
-        ignore_index=True
+        [df_final, df_extra_rotas], ignore_index=True, sort=False
     )
 
-
+# 3) TIPOS DE PRODUÇÃO MANUAIS: busca na base original no período
+# principal, sem limitar pelo tipo global nem pelas demais seleções globais.
 if tipos_producao_manuais and coluna_tipo_dados is not None:
-    tipos_manuais_chaves = {normalizar_tipo_producao(t) for t in tipos_producao_manuais}
-    df_extra_tipos = df_base_filtrada[
-        df_base_filtrada[coluna_tipo_dados]
-        .apply(normalizar_tipo_producao)
-        .isin(tipos_manuais_chaves)
+    tipos_manuais_chaves = {
+        normalizar_tipo_producao(t) for t in tipos_producao_manuais
+    }
+    _tipos_base_normalizados = df_base_manuais_periodo[
+        coluna_tipo_dados
+    ].apply(normalizar_tipo_producao)
+    df_extra_tipos = df_base_manuais_periodo[
+        _tipos_base_normalizados.isin(tipos_manuais_chaves)
     ].copy()
-    df_final = pd.concat([df_final, df_extra_tipos], ignore_index=True)
+    df_final = pd.concat(
+        [df_final, df_extra_tipos], ignore_index=True, sort=False
+    )
 
-df_final = (
-    df_final
-    .drop_duplicates()
-)
+# Remove repetições do mesmo registro quando ele aparece na base principal
+# e também em uma ou mais inclusões manuais. Não deduplica apenas por Pedido,
+# pois um pedido pode conter produtos/linhas diferentes legitimamente.
+df_final = df_final.drop_duplicates().reset_index(drop=True)
+
 # =====================================
 # CONFIGURAÇÃO DE CHAPAS POR MATERIAL
 # =====================================
@@ -6048,4 +6007,5 @@ st.download_button(
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 
 )
+
 
