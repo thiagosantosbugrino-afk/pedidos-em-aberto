@@ -711,7 +711,12 @@ st.markdown(
 try:
 
     df = ler_excel_cacheado("dados.xlsx", sheet_name=0)
-    # A base completa é uma cópia da mesma leitura em cache.
+    # Identificador estável da linha de origem. Permite reconhecer o mesmo
+    # registro quando ele entra pelo filtro global e também por uma inclusão
+    # manual, mesmo que alguma coluna (como PC) seja normalizada depois.
+    df["_id_registro_origem"] = range(len(df))
+
+    # A base completa mantém exatamente o mesmo identificador de origem.
     df_base = df.copy()
 
 except Exception as erro:
@@ -1803,10 +1808,18 @@ if tipos_producao_manuais and coluna_tipo_dados is not None:
         [df_final, df_extra_tipos], ignore_index=True, sort=False
     )
 
-# Remove repetições do mesmo registro quando ele aparece na base principal
-# e também em uma ou mais inclusões manuais. Não deduplica apenas por Pedido,
-# pois um pedido pode conter produtos/linhas diferentes legitimamente.
-df_final = df_final.drop_duplicates().reset_index(drop=True)
+# Remove somente inclusões repetidas da MESMA linha da planilha de origem.
+# O identificador permanece igual mesmo quando a linha passa por filtros
+# diferentes ou quando alguma coluna é normalizada no dataframe principal.
+# Linhas distintas do mesmo Pedido são preservadas.
+if "_id_registro_origem" in df_final.columns:
+    df_final = df_final.drop_duplicates(
+        subset=["_id_registro_origem"],
+        keep="first"
+    ).copy()
+    df_final = df_final.drop(columns=["_id_registro_origem"])
+
+df_final = df_final.reset_index(drop=True)
 
 # =====================================
 # CONFIGURAÇÃO DE CHAPAS POR MATERIAL
@@ -6007,5 +6020,6 @@ st.download_button(
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 
 )
+
 
 
