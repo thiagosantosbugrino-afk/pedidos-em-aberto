@@ -5692,6 +5692,14 @@ if "tipos_producao_global" in globals():
         "Valor selecionado": _texto_resumo_exportacao(tipos_producao_global),
     })
 
+# Exibe também os pedidos acrescentados manualmente à base exportada.
+pedidos_manuais_resumo = globals().get("pedidos_manuais", []) or []
+if pedidos_manuais_resumo:
+    linhas_resumo_exportacao.append({
+        "Filtro": "Pedidos incluídos manualmente",
+        "Valor selecionado": _texto_resumo_exportacao(pedidos_manuais_resumo),
+    })
+
 # Inclui outros filtros relevantes da sessão, evitando dados técnicos e duplicações.
 palavras_filtro_resumo = (
     "filtro", "produto", "tipo", "status", "previs", "data", "cliente",
@@ -6020,6 +6028,5 @@ st.download_button(
     help="Baixa um relatório com aparência de sistema, incluindo o resumo dos filtros e as tabelas disponíveis."
 
 )
-
 
 
