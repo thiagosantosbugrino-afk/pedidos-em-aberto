@@ -5746,6 +5746,19 @@ resumo_filtros_exportacao = pd.DataFrame(
     columns=["Filtro", "Valor selecionado"]
 )
 
+# Mantém o início do período das rotas manuais antes do fim no resumo.
+_pos_inicio_rotas = resumo_filtros_exportacao.index[
+    resumo_filtros_exportacao["Filtro"].eq("Periodo Rotas Manuais Inicio")
+].tolist()
+_pos_fim_rotas = resumo_filtros_exportacao.index[
+    resumo_filtros_exportacao["Filtro"].eq("Periodo Rotas Manuais Fim")
+].tolist()
+if _pos_inicio_rotas and _pos_fim_rotas and _pos_inicio_rotas[0] > _pos_fim_rotas[0]:
+    _ordem_resumo = list(resumo_filtros_exportacao.index)
+    _ordem_resumo.remove(_pos_inicio_rotas[0])
+    _ordem_resumo.insert(_ordem_resumo.index(_pos_fim_rotas[0]), _pos_inicio_rotas[0])
+    resumo_filtros_exportacao = resumo_filtros_exportacao.loc[_ordem_resumo].reset_index(drop=True)
+
 st.markdown("---")
 st.subheader("🧾 Resumo dos filtros aplicados na exportação")
 st.caption("O resumo abaixo identifica os filtros usados na base exportada, incluindo PCs e rotas.")
